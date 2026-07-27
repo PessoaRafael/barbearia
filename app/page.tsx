@@ -101,10 +101,14 @@ function Hero() {
         </dl>
       </div>
 
+      {/* Nativa em 710x679: o box acompanha o quadrado da foto e nunca passa
+          de 420px, para não esticar pixel que não existe. */}
       <Retrato
-        proporcao="4 / 5"
-        legenda="foto do salão"
-        className="w-full lg:max-w-md lg:justify-self-end"
+        src="/salao.jpg"
+        alt="Johny e o sócio na Johny Barbearia"
+        tamanhos="(min-width: 1024px) 420px, 100vw"
+        proporcao="710 / 679"
+        className="w-full max-w-[420px] self-center lg:justify-self-end"
       />
     </section>
   );

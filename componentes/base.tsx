@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Camera } from "lucide-react";
 
 /** Marca da casa: public/logo.jpg recortada em quadrado arredondado. */
@@ -17,13 +18,19 @@ export function Logo({ tamanho = 40 }: { tamanho?: number }) {
   );
 }
 
-/** Área reservada para foto. Nada de imagem externa. */
+/** Foto, quando existe. Sem `src`, vira área reservada. */
 export function Retrato({
+  src,
+  alt,
+  tamanhos = "100vw",
   iniciais,
   proporcao = "1 / 1",
   legenda,
   className = "",
 }: {
+  src?: string;
+  alt?: string;
+  tamanhos?: string;
   iniciais?: string;
   proporcao?: string;
   legenda?: string;
@@ -34,7 +41,16 @@ export function Retrato({
       className={`relative flex items-center justify-center overflow-hidden rounded-card border border-borda bg-superficie-ativa ${className}`}
       style={{ aspectRatio: proporcao }}
     >
-      {iniciais ? (
+      {src ? (
+        <Image
+          src={src}
+          alt={alt ?? ""}
+          fill
+          sizes={tamanhos}
+          className="object-cover"
+          priority
+        />
+      ) : iniciais ? (
         <span className="font-titulo text-3xl font-bold text-texto-apagado">
           {iniciais}
         </span>
