@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { CalendarOff, MoonStar } from "lucide-react";
 
-import { BARBEIROS, DIAS, EXPEDIENTE } from "@/agenda";
+import { BARBEIROS, DIAS, EXPEDIENTE, type BarbeiroId } from "@/agenda";
 import { AGENDA_POR_DIA, type Agendamento } from "@/painel";
 import { minutos } from "@/lib/formato";
 import { rotuloDia } from "@/lib/disponibilidade";
@@ -24,12 +24,19 @@ const HORAS = Array.from(
 /** Só hoje, amanhã e domingo entram na régua do painel. */
 const DIAS_PAINEL = DIAS.filter((d) => ["d0", "d1", "d6"].includes(d.id));
 
+/**
+ * Uma coluna por barbeiro só a partir de 640px. Abaixo disso três colunas
+ * viram 107px cada e todo bloco trunca, então o celular mostra um barbeiro
+ * por vez. O repeat(3) espelha BARBEIROS — classe precisa ser literal.
+ */
+const GRADE =
+  "grid-cols-[52px_minmax(0,1fr)] sm:grid-cols-[52px_repeat(3,minmax(0,1fr))]";
+
 export function Agenda() {
   const [diaId, setDiaId] = useState("d0");
+  const [foco, setFoco] = useState<BarbeiroId>(BARBEIROS[0].id);
   const dia = DIAS.find((d) => d.id === diaId);
   const agendamentos = AGENDA_POR_DIA[diaId] ?? [];
-
-  const colunas = `${COLUNA_HORAS}px repeat(${BARBEIROS.length}, minmax(112px, 1fr))`;
 
   return (
     <section className="flex flex-col gap-4 rounded-grande border border-borda bg-superficie p-4 sm:p-5">
@@ -70,12 +77,38 @@ export function Agenda() {
           texto="A régua está vazia. Mande o link de agendamento para o grupo."
         />
       ) : (
-        <div className="trilho overflow-x-auto">
-          <div className="min-w-[480px]">
-            <div className="grid pb-2" style={{ gridTemplateColumns: colunas }}>
+        <div className="flex flex-col gap-3">
+          <div className="flex gap-2 sm:hidden">
+            {BARBEIROS.map((b) => {
+              const ativo = b.id === foco;
+              return (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => setFoco(b.id)}
+                  aria-pressed={ativo}
+                  className={`inline-flex min-h-toque flex-1 items-center justify-center rounded-pill border px-2 font-titulo text-sm font-semibold transition-colors ${
+                    ativo
+                      ? "border-acao bg-acao text-acao-sobre"
+                      : "border-borda bg-superficie-ativa text-texto-suave"
+                  }`}
+                >
+                  {b.nome}
+                </button>
+              );
+            })}
+          </div>
+
+          <div>
+            <div className={`grid pb-2 ${GRADE}`}>
               <span />
               {BARBEIROS.map((b) => (
-                <div key={b.id} className="flex flex-col px-1">
+                <div
+                  key={b.id}
+                  className={`flex-col px-1 sm:flex ${
+                    b.id === foco ? "flex" : "hidden"
+                  }`}
+                >
                   <span className="font-titulo text-sm font-semibold">
                     {b.nome}
                   </span>
@@ -87,10 +120,7 @@ export function Agenda() {
               ))}
             </div>
 
-            <div
-              className="relative grid"
-              style={{ gridTemplateColumns: colunas, height: ALTURA }}
-            >
+            <div className={`relative grid ${GRADE}`} style={{ height: ALTURA }}>
               {HORAS.map((h, i) => (
                 <span
                   key={h}
@@ -130,7 +160,12 @@ export function Agenda() {
               </div>
 
               {BARBEIROS.map((b) => (
-                <div key={b.id} className="relative">
+                <div
+                  key={b.id}
+                  className={`relative sm:block ${
+                    b.id === foco ? "block" : "hidden"
+                  }`}
+                >
                   {agendamentos
                     .filter((a) => a.barbeiro === b.id)
                     .map((a) => (
