@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-fundo font-corpo text-base text-texto antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-titulo font-bold;
+    letter-spacing: -0.02em;
+  }
+
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :focus-visible {
+    outline: 2px solid #f5ce0a;
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: #f5ce0a;
+    color: #0b0b0b;
+  }
+}
+
+@layer utilities {
+  /* Todo número da interface passa por aqui. */
+  .num {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .trilho {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .trilho::-webkit-scrollbar {
+    display: none;
+  }
+}
