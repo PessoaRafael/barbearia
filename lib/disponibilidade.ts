@@ -19,19 +19,29 @@ export function slotsOcupados(inicio: string, duracaoMin: number) {
 }
 
 /**
+ * Slots ocupados que não estão na agenda mockada: bloqueios feitos no painel
+ * e marcações criadas em tempo de execução. Chave `barbeiro|hora`.
+ */
+export type Extras = Set<string> | undefined;
+
+/**
  * Um horário só entra na grade se o serviço inteiro couber: todos os slots
  * existem na grade (o almoço e o fim do expediente ficam de fora por
- * construção) e nenhum deles está ocupado.
+ * construção) e nenhum deles está ocupado ou bloqueado.
  */
 export function cabeNaAgenda(
   barbeiro: BarbeiroId,
   diaId: string,
   inicio: string,
   duracaoMin: number,
+  extras?: Extras,
 ) {
   const ocupados = OCUPADOS[barbeiro][diaId] ?? [];
   return slotsOcupados(inicio, duracaoMin).every(
-    (slot) => TODOS_HORARIOS.includes(slot) && !ocupados.includes(slot),
+    (slot) =>
+      TODOS_HORARIOS.includes(slot) &&
+      !ocupados.includes(slot) &&
+      !extras?.has(`${barbeiro}|${slot}`),
   );
 }
 
@@ -44,10 +54,11 @@ export function barbeirosLivresEm(
   diaId: string,
   inicio: string,
   duracaoMin: number,
+  extras?: Extras,
 ): BarbeiroId[] {
   if (estaFechado(diaId)) return [];
   return BARBEIROS.filter((b) =>
-    cabeNaAgenda(b.id, diaId, inicio, duracaoMin),
+    cabeNaAgenda(b.id, diaId, inicio, duracaoMin, extras),
   ).map((b) => b.id);
 }
 
@@ -56,20 +67,22 @@ export function horarioLivre(
   diaId: string,
   inicio: string,
   duracaoMin: number,
+  extras?: Extras,
 ) {
   if (estaFechado(diaId)) return false;
   if (escolha === "qualquer")
-    return barbeirosLivresEm(diaId, inicio, duracaoMin).length > 0;
-  return cabeNaAgenda(escolha, diaId, inicio, duracaoMin);
+    return barbeirosLivresEm(diaId, inicio, duracaoMin, extras).length > 0;
+  return cabeNaAgenda(escolha, diaId, inicio, duracaoMin, extras);
 }
 
 export function contarLivres(
   escolha: Escolha,
   diaId: string,
   duracaoMin: number,
+  extras?: Extras,
 ) {
   return TODOS_HORARIOS.filter((h) =>
-    horarioLivre(escolha, diaId, h, duracaoMin),
+    horarioLivre(escolha, diaId, h, duracaoMin, extras),
   ).length;
 }
 
@@ -77,9 +90,11 @@ export function livresPorTurno(
   escolha: Escolha,
   diaId: string,
   duracaoMin: number,
+  extras?: Extras,
 ) {
   const conta = (lista: string[]) =>
-    lista.filter((h) => horarioLivre(escolha, diaId, h, duracaoMin)).length;
+    lista.filter((h) => horarioLivre(escolha, diaId, h, duracaoMin, extras))
+      .length;
   return { manha: conta(HORARIOS_MANHA), tarde: conta(HORARIOS_TARDE) };
 }
 
@@ -88,38 +103,5 @@ export function primeiroDiaAberto() {
   return (DIAS.find((d) => !d.fechado) ?? DIAS[0]).id;
 }
 
-const MESES: Record<string, string> = {
-  jan: "janeiro",
-  fev: "fevereiro",
-  mar: "março",
-  abr: "abril",
-  mai: "maio",
-  jun: "junho",
-  jul: "julho",
-  ago: "agosto",
-  set: "setembro",
-  out: "outubro",
-  nov: "novembro",
-  dez: "dezembro",
-};
-
-/** "27 de julho a 2 de agosto" — dá o mês uma vez só, em vez de repetir na régua. */
-export function periodoDaRegua() {
-  const primeiro = DIAS[0];
-  const ultimo = DIAS[DIAS.length - 1];
-  const dia = (n: string) => Number(n);
-
-  if (primeiro.mes === ultimo.mes) {
-    return `${dia(primeiro.numero)} a ${dia(ultimo.numero)} de ${MESES[primeiro.mes] ?? primeiro.mes}`;
-  }
-  return `${dia(primeiro.numero)} de ${MESES[primeiro.mes] ?? primeiro.mes} a ${dia(ultimo.numero)} de ${MESES[ultimo.mes] ?? ultimo.mes}`;
-}
-
-/** "hoje", "amanhã" ou "sáb 01/ago". */
-export function rotuloDia(diaId: string) {
-  const indice = DIAS.findIndex((d) => d.id === diaId);
-  if (indice === 0) return "hoje";
-  if (indice === 1) return "amanhã";
-  const dia = DIAS[indice] ?? DIAS[0];
-  return `${dia.diaSemana} ${dia.numero}/${dia.mes}`;
-}
+// Rótulos de dia e de período vivem em lib/semana.ts, que sabe qual semana
+// está aberta.

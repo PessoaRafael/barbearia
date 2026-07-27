@@ -11,6 +11,7 @@ export type FormaPagamento = "clube" | "pix" | "cadeira";
 export function PassoPagamento({
   servico,
   cobreClube,
+  clubeCheio,
   cortesRestantes,
   pagamento,
   avulso,
@@ -19,6 +20,7 @@ export function PassoPagamento({
 }: {
   servico: Servico;
   cobreClube: boolean;
+  clubeCheio: boolean;
   cortesRestantes: number;
   pagamento: FormaPagamento | null;
   avulso: boolean;
@@ -27,6 +29,33 @@ export function PassoPagamento({
 }) {
   const comClube = calcularValor(servico, true).aPagar;
   const cheio = moeda(servico.preco);
+
+  // O serviço entra no clube, mas a barbearia já fechou as vagas do dia.
+  if (cobreClube && clubeCheio) {
+    return (
+      <div className="flex flex-col gap-3">
+        <div className="flex items-start gap-3 rounded-card border border-alerta/50 bg-superficie-ativa px-4 py-3.5">
+          <Crown className="mt-0.5 h-5 w-5 shrink-0 text-alerta" strokeWidth={2} />
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <span className="font-titulo text-base font-semibold text-texto-suave">
+              Clube esgotado nesse dia
+            </span>
+            <span className="text-xs text-texto-suave">
+              As vagas do clube desse dia acabaram. Seus {cortesRestantes} cortes
+              continuam guardados — escolha outro dia no passo 3 ou pague à parte
+              agora.
+            </span>
+          </div>
+        </div>
+
+        <FormasAvulsas
+          servico={servico}
+          pagamento={pagamento}
+          onEscolher={onEscolher}
+        />
+      </div>
+    );
+  }
 
   if (cobreClube) {
     return (

@@ -5,21 +5,31 @@ import { Zap } from "lucide-react";
 import { BARBEIROS } from "@/agenda";
 import type { Servico } from "@/servicos";
 import { Retrato } from "@/componentes/base";
-import { contarLivres, rotuloDia, type Escolha } from "@/lib/disponibilidade";
+import { contarLivres, type Escolha } from "@/lib/disponibilidade";
+import { rotuloDoDia } from "@/lib/semana";
 
 export function PassoBarbeiro({
   servico,
   diaId,
   escolha,
+  extras,
+  semana,
   onEscolher,
 }: {
   servico: Servico;
   diaId: string;
   escolha: Escolha | null;
+  extras?: Set<string>;
+  semana: number;
   onEscolher: (valor: Escolha) => void;
 }) {
-  const dia = rotuloDia(diaId);
-  const livresQualquer = contarLivres("qualquer", diaId, servico.duracaoMin);
+  const dia = rotuloDoDia(semana, diaId);
+  const livresQualquer = contarLivres(
+    "qualquer",
+    diaId,
+    servico.duracaoMin,
+    extras,
+  );
 
   return (
     <div className="flex flex-col gap-3">
@@ -47,7 +57,12 @@ export function PassoBarbeiro({
 
       <ul className="grid gap-2 sm:grid-cols-3">
         {BARBEIROS.map((barbeiro) => {
-          const livres = contarLivres(barbeiro.id, diaId, servico.duracaoMin);
+          const livres = contarLivres(
+            barbeiro.id,
+            diaId,
+            servico.duracaoMin,
+            extras,
+          );
           const ativo = escolha === barbeiro.id;
           const cheio = livres === 0;
           return (

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ChevronLeft } from "lucide-react";
 
-import { BARBEIROS } from "@/agenda";
+import { BARBEIROS, type BarbeiroId } from "@/agenda";
 import { CLIENTE_LOGADO, PIX } from "@/painel";
 import { calcularValor, servicoPorId } from "@/servicos";
 import { Logo } from "@/componentes/base";
@@ -19,8 +19,14 @@ import {
   type FormaPagamento,
 } from "@/componentes/agendar/PassoPagamento";
 import { PassoServico } from "@/componentes/agendar/PassoServico";
-import { primeiroDiaAberto, rotuloDia, type Escolha } from "@/lib/disponibilidade";
+import {
+  barbeirosLivresEm,
+  primeiroDiaAberto,
+  type Escolha,
+} from "@/lib/disponibilidade";
 import { moeda } from "@/lib/formato";
+import { useExtras, useOperacao } from "@/lib/operacao";
+import { rotuloDoDia } from "@/lib/semana";
 
 export default function Agendar() {
   const [servicoId, setServicoId] = useState<string | null>(null);
@@ -31,13 +37,23 @@ export default function Agendar() {
   const [avulso, setAvulso] = useState(false);
   const [passoAberto, setPassoAberto] = useState(1);
   const [confirmado, setConfirmado] = useState(false);
+  // "Tanto faz" vira um nome de verdade na hora de confirmar.
+  const [definido, setDefinido] = useState<BarbeiroId | null>(null);
+
+  const { operacao, semanaAberta, clubeCheio, marcar } = useOperacao();
+  const extras = useExtras(operacao, diaId);
 
   const servico = servicoPorId(servicoId);
   const cortesRestantes = CLIENTE_LOGADO.cortesTotais - CLIENTE_LOGADO.cortesUsados;
-  const cobreClube =
+
+  // O serviço entra no clube; se a barbearia fechou as vagas do dia, a opção
+  // aparece travada em vez de sumir, para o assinante entender o porquê.
+  const servicoNoClube =
     Boolean(servico && servico.clubeAbate > 0) &&
     CLIENTE_LOGADO.assinante &&
     cortesRestantes > 0;
+  const semVagaNoClube = clubeCheio(diaId);
+  const cobreClube = servicoNoClube && !semVagaNoClube;
 
   const total = servico
     ? calcularValor(servico, pagamento === "clube").aPagar
@@ -47,12 +63,13 @@ export default function Agendar() {
     (v) => v === null,
   ).length;
 
-  const nomeBarbeiro =
-    barbeiro === "qualquer"
+  const nomeBarbeiro = definido
+    ? (BARBEIROS.find((b) => b.id === definido)?.nome ?? "")
+    : barbeiro === "qualquer"
       ? "Primeiro que liberar"
       : (BARBEIROS.find((b) => b.id === barbeiro)?.nome ?? "");
 
-  const quando = hora ? `${rotuloDia(diaId)} às ${hora}` : "";
+  const quando = hora ? `${rotuloDoDia(semanaAberta, diaId)} às ${hora}` : "";
 
   const usadosNoClube =
     CLIENTE_LOGADO.cortesUsados +
@@ -101,6 +118,34 @@ export default function Agendar() {
     setPassoAberto(5);
   }
 
+  /**
+   * Grava a marcação para o painel enxergar: a cadeira some da grade e, se o
+   * pagamento for pelo clube, gasta uma das vagas do dia.
+   */
+  function confirmar() {
+    if (!servico || !pagamento || !hora) return;
+
+    const quem: BarbeiroId =
+      barbeiro === "qualquer" || barbeiro === null
+        ? (barbeirosLivresEm(diaId, hora, servico.duracaoMin, extras)[0] ??
+          BARBEIROS[0].id)
+        : barbeiro;
+
+    marcar({
+      id: `${diaId}-${quem}-${hora}`,
+      diaId,
+      barbeiro: quem,
+      hora,
+      servicoId: servico.id,
+      cliente: CLIENTE_LOGADO.nomeCompleto,
+      clube: pagamento === "clube",
+      origem: "site",
+    });
+
+    setDefinido(quem);
+    setConfirmado(true);
+  }
+
   function recomecar() {
     setServicoId(null);
     setBarbeiro(null);
@@ -110,6 +155,7 @@ export default function Agendar() {
     setAvulso(false);
     setPassoAberto(1);
     setConfirmado(false);
+    setDefinido(null);
   }
 
   const concluido = [
@@ -227,6 +273,8 @@ export default function Agendar() {
                       servico={servico}
                       diaId={diaId}
                       escolha={barbeiro}
+                      extras={extras}
+                      semana={semanaAberta}
                       onEscolher={escolherBarbeiro}
                     />
                   ) : null}
@@ -246,6 +294,8 @@ export default function Agendar() {
                       escolha={barbeiro}
                       diaId={diaId}
                       hora={hora}
+                      extras={extras}
+                      semana={semanaAberta}
                       onDia={escolherDia}
                       onHora={escolherHora}
                     />
@@ -263,7 +313,8 @@ export default function Agendar() {
                   {servico ? (
                     <PassoPagamento
                       servico={servico}
-                      cobreClube={cobreClube}
+                      cobreClube={servicoNoClube}
+                      clubeCheio={semVagaNoClube}
                       cortesRestantes={cortesRestantes}
                       pagamento={pagamento}
                       avulso={avulso}
@@ -295,7 +346,7 @@ export default function Agendar() {
                       </p>
                       <button
                         type="button"
-                        onClick={() => setConfirmado(true)}
+                        onClick={confirmar}
                         className="num inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-pill bg-acao px-6 font-titulo text-base font-bold text-acao-sobre transition-colors hover:bg-acao-hover"
                       >
                         Confirmar horário · {moeda(total ?? 0)}
@@ -325,7 +376,7 @@ export default function Agendar() {
             <button
               type="button"
               disabled={faltam > 0}
-              onClick={() => setConfirmado(true)}
+              onClick={confirmar}
               className={`num inline-flex min-h-toque flex-1 items-center justify-center rounded-pill px-5 font-titulo text-base font-bold transition-colors ${
                 faltam > 0
                   ? "cursor-not-allowed border border-borda bg-superficie-apagada text-texto-apagado"

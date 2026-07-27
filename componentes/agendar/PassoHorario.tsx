@@ -2,21 +2,23 @@
 
 import { CalendarX2, MoonStar } from "lucide-react";
 
-import { ALMOCO, DIAS, HORARIOS_MANHA, HORARIOS_TARDE } from "@/agenda";
+import { ALMOCO, HORARIOS_MANHA, HORARIOS_TARDE } from "@/agenda";
 import type { Servico } from "@/servicos";
 import {
   estaFechado,
   horarioLivre,
   livresPorTurno,
-  periodoDaRegua,
   type Escolha,
 } from "@/lib/disponibilidade";
+import { periodoDa, proximaAbertura, semanaDe } from "@/lib/semana";
 
 export function PassoHorario({
   servico,
   escolha,
   diaId,
   hora,
+  extras,
+  semana,
   onDia,
   onHora,
 }: {
@@ -24,23 +26,28 @@ export function PassoHorario({
   escolha: Escolha;
   diaId: string;
   hora: string | null;
+  extras?: Set<string>;
+  semana: number;
   onDia: (id: string) => void;
   onHora: (h: string) => void;
 }) {
   const fechado = estaFechado(diaId);
-  const livres = livresPorTurno(escolha, diaId, servico.duracaoMin);
+  const livres = livresPorTurno(escolha, diaId, servico.duracaoMin, extras);
   const total = livres.manha + livres.tarde;
+  const dias = semanaDe(semana);
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <div className="flex items-baseline justify-between gap-3">
-          <span className="num text-xs text-texto-suave">{periodoDaRegua()}</span>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <span className="num text-xs text-texto-suave">
+            Semana aberta · {periodoDa(semana)}
+          </span>
           <span className="text-xs text-texto-apagado">domingo fechado</span>
         </div>
 
         <div className="grid grid-cols-7 gap-1 sm:gap-2">
-          {DIAS.map((dia) => {
+          {dias.map((dia) => {
             const ativo = dia.id === diaId;
             return (
               <button
@@ -68,6 +75,10 @@ export function PassoHorario({
             );
           })}
         </div>
+
+        <p className="text-xs text-texto-apagado">
+          Só essa semana está aberta. A próxima entra {proximaAbertura(semana)}.
+        </p>
       </div>
 
       {fechado ? (
@@ -92,6 +103,7 @@ export function PassoHorario({
             escolha={escolha}
             diaId={diaId}
             hora={hora}
+            extras={extras}
             onHora={onHora}
           />
 
@@ -111,6 +123,7 @@ export function PassoHorario({
             escolha={escolha}
             diaId={diaId}
             hora={hora}
+            extras={extras}
             onHora={onHora}
           />
         </div>
@@ -127,6 +140,7 @@ function Turno({
   escolha,
   diaId,
   hora,
+  extras,
   onHora,
 }: {
   rotulo: string;
@@ -136,6 +150,7 @@ function Turno({
   escolha: Escolha;
   diaId: string;
   hora: string | null;
+  extras?: Set<string>;
   onHora: (h: string) => void;
 }) {
   return (
@@ -149,7 +164,13 @@ function Turno({
 
       <div className="grid grid-cols-4 gap-2 sm:[grid-template-columns:repeat(auto-fit,minmax(92px,1fr))]">
         {horarios.map((h) => {
-          const livre = horarioLivre(escolha, diaId, h, servico.duracaoMin);
+          const livre = horarioLivre(
+            escolha,
+            diaId,
+            h,
+            servico.duracaoMin,
+            extras,
+          );
           const ativo = hora === h;
           return (
             <button
