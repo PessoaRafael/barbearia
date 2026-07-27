@@ -20,6 +20,9 @@ export const metadata: Metadata = {
   title: "Johny Barbearia",
   description:
     "Sua cadeira marcada em menos de um minuto. Agendamento, Clube Johny e painel da barbearia.",
+  // Declarado na mão em vez de app/icon.jpg: a convenção de arquivo do Next
+  // quebra quando o caminho do projeto tem apóstrofo.
+  icons: { icon: "/logo.jpg", apple: "/logo.jpg" },
 };
 
 export const viewport: Viewport = {

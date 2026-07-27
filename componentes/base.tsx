@@ -1,20 +1,19 @@
 import { Camera } from "lucide-react";
 
-/** Placeholder quadrado arredondado com o monograma da casa. */
+/** Marca da casa: public/logo.jpg recortada em quadrado arredondado. */
 export function Logo({ tamanho = 40 }: { tamanho?: number }) {
   return (
     <span
-      className="grid shrink-0 place-items-center rounded-bloco border border-borda-forte bg-superficie-ativa font-titulo font-bold leading-none text-acao"
+      className="block shrink-0 border border-borda-forte bg-superficie-ativa bg-cover bg-center"
       style={{
         width: tamanho,
         height: tamanho,
-        fontSize: Math.max(13, Math.round(tamanho * 0.34)),
         borderRadius: Math.max(12, Math.round(tamanho * 0.28)),
+        backgroundImage: "url(/logo.jpg)",
       }}
-      aria-hidden
-    >
-      JB
-    </span>
+      role="img"
+      aria-label="Johny Barbearia"
+    />
   );
 }
 

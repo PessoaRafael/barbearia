@@ -40,6 +40,15 @@ Dependências de runtime: `next`, `react`, `react-dom` e `lucide-react`.
 serviço, formatação de número e dinheiro, configuração das abas do painel e o
 desenho do QR de placeholder.
 
+## Imagens
+
+A marca vive em `public/logo.jpg` (536×536) — usada recortada no header, no
+hero, no rodapé e no painel. A cópia em `app/icon.jpg` vira o favicon
+automaticamente, sem configurar nada.
+
+As fotos do salão e dos barbeiros continuam como área reservada (`Retrato`),
+esperando foto de verdade.
+
 ## Tema
 
 Tema escuro único. Amarelo (`#F5CE0A`) aparece só em ação, item selecionado e

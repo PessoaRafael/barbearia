@@ -60,7 +60,7 @@ function Hero() {
   return (
     <section className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-12">
       <div className="flex flex-col gap-6">
-        <Logo tamanho={72} />
+        <Logo tamanho={96} />
 
         <div className="flex flex-col gap-3">
           <h1 className="text-4xl leading-[1.05] sm:text-5xl">
@@ -250,7 +250,12 @@ function Rodape() {
           </div>
           <span className="flex items-start gap-2 text-sm text-texto-suave">
             <MapPin className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={1.75} />
-            {CASA.endereco}
+            <span className="flex flex-col">
+              {CASA.endereco}
+              <span className="num">
+                {CASA.cidade} · CEP {CASA.cep}
+              </span>
+            </span>
           </span>
           <span className="num flex items-center gap-2 text-sm text-texto-suave">
             <Phone className="h-4 w-4 shrink-0" strokeWidth={1.75} />
