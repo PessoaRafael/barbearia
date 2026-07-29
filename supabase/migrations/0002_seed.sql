@@ -36,11 +36,17 @@ begin
     (casa, 'Diego Nascimento', 'Diego', 'degradê',                  1),
     (casa, 'Kaio Ferreira',    'Kaio',  'platinado e sobrancelha',  2);
 
-  -- Segunda a sábado, 9h às 19h, com almoço parando a cadeira das 13h às 14h.
+  -- Segunda a sexta 08:30 às 18:30, sábado até 17:30, almoço das 13h às 14h.
+  -- Domingo não recebe linha nenhuma, então nunca gera horário.
   for barbeiro in select id from barbers where barbershop_id = casa loop
     for dia in 1..6 loop
       insert into working_hours (barber_id, dia_semana, abre, fecha)
-      values (barbeiro.id, dia, '09:00', '19:00');
+      values (
+        barbeiro.id,
+        dia,
+        '08:30',
+        case when dia = 6 then '17:30' else '18:30' end
+      );
 
       insert into breaks (barber_id, dia_semana, inicio, fim, motivo)
       values (barbeiro.id, dia, '13:00', '14:00', 'almoço');

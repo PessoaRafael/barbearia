@@ -4,12 +4,11 @@ export const CASA = {
   cidade: "Natal, RN",
   endereco: "R. Djalma Maranhão, 463-2 — Nova Descoberta",
   cep: "59075-290",
-  // Telefone ainda de exemplo: trocar pelo número real da barbearia.
-  telefone: "(84) 90000-0000",
+  telefone: "(84) 99983-5180",
   linkAgendamento: "johnybarbearia.com.br/agendar",
   expediente: [
-    { dia: "Segunda a sexta", horario: "09:00 às 19:00" },
-    { dia: "Sábado", horario: "09:00 às 19:00" },
+    { dia: "Segunda a sexta", horario: "08:30 às 18:30" },
+    { dia: "Sábado", horario: "08:30 às 17:30" },
     { dia: "Almoço", horario: "13:00 às 14:00, cadeira parada" },
     { dia: "Domingo", horario: "fechado" },
   ],
