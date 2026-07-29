@@ -26,8 +26,11 @@ export function ComoConfirma({
       feito: false,
     },
     {
+      // Não existe envio automático: quem manda a mensagem é o Johny, do
+      // WhatsApp dele. Prometer "você recebe" faria o cliente esperar um robô
+      // que não existe e ligar para a barbearia quando não chegasse.
       icone: <Check className="h-4 w-4" strokeWidth={2.5} />,
-      texto: "Você recebe a confirmação no WhatsApp. Aí sim está marcado.",
+      texto: "O Johny te manda a confirmação no WhatsApp. Aí sim está marcado.",
       feito: false,
     },
   ];

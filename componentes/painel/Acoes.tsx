@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, Copy, KeyRound, ShieldOff, Trash2, X } from "lucide-react";
+import {
+  Check,
+  Copy,
+  KeyRound,
+  MessageCircle,
+  ShieldOff,
+  Trash2,
+  X,
+} from "lucide-react";
 
 import {
   decidirPix,
@@ -15,16 +23,54 @@ import { BotaoCopiar } from "@/componentes/BotaoCopiar";
 const pill =
   "inline-flex min-h-toque items-center justify-center gap-2 rounded-pill px-4 font-titulo text-sm font-semibold transition-colors";
 
-/** Recebi / Não caiu. A palavra do cliente nunca confirma nada. */
-export function DecidirPix({ pagamentoId }: { pagamentoId: string }) {
+/**
+ * Recebi / Não caiu. A palavra do cliente nunca confirma nada.
+ *
+ * Confirmar e avisar são um passo só de propósito: sem API de WhatsApp, a
+ * mensagem depende de alguém clicar. Se o aviso ficasse numa fila noutra tela,
+ * o cliente pagaria e não receberia nada, que é exatamente o que ele teme.
+ */
+export function DecidirPix({
+  pagamentoId,
+  telefone,
+  aviso,
+}: {
+  pagamentoId: string;
+  telefone?: string;
+  aviso?: string;
+}) {
   const [rodando, comecar] = useTransition();
   const [erro, setErro] = useState<string | null>(null);
+  const [confirmado, setConfirmado] = useState(false);
 
   const decidir = (recebido: boolean) =>
     comecar(async () => {
       const r = await decidirPix(pagamentoId, recebido);
       setErro(r.erro ?? null);
+      if (!r.erro && recebido) setConfirmado(true);
     });
+
+  if (confirmado && telefone && aviso) {
+    const digitos = telefone.replace(/\D/g, "");
+    const numero = digitos.startsWith("55") ? digitos : `55${digitos}`;
+
+    return (
+      <div className="flex flex-col gap-2 rounded-card border border-clube/40 bg-superficie p-3">
+        <span className="text-sm text-clube">
+          Confirmado. Falta avisar o cliente, que o sistema não manda sozinho.
+        </span>
+        <a
+          href={`https://wa.me/${numero}?text=${encodeURIComponent(aviso)}`}
+          target="_blank"
+          rel="noreferrer"
+          className={`${pill} bg-acao text-acao-sobre hover:bg-acao-hover`}
+        >
+          <MessageCircle className="h-4 w-4" strokeWidth={2.5} />
+          Avisar no WhatsApp
+        </a>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-2">

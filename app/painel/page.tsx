@@ -420,7 +420,14 @@ function AbaPix({
                   </span>
                 ) : null}
 
-                <DecidirPix pagamentoId={p.id} />
+                <DecidirPix
+                  pagamentoId={p.id}
+                  telefone={p.telefone}
+                  aviso={textoDe("pix_confirmado", {
+                    cliente: p.cliente.split(" ")[0],
+                    quando: p.inicio ? hora(p.inicio) : "",
+                  })}
+                />
               </li>
             );
           })}
