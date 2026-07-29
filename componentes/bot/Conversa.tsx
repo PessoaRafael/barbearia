@@ -154,7 +154,11 @@ export function Conversa({
               />
               {pix.seguraOHorario ? (
                 <div className="mt-3">
-                  <ComoConfirma minutos={pix.minutos} />
+                  <ComoConfirma
+                    minutos={pix.minutos}
+                    whatsapp={pix.whatsapp}
+                    mensagem={pix.avisoPago}
+                  />
                 </div>
               ) : null}
             </div>

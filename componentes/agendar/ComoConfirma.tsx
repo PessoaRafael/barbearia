@@ -1,4 +1,4 @@
-import { Check, Clock, Send } from "lucide-react";
+import { Check, Clock, MessageCircle, Send } from "lucide-react";
 
 /**
  * O cliente pagou e ficou sem saber se está marcado ou não.
@@ -9,11 +9,22 @@ import { Check, Clock, Send } from "lucide-react";
  */
 export function ComoConfirma({
   minutos,
+  whatsapp,
+  mensagem,
   compacto = false,
 }: {
   minutos: number;
+  /** Telefone da barbearia. Sem ele, o botão de avisar não aparece. */
+  whatsapp?: string | null;
+  mensagem?: string;
   compacto?: boolean;
 }) {
+  const digitos = (whatsapp ?? "").replace(/\D/g, "");
+  const numero = digitos
+    ? digitos.startsWith("55")
+      ? digitos
+      : `55${digitos}`
+    : null;
   const passos = [
     {
       icone: <Send className="h-4 w-4" strokeWidth={2.5} />,
@@ -58,10 +69,26 @@ export function ComoConfirma({
         ))}
       </ol>
 
-      {compacto ? null : (
+      {numero ? (
+        <div className="flex flex-col gap-2 border-t border-borda pt-3">
+          <a
+            href={`https://wa.me/${numero}${mensagem ? `?text=${encodeURIComponent(mensagem)}` : ""}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex min-h-toque items-center justify-center gap-2 rounded-pill border border-borda-forte px-5 font-titulo text-sm font-bold text-texto transition-colors hover:border-acao"
+          >
+            <MessageCircle className="h-4 w-4" strokeWidth={2.5} />
+            Já paguei, avisar no WhatsApp
+          </a>
+          <p className="text-xs text-texto-suave">
+            Não é obrigatório, e o comprovante não confirma nada sozinho: o
+            Johny confere no extrato de qualquer jeito. Serve só para ele olhar
+            mais rápido.
+          </p>
+        </div>
+      ) : compacto ? null : (
         <p className="border-t border-borda pt-3 text-xs text-texto-suave">
-          Não precisa mandar comprovante nem avisar por aqui. Se der algum
-          problema, o Johny te chama.
+          Se der algum problema, o Johny te chama.
         </p>
       )}
     </div>

@@ -210,6 +210,8 @@ export type Pix = {
   qrSvg: string | null;
   chave: string;
   titular: string;
+  /** Telefone da barbearia, para o cliente avisar que pagou. */
+  whatsapp: string | null;
   expiraEm: string;
   minutos: number;
 };
@@ -315,6 +317,7 @@ export async function reservar(
       qrSvg: await svgDoBrcode(cobranca.brcode).catch(() => null),
       chave: casaAtual.pix_key,
       titular: casaAtual.pix_titular ?? casaAtual.nome,
+      whatsapp: casaAtual.telefone,
       expiraEm: cobranca.expiraEm.toISOString(),
       minutos: casaAtual.reserva_minutos,
     };

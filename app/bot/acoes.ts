@@ -65,6 +65,8 @@ export type Resposta = {
     valor: string;
     minutos: number;
     seguraOHorario: boolean;
+    whatsapp: string | null;
+    avisoPago: string;
   } | null;
 };
 
@@ -579,6 +581,8 @@ export async function conversar(
           valor: moedaCentavos(saida.valorCentavos),
           minutos: saida.pix.minutos,
           seguraOHorario: aguardando,
+          whatsapp: barbearia.telefone,
+          avisoPago: `Oi! Sou ${estado.nome}, acabei de pagar o pix de ${moedaCentavos(saida.valorCentavos)} do meu horário de ${quando}, às ${estado.hora}.`,
         }
       : null,
   };

@@ -148,7 +148,13 @@ export default async function MeuAgendamento({
               valor={moedaCentavos(agendamento.valorCentavos)}
               minutos={barbearia.reserva_minutos}
             />
-            <ComoConfirma minutos={barbearia.reserva_minutos} />
+            <ComoConfirma
+              minutos={barbearia.reserva_minutos}
+              whatsapp={barbearia.telefone}
+              // A mensagem já diz quem é e qual horário: sem isso o Johny
+              // recebe "paguei" solto e tem que perguntar de volta.
+              mensagem={`Oi! Sou ${agendamento.cliente}, acabei de pagar o pix de ${moedaCentavos(agendamento.valorCentavos)} do meu horário de ${quando}, às ${hora}.`}
+            />
           </>
         ) : null}
 

@@ -301,6 +301,7 @@ export function Fluxo({
                 fechado={fechado}
                 servico={servico}
                 quando={quando}
+                nome={nome}
                 onRecomecar={recomecar}
               />
             ) : (
@@ -835,11 +836,13 @@ function Status({
   fechado,
   servico,
   quando,
+  nome,
   onRecomecar,
 }: {
   fechado: Fechado;
   servico: Servico;
   quando: string;
+  nome: string;
   onRecomecar: () => void;
 }) {
   const aguardando = fechado.status === "pendente_pagamento";
@@ -904,7 +907,11 @@ function Status({
             minutos={fechado.pix.minutos}
             seguraOHorario={aguardando}
           />
-          <ComoConfirma minutos={fechado.pix.minutos} />
+          <ComoConfirma
+            minutos={fechado.pix.minutos}
+            whatsapp={fechado.pix.whatsapp}
+            mensagem={`Oi! Sou ${nome}, acabei de pagar o pix de ${moedaCentavos(fechado.valorCentavos)} do meu horário de ${quando}.`}
+          />
         </>
       ) : null}
 
