@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { CalendarCheck, CalendarX2, Timer, XCircle } from "lucide-react";
 
 import { Logo } from "@/componentes/base";
+import { ComoConfirma } from "@/componentes/agendar/ComoConfirma";
 import { PainelPix } from "@/componentes/agendar/PainelPix";
 import { casa } from "@/lib/dados/casa";
 import { moedaCentavos } from "@/lib/formato";
@@ -24,8 +25,9 @@ const APARENCIA: Record<
     tom: "acao",
   },
   pendente_pagamento: {
-    titulo: "Reservado, aguardando o pix cair",
-    texto: "A cadeira está no seu nome. O barbeiro confirma quando o pix cair.",
+    titulo: "Reservado, esperando o ok do Johny",
+    texto:
+      "A cadeira está no seu nome, mas só vira horário confirmado depois que ele conferir o pagamento.",
     tom: "alerta",
   },
   concluido: {
@@ -137,14 +139,17 @@ export default async function MeuAgendamento({
         </dl>
 
         {aguardando && agendamento.pix?.status === "aguardando" ? (
-          <PainelPix
-            brcode={agendamento.pix.brcode}
-            qrSvg={await svgDoBrcode(agendamento.pix.brcode).catch(() => null)}
-            chave={barbearia.pix_key ?? ""}
-            titular={barbearia.pix_titular ?? barbearia.nome}
-            valor={moedaCentavos(agendamento.valorCentavos)}
-            minutos={barbearia.reserva_minutos}
-          />
+          <>
+            <PainelPix
+              brcode={agendamento.pix.brcode}
+              qrSvg={await svgDoBrcode(agendamento.pix.brcode).catch(() => null)}
+              chave={barbearia.pix_key ?? ""}
+              titular={barbearia.pix_titular ?? barbearia.nome}
+              valor={moedaCentavos(agendamento.valorCentavos)}
+              minutos={barbearia.reserva_minutos}
+            />
+            <ComoConfirma minutos={barbearia.reserva_minutos} />
+          </>
         ) : null}
 
         {agendamento.podeCancelar ? (

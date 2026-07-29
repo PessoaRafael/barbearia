@@ -21,6 +21,7 @@ import {
 } from "@/app/agendar/acoes";
 import { rotuloDe, type Dia } from "@/lib/agenda/dias";
 import { moedaCentavos, telefoneBonito } from "@/lib/formato";
+import { ComoConfirma } from "./ComoConfirma";
 import { Passo, type EstadoPasso } from "./Passo";
 import { PainelPix } from "./PainelPix";
 import { PassoBarbeiro } from "./PassoBarbeiro";
@@ -869,7 +870,7 @@ function Status({
           </h2>
           <p className="text-sm text-texto-suave">
             {aguardando
-              ? "A cadeira está no seu nome. Assim que o pix cair, o barbeiro confirma."
+              ? "A cadeira está no seu nome, mas só vira horário confirmado depois que o Johny der o ok no pagamento."
               : "Te esperamos na cadeira. Se precisar remarcar, use o link abaixo."}
           </p>
         </div>
@@ -893,15 +894,18 @@ function Status({
       </dl>
 
       {fechado.pix ? (
-        <PainelPix
-          brcode={fechado.pix.brcode}
-          qrSvg={fechado.pix.qrSvg}
-          chave={fechado.pix.chave}
-          titular={fechado.pix.titular}
-          valor={moedaCentavos(fechado.valorCentavos)}
-          minutos={fechado.pix.minutos}
-          seguraOHorario={aguardando}
-        />
+        <>
+          <PainelPix
+            brcode={fechado.pix.brcode}
+            qrSvg={fechado.pix.qrSvg}
+            chave={fechado.pix.chave}
+            titular={fechado.pix.titular}
+            valor={moedaCentavos(fechado.valorCentavos)}
+            minutos={fechado.pix.minutos}
+            seguraOHorario={aguardando}
+          />
+          <ComoConfirma minutos={fechado.pix.minutos} />
+        </>
       ) : null}
 
       <div className="flex flex-col gap-2 sm:flex-row">

@@ -17,7 +17,10 @@ insert into barbershops (
   -- A casa não atende sem pagamento antecipado: o horário só fica de pé
   -- depois que o pix cai.
   'obrigatorio',
-  15,
+  -- Uma hora, não quinze minutos: quem confirma o pix é o Johny, na mão, e
+  -- ele está com a máquina ligada. Prazo curto expira reserva de gente que
+  -- pagou de verdade.
+  60,
   3,
   true,
   9900,

@@ -10,6 +10,7 @@ import {
   type Opcao,
   type Resposta,
 } from "@/app/bot/acoes";
+import { ComoConfirma } from "@/componentes/agendar/ComoConfirma";
 import { PainelPix } from "@/componentes/agendar/PainelPix";
 import { Logo } from "@/componentes/base";
 
@@ -151,6 +152,11 @@ export function Conversa({
                 minutos={pix.minutos}
                 seguraOHorario={pix.seguraOHorario}
               />
+              {pix.seguraOHorario ? (
+                <div className="mt-3">
+                  <ComoConfirma minutos={pix.minutos} />
+                </div>
+              ) : null}
             </div>
           </div>
         ) : null}

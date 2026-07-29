@@ -547,7 +547,7 @@ export async function conversar(
 
   falas.push(
     aguardando
-      ? `Reservei ${quando} às ${estado.hora} com ${barbeiroFinal}. Falta o pix cair para confirmar.`
+      ? `Reservei ${quando} às ${estado.hora} com ${barbeiroFinal}. Ainda não está confirmado: o Johny confere o pix e dá o ok.`
       : `Pronto! ${servico.nome} ${quando} às ${estado.hora} com ${barbeiroFinal}.`,
   );
 
