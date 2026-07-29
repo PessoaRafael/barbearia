@@ -366,6 +366,7 @@ export function Fluxo({
                     carregando={carregando}
                     escolha={barbeiro}
                     hora={hora}
+                    servicoId={servicoId}
                     onDia={(d) => {
                       setData(d);
                       setHora(null);
@@ -873,6 +874,7 @@ function Status({
       {fechado.pix ? (
         <PainelPix
           brcode={fechado.pix.brcode}
+          qrSvg={fechado.pix.qrSvg}
           chave={fechado.pix.chave}
           titular={fechado.pix.titular}
           valor={moedaCentavos(fechado.valorCentavos)}

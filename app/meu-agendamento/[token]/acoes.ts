@@ -127,6 +127,53 @@ export async function cancelar(
     },
   });
 
+  await avisarFila(id, agendamento.inicio);
+
   revalidatePath(`/meu-agendamento/${analise.data.token}`);
   return { ok: true };
+}
+
+/**
+ * Vagou uma cadeira: quem estava na fila daquele dia é avisado por ordem de
+ * chegada. Marca como avisado para não mandar a mesma mensagem duas vezes.
+ */
+async function avisarFila(barbeariaId: string, inicio: string) {
+  const dia = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Fortaleza",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(inicio));
+
+  const supabase = clienteServico();
+  const { data: esperando } = await supabase
+    .from("waitlist")
+    .select("id, clients(nome, telefone)")
+    .eq("barbershop_id", barbeariaId)
+    .eq("data", dia)
+    .is("avisado_em", null)
+    .order("criado_em")
+    .limit(5);
+
+  for (const linha of esperando ?? []) {
+    const cliente = Array.isArray(linha.clients) ? linha.clients[0] : linha.clients;
+    if (!cliente) continue;
+
+    await enfileirar({
+      barbeariaId,
+      destino: "cliente",
+      template: "vaga_liberada",
+      telefone: (cliente as { telefone: string }).telefone,
+      dados: {
+        cliente: (cliente as { nome: string }).nome.split(" ")[0],
+        quando: dia.split("-").reverse().slice(0, 2).join("/"),
+        link: "johnybarbearia.com.br/agendar",
+      },
+    });
+
+    await supabase
+      .from("waitlist")
+      .update({ avisado_em: new Date().toISOString() })
+      .eq("id", linha.id);
+  }
 }

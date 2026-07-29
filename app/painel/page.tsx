@@ -4,6 +4,7 @@ import {
   CalendarDays,
   Crown,
   KeyRound,
+  ListChecks,
   Scissors,
   Settings,
   Timer,
@@ -21,6 +22,7 @@ import {
   SoltarBloqueio,
 } from "@/componentes/painel/Acoes";
 import { Configuracoes } from "@/componentes/painel/Configuracoes";
+import { Servicos } from "@/componentes/painel/Servicos";
 import { sair } from "@/app/entrar/acoes";
 import { lerSessao } from "@/lib/auth/sessao";
 import { hojeNaCasa, proximosDias, rotuloDe } from "@/lib/agenda/dias";
@@ -33,6 +35,7 @@ import {
   caixaDoDia,
   clientes,
   equipe,
+  filaDeEspera,
   pixParaConferir,
   resumoDoDia,
   servicos as listarServicos,
@@ -49,6 +52,7 @@ const ABAS = [
   { id: "clientes", nome: "Clientes", sub: "histórico e sumidos", icone: Users },
   { id: "servicos", nome: "Serviços", sub: "preço e duração", icone: Scissors },
   { id: "caixa", nome: "Caixa", sub: "entradas do dia", icone: Wallet },
+  { id: "fila", nome: "Fila", sub: "quem quer dia cheio", icone: ListChecks },
   { id: "equipe", nome: "Equipe", sub: "chaves de acesso", icone: KeyRound },
   { id: "config", nome: "Ajustes", sub: "pix, clube e reserva", icone: Settings },
 ];
@@ -171,6 +175,8 @@ export default async function Painel({
             <AbaServicos sessao={sessao} />
           ) : aba === "caixa" ? (
             <AbaCaixa sessao={sessao} dia={dia} />
+          ) : aba === "fila" ? (
+            <AbaFila sessao={sessao} />
           ) : aba === "equipe" ? (
             <AbaEquipe sessao={sessao} />
           ) : (
@@ -524,36 +530,49 @@ async function AbaClientes({ sessao }: { sessao: Sessao }) {
 
 async function AbaServicos({ sessao }: { sessao: Sessao }) {
   const lista = await listarServicos(sessao);
+  return <Servicos lista={lista as never} />;
+}
+
+async function AbaFila({ sessao }: { sessao: Sessao }) {
+  const fila = await filaDeEspera(sessao);
 
   return (
-    <Cartao titulo={`Serviços · ${lista.length}`}>
-      <ul className="flex flex-col gap-2">
-        {lista.map((s) => (
-          <li
-            key={s.id}
-            className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-card border border-borda bg-superficie-ativa px-4 py-3"
-          >
-            <div className="flex min-w-0 flex-[1_1_55%] flex-col">
-              <span className="truncate font-titulo text-sm font-semibold">
-                {s.nome}
-              </span>
-              <span className="num truncate text-xs text-texto-suave">
-                {s.categoria} · {s.duracao_min} min
-                {s.coberto_pelo_clube
-                  ? ` · clube abate ${moedaCentavos(s.abate_centavos)}`
-                  : ""}
-              </span>
-            </div>
-            <span className="num ml-auto shrink-0 font-titulo text-base font-bold text-acao">
-              {moedaCentavos(s.preco_centavos)}
-            </span>
-          </li>
-        ))}
-      </ul>
-      <p className="text-xs text-texto-apagado">
-        Editar preço e duração pela tela ainda não está pronto — por ora sai
-        pelo Supabase.
+    <Cartao titulo={`Fila de espera · ${fila.length}`}>
+      <p className="text-sm text-texto-suave">
+        Quem quis um dia cheio. Quando alguém cancela, o sistema avisa esta
+        fila — e aqui você chama na mão quando abrir uma brecha.
       </p>
+
+      {fila.length === 0 ? (
+        <Vazio texto="Ninguém esperando. A fila enche quando um dia lota." />
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {fila.map((f) => (
+            <li
+              key={f.id}
+              className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-card border border-borda bg-superficie-ativa px-4 py-3"
+            >
+              <div className="flex min-w-0 flex-[1_1_55%] flex-col">
+                <span className="truncate font-titulo text-sm font-semibold">
+                  {f.nome}
+                </span>
+                <span className="num truncate text-xs text-texto-suave">
+                  {f.servico} · quer {f.data}
+                  {f.barbeiro ? ` · com ${f.barbeiro}` : ""}
+                </span>
+              </div>
+              <AvisoWhatsapp
+                telefone={f.telefone}
+                texto={textoDe("vaga_liberada", {
+                  cliente: f.nome.split(" ")[0],
+                  quando: f.data,
+                  link: "johnybarbearia.com.br/agendar",
+                })}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
     </Cartao>
   );
 }

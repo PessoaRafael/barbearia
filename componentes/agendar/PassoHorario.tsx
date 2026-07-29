@@ -3,6 +3,7 @@
 import { CalendarX2, Loader2, MoonStar } from "lucide-react";
 
 import { periodo, type Dia } from "@/lib/agenda/dias";
+import { FilaDeEspera } from "./FilaDeEspera";
 import type { Escolha, Livre } from "./tipos";
 
 /** Antes das 13h é manhã; o almoço fica no meio, parando a cadeira. */
@@ -15,6 +16,7 @@ export function PassoHorario({
   carregando,
   escolha,
   hora,
+  servicoId,
   onDia,
   onHora,
 }: {
@@ -24,6 +26,7 @@ export function PassoHorario({
   carregando: boolean;
   escolha: Escolha;
   hora: string | null;
+  servicoId: string | null;
   onDia: (data: string) => void;
   onHora: (hora: string) => void;
 }) {
@@ -86,11 +89,20 @@ export function PassoHorario({
           texto="Buscando o que está livre de verdade nesse dia."
         />
       ) : doBarbeiro.length === 0 ? (
-        <Aviso
-          icone={<CalendarX2 className="h-5 w-5" strokeWidth={1.75} />}
-          titulo="Nenhum horário livre nesse dia"
-          texto="Tente outro dia na régua, ou deixe com o primeiro que liberar."
-        />
+        <div className="flex flex-col gap-3">
+          <Aviso
+            icone={<CalendarX2 className="h-5 w-5" strokeWidth={1.75} />}
+            titulo="Nenhum horário livre nesse dia"
+            texto="Tente outro dia na régua, ou entre na fila e eu te aviso se vagar."
+          />
+          {servicoId ? (
+            <FilaDeEspera
+              data={dia.data}
+              servicoId={servicoId}
+              barbeiroId={escolha}
+            />
+          ) : null}
+        </div>
       ) : (
         <div className="flex flex-col gap-3">
           <Turno

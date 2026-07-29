@@ -8,6 +8,7 @@ import { casa } from "@/lib/dados/casa";
 import { moedaCentavos } from "@/lib/formato";
 import { duracaoLabel } from "@/componentes/agendar/tipos";
 import { HORAS_LIMITE_CANCELAMENTO } from "@/lib/regras";
+import { svgDoBrcode } from "@/lib/pix/qr";
 import { buscarAgendamento } from "./acoes";
 import { BotaoCancelar } from "./BotaoCancelar";
 
@@ -138,6 +139,7 @@ export default async function MeuAgendamento({
         {aguardando && agendamento.pix?.status === "aguardando" ? (
           <PainelPix
             brcode={agendamento.pix.brcode}
+            qrSvg={await svgDoBrcode(agendamento.pix.brcode).catch(() => null)}
             chave={barbearia.pix_key ?? ""}
             titular={barbearia.pix_titular ?? barbearia.nome}
             valor={moedaCentavos(agendamento.valorCentavos)}

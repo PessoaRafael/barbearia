@@ -216,6 +216,37 @@ export async function caixaDoDia(sessao: Sessao, data = hojeNaCasa()) {
   });
 }
 
+/** Quem quis um dia que já estava cheio e ainda não foi avisado. */
+export async function filaDeEspera(sessao: Sessao) {
+  const { data } = await clienteServico()
+    .from("waitlist")
+    .select("id, data, clients(nome, telefone), services(nome), barbers(apelido)")
+    .eq("barbershop_id", sessao.barbeariaId)
+    .is("atendido_em", null)
+    .gte("data", hojeNaCasa())
+    .order("criado_em");
+
+  const um = <T,>(v: T | T[] | null): T | null =>
+    Array.isArray(v) ? (v[0] ?? null) : v;
+
+  return (data ?? []).map((f) => {
+    const cliente = um(f.clients as never) as
+      | { nome: string; telefone: string }
+      | null;
+    const servico = um(f.services as never) as { nome: string } | null;
+    const barbeiro = um(f.barbers as never) as { apelido: string } | null;
+
+    return {
+      id: f.id,
+      data: f.data as string,
+      nome: cliente?.nome ?? "",
+      telefone: cliente?.telefone ?? "",
+      servico: servico?.nome ?? "",
+      barbeiro: barbeiro?.apelido ?? null,
+    };
+  });
+}
+
 /** Fila do WhatsApp esperando o Johny disparar. */
 export async function avisosPendentes(sessao: Sessao) {
   const { data } = await clienteServico()

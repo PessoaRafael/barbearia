@@ -10,6 +10,7 @@ import {
 import { casa } from "@/lib/dados/casa";
 import { enfileirar } from "@/lib/notify/whatsapp";
 import { provedorAtual } from "@/lib/payments/provider";
+import { svgDoBrcode } from "@/lib/pix/qr";
 import { clienteServico } from "@/lib/supabase/servidor";
 
 /**
@@ -47,6 +48,62 @@ export async function buscarHorarios(entrada: z.input<typeof consulta>) {
     duracaoMin: servico.duracao_min,
     barbeiroId: barbeiroId ?? null,
   });
+}
+
+const fila = z.object({
+  data: z.string().regex(DATA),
+  servicoId: z.string().uuid(),
+  barbeiroId: z.string().uuid().nullable(),
+  nome: z.string().trim().min(2).max(80),
+  telefone: z.string().trim().min(10).max(20),
+});
+
+/**
+ * Dia cheio: em vez de perder o cliente, guarda o nome. Quando alguém cancela,
+ * o cancelamento avisa quem está na fila daquele dia.
+ */
+export async function entrarNaFila(entrada: z.input<typeof fila>) {
+  const analise = fila.safeParse(entrada);
+  if (!analise.success) return { erro: "Confira nome e WhatsApp." };
+
+  const d = analise.data;
+  const telefone = d.telefone.replace(/\D/g, "");
+  const { id } = await casa();
+  const supabase = clienteServico();
+
+  const { data: cliente } = await supabase
+    .from("clients")
+    .upsert(
+      { barbershop_id: id, nome: d.nome, telefone },
+      { onConflict: "barbershop_id,telefone" },
+    )
+    .select("id")
+    .single();
+
+  if (!cliente) return { erro: "Não consegui te colocar na fila agora." };
+
+  // Um lugar por pessoa, por dia e por serviço.
+  const { data: jaTem } = await supabase
+    .from("waitlist")
+    .select("id")
+    .eq("client_id", cliente.id)
+    .eq("data", d.data)
+    .eq("service_id", d.servicoId)
+    .is("atendido_em", null)
+    .maybeSingle();
+
+  if (jaTem) return { ok: true, jaEstava: true };
+
+  const { error } = await supabase.from("waitlist").insert({
+    barbershop_id: id,
+    client_id: cliente.id,
+    service_id: d.servicoId,
+    barber_id: d.barbeiroId,
+    data: d.data,
+  });
+
+  if (error) return { erro: "Não consegui te colocar na fila agora." };
+  return { ok: true, jaEstava: false };
 }
 
 export type Reconhecido = {
@@ -150,6 +207,7 @@ const RECADOS: Record<string, string> = {
 
 export type Pix = {
   brcode: string;
+  qrSvg: string | null;
   chave: string;
   titular: string;
   expiraEm: string;
@@ -254,6 +312,7 @@ export async function reservar(
 
     pix = {
       brcode: cobranca.brcode,
+      qrSvg: await svgDoBrcode(cobranca.brcode).catch(() => null),
       chave: casaAtual.pix_key,
       titular: casaAtual.pix_titular ?? casaAtual.nome,
       expiraEm: cobranca.expiraEm.toISOString(),

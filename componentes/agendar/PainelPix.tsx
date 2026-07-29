@@ -6,14 +6,15 @@ import { BotaoCopiar } from "@/componentes/BotaoCopiar";
 import { formatarTelefone } from "@/lib/pix/brcode";
 
 /**
- * Pix copia e cola.
+ * Pix com as duas saídas: escanear o QR ou copiar o código.
  *
- * Não desenho QR aqui: gerar QR de verdade precisa de uma biblioteca, e um QR
- * decorativo ao lado de um payload real faria alguém escanear e mandar dinheiro
- * para lugar nenhum. O copia e cola é o mesmo payload, aceito por todo banco.
+ * O QR é gerado no servidor a partir do mesmo BR Code que está no botão de
+ * copiar — nada decorativo. Se ele não vier, a tela mostra só o copia e cola,
+ * porque um QR falso faria alguém mandar dinheiro para lugar nenhum.
  */
 export function PainelPix({
   brcode,
+  qrSvg,
   chave,
   titular,
   valor,
@@ -21,6 +22,7 @@ export function PainelPix({
   seguraOHorario = true,
 }: {
   brcode: string;
+  qrSvg?: string | null;
   chave: string;
   titular: string;
   valor: string;
@@ -29,30 +31,41 @@ export function PainelPix({
 }) {
   return (
     <div className="flex flex-col gap-4 rounded-card border border-borda bg-superficie-ativa p-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <span className="text-xs uppercase tracking-wide text-texto-apagado">
-            Valor
-          </span>
-          <span className="num font-titulo text-2xl font-bold text-acao">
-            {valor}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+        {qrSvg ? (
+          <div className="mx-auto shrink-0 sm:mx-0">
+            <div
+              className="h-[168px] w-[168px] overflow-hidden rounded-bloco border border-borda bg-texto p-1 [&>svg]:h-full [&>svg]:w-full"
+              // Gerado por nós a partir do BR Code, não vem de fora.
+              dangerouslySetInnerHTML={{ __html: qrSvg }}
+              role="img"
+              aria-label="QR code do pix"
+            />
+            <span className="mt-1.5 block text-center text-xs text-texto-apagado">
+              aponte a câmera do banco
+            </span>
+          </div>
+        ) : null}
+
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
+          <div className="flex flex-col gap-1">
+            <span className="text-xs uppercase tracking-wide text-texto-apagado">
+              Valor
+            </span>
+            <span className="num font-titulo text-2xl font-bold text-acao">
+              {valor}
+            </span>
+          </div>
+          <BotaoCopiar
+            valor={brcode}
+            rotulo="Copiar pix copia e cola"
+            destaque
+            className="w-full"
+          />
+          <span className="text-xs text-texto-suave">
+            Ou copie o código e cole no seu banco, se preferir.
           </span>
         </div>
-        <BotaoCopiar
-          valor={brcode}
-          rotulo="Copiar pix copia e cola"
-          destaque
-          className="w-full sm:w-auto"
-        />
-      </div>
-
-      <div className="flex flex-col gap-1 rounded-bloco border border-borda bg-superficie p-3">
-        <span className="text-xs uppercase tracking-wide text-texto-apagado">
-          Código pix
-        </span>
-        <span className="num max-h-20 overflow-y-auto break-all text-xs leading-relaxed text-texto-suave">
-          {brcode}
-        </span>
       </div>
 
       <dl className="flex flex-col gap-2 border-t border-borda pt-3 text-sm">

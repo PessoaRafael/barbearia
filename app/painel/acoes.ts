@@ -131,6 +131,75 @@ export async function revogarChaveDe(chaveId: string) {
   return { ok: true };
 }
 
+const servico = z.object({
+  id: z.string().uuid().nullable(),
+  nome: z.string().trim().min(2).max(60),
+  categoria: z.string().trim().min(2).max(30),
+  duracaoMin: z.coerce.number().int().min(5).max(480),
+  preco: z.coerce.number().min(0).max(5000),
+  cobertoPeloClube: z.boolean(),
+  abate: z.coerce.number().min(0).max(5000),
+  tag: z.string().trim().max(40).nullable(),
+});
+
+/**
+ * Salva serviço novo ou existente. O abate do clube nunca passa do preço:
+ * senão o crédito viraria troco.
+ */
+export async function salvarServico(entrada: z.input<typeof servico>) {
+  const analise = servico.safeParse(entrada);
+  if (!analise.success) return { erro: "Confira os campos do serviço." };
+
+  const sessao = await exigirDono();
+  const d = analise.data;
+  const supabase = clienteServico();
+
+  const linha = {
+    barbershop_id: sessao.barbeariaId,
+    nome: d.nome,
+    categoria: d.categoria,
+    duracao_min: d.duracaoMin,
+    preco_centavos: Math.round(d.preco * 100),
+    coberto_pelo_clube: d.cobertoPeloClube,
+    abate_centavos: d.cobertoPeloClube
+      ? Math.min(Math.round(d.abate * 100), Math.round(d.preco * 100))
+      : 0,
+    tag: d.tag || null,
+  };
+
+  const { error } = d.id
+    ? await supabase.from("services").update(linha).eq("id", d.id)
+    : await supabase.from("services").insert(linha);
+
+  if (error) return { erro: "Não consegui salvar o serviço." };
+
+  revalidatePath("/painel");
+  revalidatePath("/agendar");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/**
+ * Serviço sai da régua sem apagar: agendamento antigo continua apontando para
+ * ele, e apagar quebraria o histórico.
+ */
+export async function alternarServico(servicoId: string, ativo: boolean) {
+  const sessao = await exigirDono();
+
+  const { error } = await clienteServico()
+    .from("services")
+    .update({ ativo })
+    .eq("id", servicoId)
+    .eq("barbershop_id", sessao.barbeariaId);
+
+  if (error) return { erro: "Não consegui atualizar." };
+
+  revalidatePath("/painel");
+  revalidatePath("/agendar");
+  revalidatePath("/");
+  return { ok: true };
+}
+
 const configuracoes = z.object({
   pixKey: z.string().trim().min(5).max(80),
   pixTitular: z.string().trim().min(3).max(60),
