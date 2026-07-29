@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Lightbulb, SendHorizontal, X } from "lucide-react";
+import { ChevronLeft, Lightbulb, SendHorizontal, X } from "lucide-react";
 
 import {
   conversar,
@@ -66,7 +66,14 @@ export function Conversa({
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-30 border-b border-borda bg-fundo/95 px-5 py-3 backdrop-blur sm:px-8">
-        <div className="mx-auto flex w-full max-w-2xl items-center gap-3">
+        <div className="mx-auto flex w-full max-w-2xl items-center gap-2 sm:gap-3">
+          <Link
+            href="/"
+            aria-label="Voltar para o início"
+            className="-ml-2 inline-flex min-h-toque min-w-toque shrink-0 items-center justify-center rounded-pill text-texto-suave transition-colors hover:text-texto"
+          >
+            <ChevronLeft className="h-5 w-5" strokeWidth={2} />
+          </Link>
           <Logo tamanho={36} />
           <div className="flex min-w-0 flex-col">
             <span className="truncate font-titulo text-base font-bold leading-tight">
