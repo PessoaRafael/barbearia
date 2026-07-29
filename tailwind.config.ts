@@ -18,11 +18,15 @@ const config: Config = {
           media: "#332E1E",
           forte: "#4A422A",
         },
+        // Clareados de propósito: o público vai do adolescente ao senhor de 70,
+        // e os tons originais (#97907C e #6E684F) ficavam em 5:1 e 3:1 sobre o
+        // fundo. Agora nenhum texto fica abaixo de 4.5:1, que é o mínimo para
+        // quem lê sem óculos no celular, no sol.
         texto: {
-          DEFAULT: "#F0EADA",
-          medio: "#C9C2A8",
-          suave: "#97907C",
-          apagado: "#6E684F",
+          DEFAULT: "#F5F0E4",
+          medio: "#D6CFB8",
+          suave: "#B3AC94",
+          apagado: "#8E876B",
         },
         acao: {
           DEFAULT: "#F5CE0A",
@@ -36,18 +40,23 @@ const config: Config = {
         titulo: ["var(--fonte-titulo)", "system-ui", "sans-serif"],
         corpo: ["var(--fonte-corpo)", "system-ui", "sans-serif"],
       },
-      // Nada menor que 13px.
+      /**
+       * Escala subida um degrau inteiro. O piso saiu de 13px para 15px: 13px
+       * é confortável para quem desenha a tela, não para quem marca corte no
+       * ônibus. A entrelinha também cresceu, que é o que mais ajuda quem lê
+       * devagar.
+       */
       fontSize: {
-        xs: ["13px", "18px"],
-        sm: ["14px", "20px"],
-        base: ["15px", "22px"],
-        lg: ["17px", "24px"],
-        xl: ["20px", "26px"],
-        "2xl": ["24px", "30px"],
-        "3xl": ["30px", "36px"],
-        "4xl": ["38px", "42px"],
-        "5xl": ["48px", "50px"],
-        "6xl": ["60px", "60px"],
+        xs: ["15px", "22px"],
+        sm: ["16px", "24px"],
+        base: ["17px", "26px"],
+        lg: ["19px", "28px"],
+        xl: ["22px", "30px"],
+        "2xl": ["26px", "33px"],
+        "3xl": ["32px", "38px"],
+        "4xl": ["40px", "44px"],
+        "5xl": ["50px", "52px"],
+        "6xl": ["62px", "62px"],
       },
       borderRadius: {
         bloco: "12px",

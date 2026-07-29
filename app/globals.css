@@ -29,6 +29,21 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  /**
+   * O lucide define stroke-width como atributo, e a propriedade CSS ganha dele.
+   * Traço de 1.75 some em tela de celular no sol; 2.25 aguenta. Também sobe o
+   * tamanho mínimo do ícone, que era 16px e virava um borrão.
+   */
+  .lucide {
+    stroke-width: 2.25;
+  }
+
+  .lucide[width="16"],
+  .lucide[height="16"] {
+    width: 18px;
+    height: 18px;
+  }
+
   :focus-visible {
     outline: 2px solid #f5ce0a;
     outline-offset: 2px;

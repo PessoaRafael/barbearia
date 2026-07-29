@@ -91,7 +91,13 @@ async function exemplosDeUso() {
   ];
 }
 
-const hm = (h: string) => h;
+/** "amanhã" no começo da frase vira "Amanhã". */
+const maiuscula = (texto: string) =>
+  texto.charAt(0).toUpperCase() + texto.slice(1);
+
+/** Evita "1 horários". */
+const contarHorarios = (quantos: number) =>
+  quantos === 1 ? "1 horário" : `${quantos} horários`;
 
 export async function conversar(
   estadoAtual: Estado,
@@ -276,8 +282,11 @@ export async function conversar(
   if (livres.length === 0) {
     estado.data = undefined;
     estado.hora = undefined;
+    estado.turno = undefined;
     falas.push(
-      `Poxa, ${quando} não tem mais nada livre para ${servico.nome}. Quer tentar outro dia?`,
+      // Diz a duração: é o que explica por que um dia com buracos não serve
+      // para o platinado, e evita o cliente achar que é má vontade.
+      `Poxa, ${quando} não sobrou nenhum vão de ${servico.duracao_min} min para ${servico.nome}. Quer tentar outro dia?`,
     );
     return {
       estado,
@@ -307,7 +316,9 @@ export async function conversar(
     }).slice(0, 4);
 
     falas.push(
-      `${hm(estado.hora)} ${quando} já foi. O mais perto que tenho é ${perto[0].hora}.`,
+      perto.length === 1
+        ? `${estado.hora} ${quando} já foi. Só me sobrou ${perto[0].hora}.`
+        : `${estado.hora} ${quando} já foi. O mais perto que tenho é ${perto[0].hora}.`,
     );
     estado.hora = undefined;
     return {
@@ -318,12 +329,34 @@ export async function conversar(
   }
 
   if (!estado.hora) {
-    const mostrar = (doTurno.length ? doTurno : livres).slice(0, 6);
+    const rotuloTurno = estado.turno === "manha" ? "de manhã" : "de tarde";
+
+    // Pediu um turno que não tem nada: diz isso em vez de mostrar o outro
+    // turno em silêncio, como se fosse o que ele pediu.
+    if (estado.turno && doTurno.length === 0) {
+      estado.turno = undefined;
+      falas.push(
+        `${maiuscula(quando)} não tenho nada ${rotuloTurno}, mas ainda tenho ${contarHorarios(livres.length)} no resto do dia.`,
+      );
+      return {
+        estado,
+        falas,
+        opcoes: livres.slice(0, 6).map((l) => ({ rotulo: l.hora, valor: l.hora })),
+      };
+    }
+
+    const disponiveis = estado.turno ? doTurno : livres;
+    const mostrar = disponiveis.slice(0, 6);
+    const sobraram = disponiveis.length - mostrar.length;
+
+    // O número precisa bater com o que está na tela: contar o dia inteiro e
+    // mostrar só a tarde faz o cliente achar que o bot está inventando.
     falas.push(
-      `${quando} eu tenho ${livres.length} horários. ${
-        estado.turno ? "De " + (estado.turno === "manha" ? "manhã" : "tarde") + ":" : "Olha aí:"
-      }`,
+      `${maiuscula(quando)} tenho ${contarHorarios(disponiveis.length)}${
+        estado.turno ? " " + rotuloTurno : ""
+      }.${sobraram > 0 ? ` Esses são os primeiros, e ainda tem outros ${sobraram}:` : ""}`,
     );
+
     return {
       estado,
       falas,
