@@ -2,7 +2,7 @@
  * Regras que a tela e o servidor precisam conhecer juntos.
  *
  * Vive fora dos arquivos "use server" porque lá só pode sair função assíncrona
- * — constante exportada quebra o build.
+ *, constante exportada quebra o build.
  */
 
 /** Depois disso o cliente não cancela sozinho pelo link: só o painel. */

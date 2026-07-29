@@ -199,7 +199,7 @@ const RECADOS: Record<string, string> = {
   horario_bloqueado: "Esse horário está bloqueado.",
   casa_fechada: "A barbearia está fechada nesse dia.",
   sem_assinatura_ativa: "Não achei assinatura ativa nesse telefone.",
-  assinatura_vencida: "Sua mensalidade está vencida — dá para pagar avulso.",
+  assinatura_vencida: "Sua mensalidade está vencida, dá para pagar avulso.",
   servico_fora_do_clube: "Esse serviço não entra no clube.",
   creditos_esgotados: "Seus cortes do clube acabaram neste ciclo.",
   servico_indisponivel: "Esse serviço não está mais na régua.",

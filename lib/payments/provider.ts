@@ -6,7 +6,7 @@ import { gerarBrCode } from "@/lib/pix/brcode";
  * Camada isolada de pagamento.
  *
  * Hoje o pix é BR Code estático com valor e txid, e quem confirma é o Johny
- * olhando o extrato — nunca a palavra do cliente. Quando entrar um PSP com
+ * olhando o extrato, nunca a palavra do cliente. Quando entrar um PSP com
  * webhook, basta escrever outro objeto com esta mesma interface: nada fora
  * daqui sabe como a cobrança é criada ou confirmada.
  */

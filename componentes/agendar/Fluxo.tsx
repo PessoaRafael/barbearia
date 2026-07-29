@@ -472,7 +472,7 @@ export function Fluxo({
                   servico ? "text-acao" : "text-texto-apagado"
                 }`}
               >
-                {servico ? moedaCentavos(valorCentavos) : "—"}
+                {servico ? moedaCentavos(valorCentavos) : "-"}
               </span>
             </div>
             <button
@@ -814,7 +814,7 @@ function Trilha({
             total === null ? "text-texto-apagado" : "text-acao"
           }`}
         >
-          {total === null ? "—" : moedaCentavos(total)}
+          {total === null ? "-" : moedaCentavos(total)}
         </span>
       </div>
     </div>

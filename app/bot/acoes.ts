@@ -53,10 +53,23 @@ export type Resposta = {
   exemplos?: string[];
   /** Preenchido quando o agendamento fecha: a tela mostra o link. */
   token?: string;
+  /**
+   * O pix vai junto da resposta para o cliente pagar sem sair da conversa.
+   * Mandar ele abrir outra tela na hora de pagar é onde se perde gente.
+   */
+  pix?: {
+    brcode: string;
+    qrSvg: string | null;
+    chave: string;
+    titular: string;
+    valor: string;
+    minutos: number;
+    seguraOHorario: boolean;
+  } | null;
 };
 
 /**
- * Exemplos montados com os dados reais da casa — serviço e barbeiro que
+ * Exemplos montados com os dados reais da casa, serviço e barbeiro que
  * existem de verdade. Frase de exemplo genérica ensina menos, e frustra quando
  * o cliente copia e o bot não reconhece.
  */
@@ -169,7 +182,7 @@ export async function conversar(
     falas.push(
       "A tabela é essa:\n" +
         servicos
-          .map((s) => `• ${s.nome} — ${moedaCentavos(s.preco_centavos)} (${s.duracao_min} min)`)
+          .map((s) => `• ${s.nome}, ${moedaCentavos(s.preco_centavos)} (${s.duracao_min} min)`)
           .join("\n"),
     );
     falas.push("Qual deles você quer marcar?");
@@ -200,7 +213,7 @@ export async function conversar(
 
   if (intencao === "cancelar") {
     falas.push(
-      "Para cancelar ou remarcar, use o link que te mandei quando marcou — ele abre a sua reserva. Se não achar, me chama que eu resolvo.",
+      "Para cancelar ou remarcar, use o link que te mandei quando marcou, ele abre a sua reserva. Se não achar, me chama que eu resolvo.",
     );
     return { estado, falas, opcoes: [] };
   }
@@ -408,17 +421,45 @@ export async function conversar(
     barbeiros.find((b) => b.id === estado.barbeiroId)?.apelido ||
     "";
 
+  const aguardando = saida.status === "pendente_pagamento";
+
   falas.push(
-    saida.status === "pendente_pagamento"
-      ? `Reservei ${quando} às ${estado.hora} com ${barbeiroFinal}. Falta o pix cair para confirmar — o código está no link abaixo.`
+    aguardando
+      ? `Reservei ${quando} às ${estado.hora} com ${barbeiroFinal}. Falta o pix cair para confirmar.`
       : `Pronto! ${servico.nome} ${quando} às ${estado.hora} com ${barbeiroFinal}.`,
   );
 
-  if (estado.forma === "pix" && saida.pix) {
-    falas.push("O QR e o código copia e cola estão no seu link.");
+  if (saida.pix) {
+    falas.push(
+      aguardando
+        ? `São ${moedaCentavos(saida.valorCentavos)}. Aponta a câmera do banco no QR ou copia o código, o horário fica seguro por ${barbearia.reserva_minutos} minutos.`
+        : `São ${moedaCentavos(saida.valorCentavos)}. Se quiser adiantar, é só pagar aqui mesmo.`,
+    );
+  } else if (estado.forma === "clube") {
+    falas.push("Usei 1 corte do seu clube. Não precisa pagar nada agora.");
+  } else {
+    falas.push(
+      `São ${moedaCentavos(saida.valorCentavos)}, você acerta com o barbeiro na cadeira.`,
+    );
   }
 
-  return { estado: { ...estado, token: saida.token }, falas, opcoes: [], token: saida.token };
+  return {
+    estado: { ...estado, token: saida.token },
+    falas,
+    opcoes: [],
+    token: saida.token,
+    pix: saida.pix
+      ? {
+          brcode: saida.pix.brcode,
+          qrSvg: saida.pix.qrSvg,
+          chave: saida.pix.chave,
+          titular: saida.pix.titular,
+          valor: moedaCentavos(saida.valorCentavos),
+          minutos: saida.pix.minutos,
+          seguraOHorario: aguardando,
+        }
+      : null,
+  };
 }
 
 /** Primeira fala, antes de o cliente escrever qualquer coisa. */
@@ -433,7 +474,7 @@ export async function abertura(): Promise<Resposta> {
     estado: {},
     falas: [
       `Fala! Aqui é a ${barbearia.nome}.`,
-      "Me diz o que você quer que eu marco na hora. Pode escrever do seu jeito — quanto mais coisa na mesma frase, menos eu pergunto.",
+      "Me diz o que você quer que eu marco na hora. Pode escrever do seu jeito, quanto mais coisa na mesma frase, menos eu pergunto.",
     ],
     opcoes: servicos.slice(0, 4).map((s) => ({
       rotulo: `${s.nome} · ${moedaCentavos(s.preco_centavos)}`,

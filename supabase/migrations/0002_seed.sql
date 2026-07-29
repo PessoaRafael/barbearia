@@ -10,7 +10,7 @@ insert into barbershops (
   'Johny Barbearia',
   'johny-barbearia',
   'Natal, RN',
-  'R. Djalma Maranhão, 463-2 — Nova Descoberta, Natal/RN, 59075-290',
+  'R. Djalma Maranhão, 463-2, Nova Descoberta, Natal/RN, 59075-290',
   '84999835180',
   '84999835180',
   'Johny Rodrigues Gomes',

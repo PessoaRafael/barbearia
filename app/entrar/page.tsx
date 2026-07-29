@@ -86,7 +86,7 @@ export default function Entrar() {
         </form>
 
         <p className="text-center text-xs text-texto-apagado">
-          Perdeu a chave? Fale com o Johny — ele gera outra na hora e a antiga
+          Perdeu a chave? Fale com o Johny, ele gera outra na hora e a antiga
           para de valer.
         </p>
 

@@ -4,7 +4,13 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Lightbulb, SendHorizontal, X } from "lucide-react";
 
-import { conversar, type Estado, type Opcao } from "@/app/bot/acoes";
+import {
+  conversar,
+  type Estado,
+  type Opcao,
+  type Resposta,
+} from "@/app/bot/acoes";
+import { PainelPix } from "@/componentes/agendar/PainelPix";
 import { Logo } from "@/componentes/base";
 
 type Fala = { de: "bot" | "eu"; texto: string };
@@ -28,6 +34,7 @@ export function Conversa({
   const [estado, setEstado] = useState<Estado>({});
   const [texto, setTexto] = useState("");
   const [token, setToken] = useState<string | null>(null);
+  const [pix, setPix] = useState<Resposta["pix"]>(null);
   const [pensando, comecar] = useTransition();
 
   const fim = useRef<HTMLDivElement>(null);
@@ -52,6 +59,7 @@ export function Conversa({
       ]);
       setOpcoes(r.opcoes);
       if (r.token) setToken(r.token);
+      if (r.pix) setPix(r.pix);
     });
   }
 
@@ -120,6 +128,23 @@ export function Conversa({
                 />
               ))}
             </p>
+          </div>
+        ) : null}
+
+        {/* O pix aparece dentro da conversa: pagar não pode exigir sair daqui. */}
+        {pix ? (
+          <div className="flex justify-start">
+            <div className="w-full max-w-[92%]">
+              <PainelPix
+                brcode={pix.brcode}
+                qrSvg={pix.qrSvg}
+                chave={pix.chave}
+                titular={pix.titular}
+                valor={pix.valor}
+                minutos={pix.minutos}
+                seguraOHorario={pix.seguraOHorario}
+              />
+            </div>
           </div>
         ) : null}
 

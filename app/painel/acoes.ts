@@ -9,7 +9,7 @@ import { clienteServico } from "@/lib/supabase/servidor";
 
 /**
  * Toda ação do painel manda o id da chave de acesso, que sai do cookie
- * httpOnly. Quem decide o que ela pode fazer é a função no Postgres — aqui só
+ * httpOnly. Quem decide o que ela pode fazer é a função no Postgres, aqui só
  * repassamos. Nenhuma delas confia em id vindo do formulário.
  */
 
@@ -300,6 +300,7 @@ export async function salvarServico(entrada: z.input<typeof servico>) {
 
   revalidatePath("/painel");
   revalidatePath("/agendar");
+  revalidatePath("/bot");
   revalidatePath("/");
   return { ok: true };
 }
@@ -321,6 +322,7 @@ export async function alternarServico(servicoId: string, ativo: boolean) {
 
   revalidatePath("/painel");
   revalidatePath("/agendar");
+  revalidatePath("/bot");
   revalidatePath("/");
   return { ok: true };
 }

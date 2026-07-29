@@ -5,7 +5,7 @@ import { clienteServico } from "@/lib/supabase/servidor";
 /**
  * Disponibilidade calculada no servidor, sempre.
  *
- * O navegador nunca decide se um horário está livre — ele só desenha o que
+ * O navegador nunca decide se um horário está livre, ele só desenha o que
  * chega daqui, e a reserva confere tudo de novo dentro da transação.
  *
  * Natal não tem horário de verão desde 2019, então o fuso é fixo em -03:00.
@@ -50,7 +50,7 @@ function sobrepoe(
  * Devolve à grade o pix que estourou o prazo.
  *
  * Roda junto com a consulta de disponibilidade em vez de depender de um cron
- * de minuto em minuto — que o plano Hobby da Vercel não aceita. O horário só
+ * de minuto em minuto, que o plano Hobby da Vercel não aceita. O horário só
  * precisa voltar quando alguém for olhar a grade, e é exatamente aí que isto
  * acontece. O cron diário fica como rede de segurança.
  */

@@ -58,7 +58,7 @@ export function Clube({
 
       {lista.length === 0 ? (
         <p className="rounded-card border border-borda bg-superficie-ativa px-4 py-10 text-center text-sm text-texto-suave">
-          Nenhum assinante ainda. Coloque o primeiro pelo botão acima — é o
+          Nenhum assinante ainda. Coloque o primeiro pelo botão acima, é o
           WhatsApp dele que liga tudo.
         </p>
       ) : (
@@ -121,7 +121,7 @@ export function Clube({
       {vencidos.length ? (
         <p className="text-xs text-alerta">
           {vencidos.length} mensalidade(s) vencida(s). Enquanto está vencida, o
-          cliente não gasta crédito — o corte sai avulso.
+          cliente não gasta crédito, o corte sai avulso.
         </p>
       ) : null}
 
@@ -148,7 +148,7 @@ function Inscrever({ onPronto }: { onPronto: () => void }) {
     <div className="flex flex-col gap-3 rounded-card border border-borda-forte bg-superficie-ativa p-4">
       <span className="text-sm text-texto-suave">
         Se ele já cortou aqui alguma vez, a assinatura cola no cadastro que já
-        existe — basta o mesmo número.
+        existe, basta o mesmo número.
       </span>
 
       <div className="grid gap-3 sm:grid-cols-2">

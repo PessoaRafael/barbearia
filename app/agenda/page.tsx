@@ -14,7 +14,7 @@ import { moedaCentavos, telefoneBonito } from "@/lib/formato";
 /**
  * Painel do barbeiro: só a agenda dele.
  *
- * Não é a tela que esconde os outros — é o banco. agenda_do_dia deriva o
+ * Não é a tela que esconde os outros, é o banco. agenda_do_dia deriva o
  * barbeiro da chave de acesso e ignora qualquer id que chegue junto.
  */
 export const dynamic = "force-dynamic";

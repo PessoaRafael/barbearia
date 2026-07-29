@@ -5,7 +5,7 @@
 -- traduz esse tombo em uma mensagem que dá para mostrar na tela.
 --
 -- Roda como SECURITY DEFINER porque precisa ler expediente, pausas e clube
--- para validar — mas nunca confia no que veio da tela: revalida tudo.
+-- para validar, mas nunca confia no que veio da tela: revalida tudo.
 
 create or replace function public.reservar(
   p_barbearia   uuid,

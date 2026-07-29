@@ -96,7 +96,7 @@ export function SoltarBloqueio({ bloqueioId }: { bloqueioId: string }) {
 
 /**
  * A chave aparece uma vez só. Depois disso, nem o Johny consegue vê-la de
- * novo — no banco tem só o hash.
+ * novo, no banco tem só o hash.
  */
 export function GerarChave({
   barbeiroId,
@@ -124,7 +124,7 @@ export function GerarChave({
         </div>
         <p className="text-xs text-alerta">
           Anote ou mande agora: essa chave não aparece de novo. Se perder, é só
-          gerar outra — a antiga para de valer na hora.
+          gerar outra, a antiga para de valer na hora.
         </p>
         <div className="flex flex-col gap-2 sm:flex-row">
           <BotaoCopiar valor={chave} rotulo="Copiar chave" destaque />

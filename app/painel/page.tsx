@@ -379,7 +379,7 @@ function AbaPix({
     <Cartao titulo="Pix para conferir">
       <p className="text-sm text-texto-suave">
         Confira no extrato antes de liberar. O sistema nunca aceita a palavra do
-        cliente — quem confirma é você.
+        cliente, quem confirma é você.
       </p>
 
       {pendentes.length === 0 ? (
@@ -415,7 +415,7 @@ function AbaPix({
                     className={`num text-xs ${venceu ? "text-alerta" : "text-texto-suave"}`}
                   >
                     {venceu
-                      ? "prazo vencido — o horário já voltou para a grade"
+                      ? "prazo vencido, o horário já voltou para a grade"
                       : `expira às ${hora(p.expiraEm!)}`}
                   </span>
                 ) : null}
@@ -484,7 +484,7 @@ async function AbaFila({ sessao }: { sessao: Sessao }) {
     <Cartao titulo={`Fila de espera · ${fila.length}`}>
       <p className="text-sm text-texto-suave">
         Quem quis um dia cheio. Quando alguém cancela, o sistema avisa esta
-        fila — e aqui você chama na mão quando abrir uma brecha.
+        fila, e aqui você chama na mão quando abrir uma brecha.
       </p>
 
       {fila.length === 0 ? (

@@ -26,7 +26,7 @@ export type Dia = {
   rotulo: string | null;
 };
 
-/** "2026-07-29" — hoje na barbearia, não no servidor da Vercel. */
+/** "2026-07-29", hoje na barbearia, não no servidor da Vercel. */
 export function hojeNaCasa() {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: FUSO,
@@ -54,7 +54,7 @@ export function proximosDias(quantidade = 7): Dia[] {
   });
 }
 
-/** "29 de julho a 4 de agosto" — o mês uma vez só, em vez de sete. */
+/** "29 de julho a 4 de agosto", o mês uma vez só, em vez de sete. */
 export function periodo(dias: Dia[]) {
   if (!dias.length) return "";
   const primeiro = dias[0];

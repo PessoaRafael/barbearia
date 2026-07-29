@@ -9,7 +9,7 @@ import { formatarTelefone } from "@/lib/pix/brcode";
  * Pix com as duas saídas: escanear o QR ou copiar o código.
  *
  * O QR é gerado no servidor a partir do mesmo BR Code que está no botão de
- * copiar — nada decorativo. Se ele não vier, a tela mostra só o copia e cola,
+ * copiar, nada decorativo. Se ele não vier, a tela mostra só o copia e cola,
  * porque um QR falso faria alguém mandar dinheiro para lugar nenhum.
  */
 export function PainelPix({
@@ -95,7 +95,7 @@ export function PainelPix({
           <Clock className="mt-0.5 h-4 w-4 shrink-0 text-alerta" strokeWidth={2} />
           <span>
             A reserva vale {minutos} minutos. O barbeiro confirma o horário
-            assim que o pix cair — não precisa avisar por aqui.
+            assim que o pix cair, não precisa avisar por aqui.
           </span>
         </p>
       ) : null}

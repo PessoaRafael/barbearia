@@ -6,7 +6,7 @@ import { randomBytes, randomInt, scryptSync, timingSafeEqual } from "node:crypto
  * Chave de acesso no formato JHNY-XXXX-XXXX.
  *
  * O Johny lê essa chave em voz alta no WhatsApp, então o alfabeto não tem
- * O, I, 0 nem 1 — os quatro caracteres que fazem alguém digitar errado.
+ * O, I, 0 nem 1, os quatro caracteres que fazem alguém digitar errado.
  *
  * No banco fica só o hash. Formato: scrypt$N$r$p$salt$hash, tudo em hex.
  * Se mudar aqui, mude também em scripts/token-owner.mjs.

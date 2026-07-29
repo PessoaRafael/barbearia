@@ -7,7 +7,7 @@
  * derruba as sessões abertas. É também o caminho de recuperação: se o Johny
  * perder o token, roda de novo.
  *
- * O formato do hash é o mesmo de lib/auth/chaves.ts — se mudar lá, mude aqui.
+ * O formato do hash é o mesmo de lib/auth/chaves.ts, se mudar lá, mude aqui.
  */
 
 import { randomInt, randomBytes, scryptSync } from "node:crypto";
@@ -105,7 +105,7 @@ await api("access_keys", {
 });
 
 console.log("");
-console.log(`  Token de super user — ${casa.nome}`);
+console.log(`  Token de super user, ${casa.nome}`);
 console.log("");
 console.log(`      ${chave}`);
 console.log("");

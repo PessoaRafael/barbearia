@@ -53,7 +53,7 @@ export async function resumoDoDia(sessao: Sessao, data = hojeNaCasa()) {
   }) as { marcados: number; receita_centavos: number; pix_pendentes: number };
 }
 
-/** Bloqueios pontuais do dia — os que dá para soltar com um clique. */
+/** Bloqueios pontuais do dia, os que dá para soltar com um clique. */
 export async function bloqueiosDoDia(sessao: Sessao, data = hojeNaCasa()) {
   const supabase = clienteServico();
   const { data: barbeiros } = await supabase

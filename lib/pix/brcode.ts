@@ -56,7 +56,7 @@ export function normalizarChavePix(chave: string) {
   return chave.trim();
 }
 
-/** (84) 99983-5180 — só para a tela; copiar leva os dígitos crus. */
+/** (84) 99983-5180, só para a tela; copiar leva os dígitos crus. */
 export function formatarTelefone(chave: string) {
   const d = chave.replace(/\D/g, "").replace(/^55/, "");
   if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;

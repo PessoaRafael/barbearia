@@ -14,7 +14,7 @@
 -- RLS: negar por padrão
 --
 -- Nenhuma policy é criada de propósito. Com a publishable key, toda tabela
--- responde vazio — mesmo que a chave vaze. Todo acesso real passa pelo
+-- responde vazio, mesmo que a chave vaze. Todo acesso real passa pelo
 -- servidor Next, com a secret key, e pelas funções abaixo.
 -- ---------------------------------------------------------------------------
 
@@ -50,7 +50,7 @@ create type app.sessao as (
 
 /**
  * Resolve a chave de acesso. Levanta erro se não existir, tiver sido revogada
- * ou vencido — o chamador nunca recebe uma sessão meia-boca.
+ * ou vencido, o chamador nunca recebe uma sessão meia-boca.
  */
 create or replace function app.resolver(p_chave uuid)
 returns app.sessao
@@ -92,7 +92,7 @@ as $$ select app.resolver(p_chave); $$;
 
 /**
  * Agenda de um dia. O dono vê a casa inteira; o barbeiro vê só a própria
- * coluna. O p_barbeiro só é respeitado para o dono — para o barbeiro ele é
+ * coluna. O p_barbeiro só é respeitado para o dono, para o barbeiro ele é
  * ignorado e trocado pelo id da chave dele.
  */
 create or replace function public.agenda_do_dia(

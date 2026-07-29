@@ -8,7 +8,7 @@ import { clienteServico } from "@/lib/supabase/servidor";
  * Roda uma vez por manhã, não de hora em hora: o plano Hobby da Vercel só
  * aceita cron diário. Como a mensagem fica numa fila para o Johny disparar no
  * wa.me, juntar o dia inteiro de uma vez funciona melhor do que pingar de hora
- * em hora — ele abre a fila e manda tudo.
+ * em hora, ele abre a fila e manda tudo.
  */
 
 export const dynamic = "force-dynamic";

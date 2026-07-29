@@ -1,6 +1,6 @@
 /**
  * Cria uma chave de barbeiro descartável, roda o teste das telas internas com
- * ela e revoga no fim. Prova na aplicação — não só no banco — que o barbeiro
+ * ela e revoga no fim. Prova na aplicação, não só no banco, que o barbeiro
  * cai na própria agenda e não alcança o painel do dono.
  */
 

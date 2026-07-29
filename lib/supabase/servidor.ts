@@ -30,7 +30,7 @@ export function clienteServico(): SupabaseClient {
   const chave = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!chave) {
     throw new Error(
-      "SUPABASE_SERVICE_ROLE_KEY não configurado — é a secret key do projeto.",
+      "SUPABASE_SERVICE_ROLE_KEY não configurado, é a secret key do projeto.",
     );
   }
 

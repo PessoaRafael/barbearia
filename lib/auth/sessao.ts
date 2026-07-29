@@ -15,7 +15,7 @@ import { clienteServico } from "@/lib/supabase/servidor";
 
 const COOKIE = "johny_sessao";
 /** Só dica de rota para o middleware, que não fala com o banco. A permissão
- *  de verdade sai de `lerSessao` e do RLS — este cookie não autoriza nada. */
+ *  de verdade sai de `lerSessao` e do RLS, este cookie não autoriza nada. */
 const COOKIE_PAPEL = "johny_papel";
 const DIAS = 30;
 

@@ -1,7 +1,7 @@
 /**
  * O "cérebro" do bot: casamento de padrões, não IA.
  *
- * O truque que faz parecer inteligente não é entender a frase — é tentar
+ * O truque que faz parecer inteligente não é entender a frase, é tentar
  * extrair TODOS os dados de uma vez. Quem escreve "quero degradê amanhã de
  * tarde com o Diego" preenche quatro campos numa tacada e o bot só pergunta o
  * que sobrou. Um passo por pergunta é o que denuncia formulário disfarçado.
@@ -60,8 +60,8 @@ function parecido(a: string, b: string) {
  *
  * Pontua todos e fica com o melhor, em vez de aceitar o primeiro que passar:
  * "corte degradê" tem a palavra "corte", que também está em "Corte social", e
- * o primeiro-que-serve escolheria errado. Só palavra DISTINTIVA — presente no
- * nome de um item só — decide.
+ * o primeiro-que-serve escolheria errado. Só palavra DISTINTIVA, presente no
+ * nome de um item só, decide.
  */
 export function acharPorNome<T extends { id: string; nome: string }>(
   texto: string,

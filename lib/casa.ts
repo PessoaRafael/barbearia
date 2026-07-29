@@ -2,7 +2,7 @@
 export const CASA = {
   nome: "Johny Barbearia",
   cidade: "Natal, RN",
-  endereco: "R. Djalma Maranhão, 463-2 — Nova Descoberta",
+  endereco: "R. Djalma Maranhão, 463-2, Nova Descoberta",
   cep: "59075-290",
   telefone: "(84) 99983-5180",
   linkAgendamento: "johnybarbearia.com.br/agendar",

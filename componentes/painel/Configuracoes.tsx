@@ -60,10 +60,10 @@ export function Configuracoes({
           </span>
           <select name="modalidade" defaultValue={modalidade} className={campo}>
             <option value="opcional">
-              Opcional — o horário já fica confirmado
+              Opcional, o horário já fica confirmado
             </option>
             <option value="obrigatorio">
-              Obrigatório — segura o horário até o pix cair
+              Obrigatório, segura o horário até o pix cair
             </option>
           </select>
         </label>

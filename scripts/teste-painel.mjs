@@ -1,6 +1,6 @@
 /**
  * Testa as telas internas contra o servidor local, forjando um cookie de sessão
- * válido — o mesmo que o /entrar emite. Prova que o portão fecha para anônimo,
+ * válido, o mesmo que o /entrar emite. Prova que o portão fecha para anônimo,
  * que o dono vê o painel e que cada papel cai na sua tela.
  *
  * Precisa do `npm run dev` rodando. Uso: node scripts/teste-painel.mjs
@@ -101,7 +101,7 @@ console.log("\n3. Como barbeiro");
 
 const chaveBarbeiro = chaves.find((c) => c.role === "barber");
 if (!chaveBarbeiro) {
-  console.log("  (pulado) nenhum barbeiro tem chave ainda — gere pela aba Equipe");
+  console.log("  (pulado) nenhum barbeiro tem chave ainda, gere pela aba Equipe");
 } else {
   const cookieBarbeiro = cookieDe(chaveBarbeiro.id, "barber");
 
