@@ -19,16 +19,14 @@ export function middleware(requisicao: NextRequest) {
     return NextResponse.redirect(destino);
   }
 
-  if (pathname === "/entrar" && temCookie) {
-    const papel = requisicao.cookies.get("johny_papel")?.value;
-    const destino = requisicao.nextUrl.clone();
-    destino.pathname = papel === "barber" ? "/agenda" : "/painel";
-    return NextResponse.redirect(destino);
-  }
+  // Quem já tem sessão e abre /entrar continua vendo o formulário de propósito.
+  // Mandar /entrar de volta para /painel fecharia um laço infinito sempre que a
+  // sessão fosse recusada no servidor: a página manda para /entrar, o
+  // middleware manda de volta, e assim por diante.
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/painel/:path*", "/agenda/:path*", "/entrar"],
+  matcher: ["/painel/:path*", "/agenda/:path*"],
 };

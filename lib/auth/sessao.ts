@@ -94,34 +94,51 @@ export async function lerSessao(): Promise<Sessao | null> {
   if (!chaveId) return null;
 
   const supabase = clienteServico();
-  const { data } = await supabase
+
+  /**
+   * Resolve pela função do banco em vez de ler a tabela: access_keys tem duas
+   * chaves estrangeiras para barbers (barber_id e criada_por), e o join
+   * automático do PostgREST fica ambíguo e falha. A função também já recusa
+   * chave revogada ou vencida.
+   */
+  const { data, error } = await supabase.rpc("sessao_atual", {
+    p_chave: chaveId,
+  });
+
+  if (error || !data) return null;
+
+  const sessao = data as {
+    chave_id: string;
+    papel: "owner" | "barber";
+    barbearia_id: string;
+    barbeiro_id: string | null;
+    nome: string;
+  };
+
+  // Carimba o último acesso no máximo uma vez por hora.
+  const { data: visto } = await supabase
     .from("access_keys")
-    .select(
-      "id, role, barbershop_id, barber_id, revogada_em, expira_em, ultimo_acesso, barbers(nome, apelido)",
-    )
+    .select("ultimo_acesso")
     .eq("id", chaveId)
     .maybeSingle();
 
-  if (!data || data.revogada_em) return null;
-  if (data.expira_em && new Date(data.expira_em) < new Date()) return null;
+  const quando = visto?.ultimo_acesso
+    ? new Date(visto.ultimo_acesso).getTime()
+    : 0;
 
-  // Carimba o último acesso no máximo uma vez por hora.
-  const visto = data.ultimo_acesso ? new Date(data.ultimo_acesso).getTime() : 0;
-  if (Date.now() - visto > 60 * 60 * 1000) {
+  if (Date.now() - quando > 60 * 60 * 1000) {
     await supabase
       .from("access_keys")
       .update({ ultimo_acesso: new Date().toISOString() })
       .eq("id", chaveId);
   }
 
-  const barbeiro = Array.isArray(data.barbers) ? data.barbers[0] : data.barbers;
-
   return {
-    chaveId: data.id,
-    papel: data.role,
-    barbeariaId: data.barbershop_id,
-    barbeiroId: data.barber_id,
-    nome: barbeiro?.apelido ?? "Johny",
+    chaveId: sessao.chave_id,
+    papel: sessao.papel,
+    barbeariaId: sessao.barbearia_id,
+    barbeiroId: sessao.barbeiro_id,
+    nome: sessao.nome,
   };
 }
 

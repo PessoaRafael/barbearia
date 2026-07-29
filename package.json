@@ -8,7 +8,8 @@
     "start": "next start",
     "token:owner": "node scripts/token-owner.mjs",
     "teste:pix": "node --experimental-strip-types scripts/teste-brcode.mjs",
-    "teste:rls": "node scripts/teste-rls.mjs"
+    "teste:rls": "node scripts/teste-rls.mjs",
+    "teste:painel": "node scripts/teste-barbeiro.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
