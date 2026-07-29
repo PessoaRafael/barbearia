@@ -628,14 +628,23 @@ function Pagamento({
         onClick={() => onEscolher("pix")}
       />
 
-      <Opcao
-        icone={<Banknote className="h-5 w-5" strokeWidth={2} />}
-        titulo="Dinheiro ou cartão na cadeira"
-        apoio="Você acerta com o barbeiro no fim do corte."
-        valor={cheio}
-        ativo={forma === "cadeira"}
-        onClick={() => onEscolher("cadeira")}
-      />
+      {/* Com pagamento antecipado obrigatório, pagar na cadeira não existe:
+          mostrar a opção só para o horário nascer pendente confundiria. */}
+      {obrigatorio ? (
+        <p className="rounded-card border border-borda bg-superficie-ativa px-4 py-3 text-sm text-texto-suave">
+          A casa marca mediante pagamento antecipado. Não dá para acertar na
+          cadeira.
+        </p>
+      ) : (
+        <Opcao
+          icone={<Banknote className="h-5 w-5" strokeWidth={2} />}
+          titulo="Dinheiro ou cartão na cadeira"
+          apoio="Você acerta com o barbeiro no fim do corte."
+          valor={cheio}
+          ativo={forma === "cadeira"}
+          onClick={() => onEscolher("cadeira")}
+        />
+      )}
     </div>
   );
 }

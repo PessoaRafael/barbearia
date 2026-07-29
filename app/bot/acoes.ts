@@ -469,6 +469,16 @@ export async function conversar(
     return { estado, falas, opcoes: [] };
   }
 
+  // A casa marca mediante pagamento antecipado: "pago na hora" não vale, e
+  // fingir que aceita para depois cobrar seria pior do que dizer logo.
+  const antecipado = barbearia.pagamento_modalidade === "obrigatorio";
+  if (antecipado && estado.forma === "cadeira") {
+    estado.forma = undefined;
+    falas.push(
+      "Aqui a cadeira só fica reservada com o pagamento antecipado, então não dá para acertar na hora.",
+    );
+  }
+
   if (!estado.forma) {
     const podeClube =
       barbearia.clube_ativo &&
@@ -480,19 +490,21 @@ export async function conversar(
 
     falas.push(
       podeClube
-        ? `Como prefere pagar? Dá para usar 1 corte do clube${sobra > 0 ? ` (aí sobram ${moedaCentavos(sobra)} na cadeira)` : " e não paga nada"}.`
-        : `São ${moedaCentavos(servico.preco_centavos)}. Como prefere pagar?`,
+        ? `Dá para usar 1 corte do clube${sobra > 0 ? `, aí ficam ${moedaCentavos(sobra)} no pix` : " e você não paga nada"}. Como prefere?`
+        : antecipado
+          ? `São ${moedaCentavos(servico.preco_centavos)} no pix para garantir o horário.`
+          : `São ${moedaCentavos(servico.preco_centavos)}. Como prefere pagar?`,
     );
 
     return {
       estado,
       falas,
       opcoes: [
-        ...(podeClube
-          ? [{ rotulo: `Usar 1 corte do clube`, valor: "clube" }]
-          : []),
-        { rotulo: "Pix", valor: "pix" },
-        { rotulo: "Dinheiro ou cartão na cadeira", valor: "dinheiro" },
+        ...(podeClube ? [{ rotulo: "Usar 1 corte do clube", valor: "clube" }] : []),
+        { rotulo: antecipado ? "Pagar no pix" : "Pix", valor: "pix" },
+        ...(antecipado
+          ? []
+          : [{ rotulo: "Dinheiro ou cartão na cadeira", valor: "dinheiro" }]),
       ],
     };
   }

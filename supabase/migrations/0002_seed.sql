@@ -14,7 +14,9 @@ insert into barbershops (
   '84999835180',
   '84999835180',
   'Johny Rodrigues Gomes',
-  'opcional',
+  -- A casa não atende sem pagamento antecipado: o horário só fica de pé
+  -- depois que o pix cai.
+  'obrigatorio',
   15,
   3,
   true,
