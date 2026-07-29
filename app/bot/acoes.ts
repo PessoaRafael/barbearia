@@ -482,7 +482,7 @@ export async function conversar(
   }
 
   if (!estado.forma) {
-    const podeClube =
+    const temClube =
       barbearia.clube_ativo &&
       servico.coberto_pelo_clube &&
       estado.assinante &&
@@ -490,25 +490,33 @@ export async function conversar(
 
     const sobra = Math.max(0, servico.preco_centavos - servico.abate_centavos);
 
-    falas.push(
-      podeClube
-        ? `Dá para usar 1 corte do clube${sobra > 0 ? `, aí ficam ${moedaCentavos(sobra)} no pix` : " e você não paga nada"}. Como prefere?`
-        : antecipado
-          ? `São ${moedaCentavos(servico.preco_centavos)} no pix para garantir o horário.`
+    /**
+     * Só pergunta quando existe mais de um caminho. Sem crédito de clube e com
+     * pagamento antecipado, o pix é o único jeito: mostrar um botão sozinho
+     * seria uma escolha de mentira, e um clique a mais para chegar no mesmo
+     * lugar.
+     */
+    if (!temClube && antecipado) {
+      estado.forma = "pix";
+    } else {
+      falas.push(
+        temClube
+          ? `Dá para usar 1 corte do clube${sobra > 0 ? `, aí ficam ${moedaCentavos(sobra)} no pix` : " e você não paga nada"}. Como prefere?`
           : `São ${moedaCentavos(servico.preco_centavos)}. Como prefere pagar?`,
-    );
+      );
 
-    return {
-      estado,
-      falas,
-      opcoes: [
-        ...(podeClube ? [{ rotulo: "Usar 1 corte do clube", valor: "clube" }] : []),
-        { rotulo: antecipado ? "Pagar no pix" : "Pix", valor: "pix" },
-        ...(antecipado
-          ? []
-          : [{ rotulo: "Dinheiro ou cartão na cadeira", valor: "dinheiro" }]),
-      ],
-    };
+      return {
+        estado,
+        falas,
+        opcoes: [
+          ...(temClube ? [{ rotulo: "Usar 1 corte do clube", valor: "clube" }] : []),
+          { rotulo: "Pagar no pix", valor: "pix" },
+          ...(antecipado
+            ? []
+            : [{ rotulo: "Dinheiro ou cartão na cadeira", valor: "dinheiro" }]),
+        ],
+      };
+    }
   }
 
   // ---- tudo preenchido: fecha ----------------------------------------------
