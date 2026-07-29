@@ -1,5 +1,13 @@
 import Link from "next/link";
-import { ArrowRight, Check, Clock, MapPin, Phone, Scissors } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  Clock,
+  MapPin,
+  MessageCircle,
+  Phone,
+  Scissors,
+} from "lucide-react";
 
 import { BARBEIROS } from "@/agenda";
 import { CLUBE, METRICAS } from "@/painel";
@@ -45,12 +53,22 @@ function Cabecalho() {
           </span>
           <span className="truncate text-xs text-texto-suave">{CASA.cidade}</span>
         </div>
-        <Link
-          href="/agendar"
-          className="ml-auto inline-flex min-h-toque items-center rounded-pill bg-acao px-4 font-titulo text-sm font-semibold text-acao-sobre transition-colors hover:bg-acao-hover sm:px-6"
-        >
-          Agendar horário
-        </Link>
+        <div className="ml-auto flex items-center gap-2">
+          <Link
+            href="/bot"
+            className="inline-flex min-h-toque items-center gap-2 rounded-pill border border-borda-forte px-4 font-titulo text-sm font-semibold text-texto transition-colors hover:border-acao"
+          >
+            <MessageCircle className="h-4 w-4" strokeWidth={2} />
+            <span className="hidden sm:inline">Marcar pelo chat</span>
+            <span className="sm:hidden">Chat</span>
+          </Link>
+          <Link
+            href="/agendar"
+            className="inline-flex min-h-toque items-center rounded-pill bg-acao px-4 font-titulo text-sm font-semibold text-acao-sobre transition-colors hover:bg-acao-hover sm:px-6"
+          >
+            Agendar
+          </Link>
+        </div>
       </div>
     </header>
   );

@@ -9,7 +9,8 @@
     "token:owner": "node scripts/token-owner.mjs",
     "teste:pix": "node --experimental-strip-types scripts/teste-brcode.mjs",
     "teste:rls": "node scripts/teste-rls.mjs",
-    "teste:painel": "node scripts/teste-barbeiro.mjs"
+    "teste:painel": "node scripts/teste-barbeiro.mjs",
+    "teste:bot": "node --experimental-strip-types scripts/teste-bot.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
