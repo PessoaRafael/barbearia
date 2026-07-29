@@ -11,6 +11,10 @@ export default async function Bot() {
   const inicio = await abertura();
 
   return (
-    <Conversa aberturaFalas={inicio.falas} aberturaOpcoes={inicio.opcoes} />
+    <Conversa
+      aberturaFalas={inicio.falas}
+      aberturaOpcoes={inicio.opcoes}
+      exemplos={inicio.exemplos ?? []}
+    />
   );
 }

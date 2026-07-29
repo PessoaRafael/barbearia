@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { SendHorizontal } from "lucide-react";
+import { Lightbulb, SendHorizontal, X } from "lucide-react";
 
 import { conversar, type Estado, type Opcao } from "@/app/bot/acoes";
 import { Logo } from "@/componentes/base";
@@ -12,10 +12,15 @@ type Fala = { de: "bot" | "eu"; texto: string };
 export function Conversa({
   aberturaFalas,
   aberturaOpcoes,
+  exemplos,
 }: {
   aberturaFalas: string[];
   aberturaOpcoes: Opcao[];
+  exemplos: string[];
 }) {
+  // As dicas somem depois da primeira mensagem, mas voltam pelo "como pedir":
+  // quem travou no meio da conversa é justamente quem precisa delas.
+  const [mostrarDicas, setMostrarDicas] = useState(true);
   const [falas, setFalas] = useState<Fala[]>(
     aberturaFalas.map((texto) => ({ de: "bot" as const, texto })),
   );
@@ -64,9 +69,22 @@ export function Conversa({
               respondendo agora
             </span>
           </div>
+          <button
+            type="button"
+            onClick={() => setMostrarDicas((v) => !v)}
+            aria-pressed={mostrarDicas}
+            className={`ml-auto inline-flex min-h-toque shrink-0 items-center gap-2 rounded-pill border px-4 font-titulo text-sm font-semibold transition-colors ${
+              mostrarDicas
+                ? "border-acao text-acao"
+                : "border-borda-forte text-texto hover:border-acao"
+            }`}
+          >
+            <Lightbulb className="h-4 w-4" strokeWidth={2} />
+            <span className="hidden sm:inline">Como pedir</span>
+          </button>
           <Link
             href="/agendar"
-            className="ml-auto inline-flex min-h-toque shrink-0 items-center rounded-pill border border-borda-forte px-4 font-titulo text-sm font-semibold text-texto transition-colors hover:border-acao"
+            className="hidden shrink-0 items-center rounded-pill border border-borda-forte px-4 font-titulo text-sm font-semibold text-texto transition-colors hover:border-acao sm:inline-flex sm:min-h-toque"
           >
             Prefiro a agenda
           </Link>
@@ -120,6 +138,42 @@ export function Conversa({
       {!token ? (
         <div className="sticky bottom-0 border-t border-borda bg-superficie px-5 pb-[calc(12px+env(safe-area-inset-bottom))] pt-3 sm:px-8">
           <div className="mx-auto flex w-full max-w-2xl flex-col gap-3">
+            {mostrarDicas ? (
+              <div className="flex flex-col gap-2 rounded-card border border-borda-forte bg-superficie-ativa p-3">
+                <div className="flex items-center gap-2">
+                  <Lightbulb className="h-4 w-4 shrink-0 text-acao" strokeWidth={2} />
+                  <span className="flex-1 text-xs text-texto-suave">
+                    Pode escrever solto. Quanto mais coisa na mesma frase, menos
+                    eu pergunto:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setMostrarDicas(false)}
+                    aria-label="Fechar dicas"
+                    className="grid h-8 w-8 shrink-0 place-items-center rounded-pill text-texto-apagado hover:text-texto"
+                  >
+                    <X className="h-4 w-4" strokeWidth={2} />
+                  </button>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  {exemplos.map((exemplo) => (
+                    <button
+                      key={exemplo}
+                      type="button"
+                      onClick={() => {
+                        setMostrarDicas(false);
+                        mandar(exemplo);
+                      }}
+                      className="rounded-bloco border border-borda bg-superficie px-3 py-2.5 text-left text-sm text-texto transition-colors hover:border-acao"
+                    >
+                      “{exemplo}”
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
             {opcoes.length ? (
               <div className="trilho flex gap-2 overflow-x-auto">
                 {opcoes.map((o) => (

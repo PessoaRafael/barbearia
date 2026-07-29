@@ -49,9 +49,34 @@ export type Resposta = {
   estado: Estado;
   falas: string[];
   opcoes: Opcao[];
+  /** Frases de exemplo, para o cliente descobrir que pode escrever solto. */
+  exemplos?: string[];
   /** Preenchido quando o agendamento fecha: a tela mostra o link. */
   token?: string;
 };
+
+/**
+ * Exemplos montados com os dados reais da casa — serviço e barbeiro que
+ * existem de verdade. Frase de exemplo genérica ensina menos, e frustra quando
+ * o cliente copia e o bot não reconhece.
+ */
+async function exemplosDeUso() {
+  const [servicos, barbeiros] = await Promise.all([
+    servicosAtivos(),
+    barbeirosAtivos(),
+  ]);
+
+  const principal = servicos[1]?.nome ?? servicos[0]?.nome ?? "corte";
+  const rapido = servicos.find((s) => s.duracao_min <= 30)?.nome ?? principal;
+  const quem = barbeiros[1]?.apelido ?? barbeiros[0]?.apelido ?? "";
+
+  return [
+    `${principal} amanhã de tarde${quem ? ` com o ${quem}` : ""}`,
+    `tem horário hoje pra ${rapido.toLowerCase()}?`,
+    "quanto custa a barba?",
+    "sábado de manhã, tanto faz quem corta",
+  ];
+}
 
 const hm = (h: string) => h;
 
@@ -398,18 +423,28 @@ export async function conversar(
 
 /** Primeira fala, antes de o cliente escrever qualquer coisa. */
 export async function abertura(): Promise<Resposta> {
-  const [barbearia, servicos] = await Promise.all([casa(), servicosAtivos()]);
+  const [barbearia, servicos, exemplos] = await Promise.all([
+    casa(),
+    servicosAtivos(),
+    exemplosDeUso(),
+  ]);
 
   return {
     estado: {},
     falas: [
       `Fala! Aqui é a ${barbearia.nome}.`,
-      "Me diz o que você quer que eu marco na hora. Pode escrever do seu jeito, tipo “corte degradê amanhã de tarde”.",
+      "Me diz o que você quer que eu marco na hora. Pode escrever do seu jeito — quanto mais coisa na mesma frase, menos eu pergunto.",
     ],
     opcoes: servicos.slice(0, 4).map((s) => ({
       rotulo: `${s.nome} · ${moedaCentavos(s.preco_centavos)}`,
       valor: s.nome,
     })),
+    exemplos,
   };
+}
+
+/** A tela pede de novo quando o cliente abre o "como pedir". */
+export async function dicas() {
+  return exemplosDeUso();
 }
 
