@@ -10,7 +10,8 @@
     "teste:pix": "node --experimental-strip-types scripts/teste-brcode.mjs",
     "teste:rls": "node scripts/teste-rls.mjs",
     "teste:painel": "node scripts/teste-barbeiro.mjs",
-    "teste:bot": "node --experimental-strip-types scripts/teste-bot.mjs"
+    "teste:bot": "node --experimental-strip-types scripts/teste-bot.mjs",
+    "zerar:teste": "node scripts/zerar-teste.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
