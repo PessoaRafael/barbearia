@@ -29,8 +29,8 @@ const SERVICOS = [
 ];
 const BARBEIROS = [
   { id: "johny", nome: "Johny" },
-  { id: "diego", nome: "Diego" },
-  { id: "kaio", nome: "Kaio" },
+  { id: "anderson", nome: "Anderson" },
+  { id: "davi", nome: "Davi" },
 ];
 
 // Régua fixa começando numa segunda, para o teste não depender de hoje.
@@ -52,8 +52,8 @@ conferir("barba", acharPorNome("fazer a barba", SERVICOS)?.id, "barba");
 conferir("não inventa serviço", acharPorNome("bom dia", SERVICOS)?.id, undefined);
 
 console.log("\n2. Barbeiro");
-conferir("nome no meio da frase", acharPorNome("pode ser com o diego", BARBEIROS)?.id, "diego");
-conferir("caixa alta", acharPorNome("KAIO", BARBEIROS)?.id, "kaio");
+conferir("nome no meio da frase", acharPorNome("pode ser com o anderson", BARBEIROS)?.id, "anderson");
+conferir("caixa alta", acharPorNome("DAVI", BARBEIROS)?.id, "davi");
 
 console.log("\n3. Dia");
 conferir("hoje", acharData("quero hoje", DIAS), "2026-08-03");
@@ -85,9 +85,9 @@ conferir("cancelar", acharIntencao("preciso desmarcar"), "cancelar");
 conferir("saudação", acharIntencao("bom dia"), "saudacao");
 
 console.log("\n7. A frase que faz parecer IA");
-const frase = "quero corte degradê amanhã de tarde com o diego";
+const frase = "quero corte degradê amanhã de tarde com o anderson";
 conferir("serviço", acharPorNome(frase, SERVICOS)?.id, "degrade");
-conferir("barbeiro", acharPorNome(frase, BARBEIROS)?.id, "diego");
+conferir("barbeiro", acharPorNome(frase, BARBEIROS)?.id, "anderson");
 conferir("dia", acharData(frase, DIAS), "2026-08-04");
 conferir("turno", acharTurno(frase), "tarde");
 

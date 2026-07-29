@@ -32,8 +32,8 @@ const rest = (caminho, opcoes = {}) =>
 const dono = (
   await (await rest("access_keys?select=id&role=eq.owner&revogada_em=is.null")).json()
 )[0];
-const diego = (
-  await (await rest("barbers?select=id,apelido&apelido=eq.Diego")).json()
+const anderson = (
+  await (await rest("barbers?select=id,apelido&apelido=eq.Anderson")).json()
 )[0];
 
 const chave = `JHNY-${bloco(4)}-${bloco(4)}`;
@@ -44,14 +44,14 @@ const criada = await rest("rpc/criar_chave", {
   method: "POST",
   body: JSON.stringify({
     p_chave: dono.id,
-    p_barbeiro: diego.id,
+    p_barbeiro: anderson.id,
     p_hash: hash,
     p_prefixo: chave.slice(5, 9),
   }),
 });
 
 const chaveId = await criada.json();
-console.log(`chave temporária do Diego criada (${chave})\n`);
+console.log(`chave temporária do Anderson criada (${chave})\n`);
 
 let codigo = 0;
 try {

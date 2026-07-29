@@ -3,7 +3,7 @@
  *
  * O truque que faz parecer inteligente não é entender a frase, é tentar
  * extrair TODOS os dados de uma vez. Quem escreve "quero degradê amanhã de
- * tarde com o Diego" preenche quatro campos numa tacada e o bot só pergunta o
+ * tarde com o Anderson" preenche quatro campos numa tacada e o bot só pergunta o
  * que sobrou. Um passo por pergunta é o que denuncia formulário disfarçado.
  *
  * Tudo aqui é função pura, sem banco: dá para testar sem subir nada.

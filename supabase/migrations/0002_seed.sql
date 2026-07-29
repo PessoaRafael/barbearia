@@ -32,9 +32,9 @@ begin
 
   insert into barbers (barbershop_id, nome, apelido, especialidade, ordem)
   values
-    (casa, 'Johny',            'Johny', 'navalha e barba',          0),
-    (casa, 'Diego Nascimento', 'Diego', 'degradê',                  1),
-    (casa, 'Kaio Ferreira',    'Kaio',  'platinado e sobrancelha',  2);
+    (casa, 'Johny',    'Johny',    'navalha e barba',         0),
+    (casa, 'Anderson', 'Anderson', 'degradê',                 1),
+    (casa, 'Davi',     'Davi',     'platinado e sobrancelha', 2);
 
   -- Segunda a sexta 08:30 às 18:30, sábado até 17:30, almoço das 13h às 14h.
   -- Domingo não recebe linha nenhuma, então nunca gera horário.

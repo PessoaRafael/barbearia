@@ -76,7 +76,7 @@ for (const aba of ["agenda", "pix", "clube", "clientes", "servicos", "caixa", "e
 const equipe = await (
   await fetch(`${BASE}/painel?aba=equipe`, { headers: { cookie: cookieDono } })
 ).text();
-for (const alvo of ["Johny", "Diego", "Kaio", "Gerar chave"]) {
+for (const alvo of ["Johny", "Anderson", "Davi", "Gerar chave"]) {
   conferir(`equipe mostra "${alvo}"`, equipe.includes(alvo));
 }
 

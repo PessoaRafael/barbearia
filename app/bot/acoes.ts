@@ -22,7 +22,7 @@ import { reconhecerCliente, reservar } from "@/app/agendar/acoes";
  *
  * A cada mensagem ele roda TODOS os extratores e preenche tudo que conseguir,
  * depois pergunta só o primeiro campo que sobrou. É isso que faz "quero
- * degradê amanhã de tarde com o Diego" virar uma pergunta só, em vez de quatro.
+ * degradê amanhã de tarde com o Anderson" virar uma pergunta só, em vez de quatro.
  *
  * Toda decisão de horário e preço continua vindo das mesmas funções do site:
  * o bot é outra porta para a mesma casa, não uma segunda regra de negócio.
@@ -98,6 +98,55 @@ const maiuscula = (texto: string) =>
 /** Evita "1 horários". */
 const contarHorarios = (quantos: number) =>
   quantos === 1 ? "1 horário" : `${quantos} horários`;
+
+/**
+ * Quantos chips cabem antes de virar parede. Cortar em 6 quando existem 8 é
+ * atrito à toa: a lista rola de lado, então só vale avisar quando sobra
+ * bastante coisa de fora.
+ */
+const MOSTRAR = 12;
+
+const nomeDe = (
+  barbeiros: { id: string; apelido: string }[],
+  id: string | null,
+) => barbeiros.find((b) => b.id === id)?.apelido ?? "";
+
+/**
+ * Procura quem mais tem vaga fora o barbeiro escolhido. Cliente que pediu o
+ * Anderson e ouve "não tem" vai embora; ouvindo "o Davi tem 15:00", muitas
+ * vezes fica.
+ */
+async function quemMaisTem(
+  barbeariaId: string,
+  data: string,
+  duracaoMin: number,
+  escolhido: string | null,
+  turno: "manha" | "tarde" | undefined,
+  barbeiros: { id: string; apelido: string }[],
+) {
+  if (!escolhido) return null;
+
+  const daCasa = await horariosLivres({ barbeariaId, data, duracaoMin });
+
+  const noTurno = daCasa.filter((l) => {
+    if (l.barbeiros.length === 1 && l.barbeiros[0] === escolhido) return false;
+    if (!l.barbeiros.some((b) => b !== escolhido)) return false;
+    if (!turno) return true;
+    const h = Number(l.hora.slice(0, 2));
+    return turno === "manha" ? h < 13 : h >= 13;
+  });
+
+  if (noTurno.length === 0) return null;
+
+  const primeiro = noTurno[0];
+  const outroId = primeiro.barbeiros.find((b) => b !== escolhido);
+  const nome = nomeDe(barbeiros, outroId ?? null);
+  if (!nome) return null;
+
+  return noTurno.length === 1
+    ? `O ${nome} tem ${primeiro.hora}, se servir.`
+    : `Já o ${nome} tem ${contarHorarios(noTurno.length)}, começando ${primeiro.hora}. Quer com ele?`;
+}
 
 export async function conversar(
   estadoAtual: Estado,
@@ -334,19 +383,31 @@ export async function conversar(
     // Pediu um turno que não tem nada: diz isso em vez de mostrar o outro
     // turno em silêncio, como se fosse o que ele pediu.
     if (estado.turno && doTurno.length === 0) {
+      const outro = await quemMaisTem(
+        barbearia.id,
+        estado.data,
+        servico.duracao_min,
+        estado.barbeiroId ?? null,
+        estado.turno,
+        barbeiros,
+      );
+
       estado.turno = undefined;
       falas.push(
-        `${maiuscula(quando)} não tenho nada ${rotuloTurno}, mas ainda tenho ${contarHorarios(livres.length)} no resto do dia.`,
+        `${maiuscula(quando)} não tenho nada ${rotuloTurno}${
+          estado.barbeiroId ? ` com o ${nomeDe(barbeiros, estado.barbeiroId)}` : ""
+        }.` + (outro ? ` ${outro}` : ` Mas ainda tenho ${contarHorarios(livres.length)} no resto do dia.`),
       );
+
       return {
         estado,
         falas,
-        opcoes: livres.slice(0, 6).map((l) => ({ rotulo: l.hora, valor: l.hora })),
+        opcoes: livres.slice(0, MOSTRAR).map((l) => ({ rotulo: l.hora, valor: l.hora })),
       };
     }
 
     const disponiveis = estado.turno ? doTurno : livres;
-    const mostrar = disponiveis.slice(0, 6);
+    const mostrar = disponiveis.slice(0, MOSTRAR);
     const sobraram = disponiveis.length - mostrar.length;
 
     // O número precisa bater com o que está na tela: contar o dia inteiro e
@@ -354,8 +415,24 @@ export async function conversar(
     falas.push(
       `${maiuscula(quando)} tenho ${contarHorarios(disponiveis.length)}${
         estado.turno ? " " + rotuloTurno : ""
-      }.${sobraram > 0 ? ` Esses são os primeiros, e ainda tem outros ${sobraram}:` : ""}`,
+      }${estado.barbeiroId ? ` com o ${nomeDe(barbeiros, estado.barbeiroId)}` : ""}.${
+        sobraram > 0 ? ` Mostro os ${mostrar.length} primeiros:` : ""
+      }`,
     );
+
+    // Poucos horários com quem ele escolheu? Oferece quem está mais livre,
+    // em vez de deixar o cliente achar que o dia inteiro está cheio.
+    if (estado.barbeiroId && disponiveis.length <= 3) {
+      const outro = await quemMaisTem(
+        barbearia.id,
+        estado.data,
+        servico.duracao_min,
+        estado.barbeiroId,
+        estado.turno,
+        barbeiros,
+      );
+      if (outro) falas.push(outro);
+    }
 
     return {
       estado,

@@ -101,8 +101,8 @@ const [casa] = await rest("barbershops?select=id,nome");
 const barbeiros = await rest("barbers?select=id,apelido&order=ordem");
 const servicos = await rest("services?select=id,nome,duracao_min&order=ordem");
 
-const diego = barbeiros.find((b) => b.apelido === "Diego");
-const kaio = barbeiros.find((b) => b.apelido === "Kaio");
+const anderson = barbeiros.find((b) => b.apelido === "Anderson");
+const davi = barbeiros.find((b) => b.apelido === "Davi");
 const corte = servicos.find((s) => s.nome === "Corte social");
 
 const [chaveDono] = await rest(
@@ -126,26 +126,26 @@ conferir(
   `status ${invalida.status}`,
 );
 
-// Chave de barbeiro para o Kaio, criada pelo dono.
-const chaveKaio = `JHNY-${bloco(4)}-${bloco(4)}`;
+// Chave de barbeiro para o Davi, criada pelo dono.
+const chaveDavi = `JHNY-${bloco(4)}-${bloco(4)}`;
 const criada = await rpc("criar_chave", {
   p_chave: chaveDono.id,
-  p_barbeiro: kaio.id,
-  p_hash: hashChave(chaveKaio),
-  p_prefixo: chaveKaio.slice(5, 9),
+  p_barbeiro: davi.id,
+  p_hash: hashChave(chaveDavi),
+  p_prefixo: chaveDavi.slice(5, 9),
 });
 conferir(
   "dono gera chave de barbeiro",
   criada.status === 200 && typeof criada.corpo === "string",
   JSON.stringify(criada.corpo),
 );
-const idChaveKaio = criada.corpo;
+const idChaveDavi = criada.corpo;
 
-// Um corte na agenda do Diego, amanhã às 10h.
+// Um corte na agenda do Anderson, amanhã às 10h.
 const data = proximoDiaUtil();
 const reserva = await rpc("reservar", {
   p_barbearia: casa.id,
-  p_barbeiro: diego.id,
+  p_barbeiro: anderson.id,
   p_servico: corte.id,
   p_nome: "Cliente de Teste",
   p_telefone: "84900000001",
@@ -154,7 +154,7 @@ const reserva = await rpc("reservar", {
   p_origem: "painel",
 });
 conferir(
-  "reserva entra na agenda do Diego",
+  "reserva entra na agenda do Anderson",
   reserva.status === 200 && reserva.corpo?.id,
   JSON.stringify(reserva.corpo)?.slice(0, 200),
 );
@@ -167,55 +167,55 @@ const comoDono = await rpc("agenda_do_dia", {
   p_data: data,
 });
 conferir(
-  "dono enxerga o corte do Diego",
+  "dono enxerga o corte do Anderson",
   Array.isArray(comoDono.corpo) && comoDono.corpo.length >= 1,
   JSON.stringify(comoDono.corpo)?.slice(0, 200),
 );
 
-// O ataque: Kaio pede a agenda passando o id do Diego.
-const kaioForcando = await rpc("agenda_do_dia", {
-  p_chave: idChaveKaio,
+// O ataque: Davi pede a agenda passando o id do Anderson.
+const daviForcando = await rpc("agenda_do_dia", {
+  p_chave: idChaveDavi,
   p_data: data,
-  p_barbeiro: diego.id,
+  p_barbeiro: anderson.id,
 });
 conferir(
-  "Kaio forçando o id do Diego recebe vazio",
-  Array.isArray(kaioForcando.corpo) && kaioForcando.corpo.length === 0,
-  JSON.stringify(kaioForcando.corpo)?.slice(0, 200),
+  "Davi forçando o id do Anderson recebe vazio",
+  Array.isArray(daviForcando.corpo) && daviForcando.corpo.length === 0,
+  JSON.stringify(daviForcando.corpo)?.slice(0, 200),
 );
 
-const kaioEncerrando = await rpc("encerrar_atendimento", {
-  p_chave: idChaveKaio,
+const daviEncerrando = await rpc("encerrar_atendimento", {
+  p_chave: idChaveDavi,
   p_agendamento: reserva.corpo.id,
   p_status: "concluido",
 });
 conferir(
-  "Kaio não conclui atendimento do Diego",
-  kaioEncerrando.status >= 400,
-  `status ${kaioEncerrando.status}: ${JSON.stringify(kaioEncerrando.corpo)?.slice(0, 160)}`,
+  "Davi não conclui atendimento do Anderson",
+  daviEncerrando.status >= 400,
+  `status ${daviEncerrando.status}: ${JSON.stringify(daviEncerrando.corpo)?.slice(0, 160)}`,
 );
 
-const kaioConfirmandoPix = await rpc("decidir_pix", {
-  p_chave: idChaveKaio,
+const daviConfirmandoPix = await rpc("decidir_pix", {
+  p_chave: idChaveDavi,
   p_pagamento: "00000000-0000-0000-0000-000000000000",
   p_recebido: true,
 });
 conferir(
   "barbeiro não confirma pix (só o dono)",
-  kaioConfirmandoPix.status >= 400,
-  `status ${kaioConfirmandoPix.status}`,
+  daviConfirmandoPix.status >= 400,
+  `status ${daviConfirmandoPix.status}`,
 );
 
-const kaioGerandoChave = await rpc("criar_chave", {
-  p_chave: idChaveKaio,
-  p_barbeiro: diego.id,
+const daviGerandoChave = await rpc("criar_chave", {
+  p_chave: idChaveDavi,
+  p_barbeiro: anderson.id,
   p_hash: hashChave("JHNY-AAAA-BBBB"),
   p_prefixo: "AAAA",
 });
 conferir(
   "barbeiro não gera chave de acesso",
-  kaioGerandoChave.status >= 400,
-  `status ${kaioGerandoChave.status}`,
+  daviGerandoChave.status >= 400,
+  `status ${daviGerandoChave.status}`,
 );
 
 // ---------------------------------------------------------------------------
@@ -224,7 +224,7 @@ console.log("\n4. Dois no mesmo horário: só um entra");
 const [a, b] = await Promise.all([
   rpc("reservar", {
     p_barbearia: casa.id,
-    p_barbeiro: diego.id,
+    p_barbeiro: anderson.id,
     p_servico: corte.id,
     p_nome: "Corrida A",
     p_telefone: "84900000002",
@@ -234,7 +234,7 @@ const [a, b] = await Promise.all([
   }),
   rpc("reservar", {
     p_barbearia: casa.id,
-    p_barbeiro: diego.id,
+    p_barbeiro: anderson.id,
     p_servico: corte.id,
     p_nome: "Corrida B",
     p_telefone: "84900000003",
@@ -261,7 +261,7 @@ console.log("\n5. Regras de negócio que a tela não pode furar");
 
 const noPassado = await rpc("reservar", {
   p_barbearia: casa.id,
-  p_barbeiro: diego.id,
+  p_barbeiro: anderson.id,
   p_servico: corte.id,
   p_nome: "Viajante do Tempo",
   p_telefone: "84900000004",
@@ -277,7 +277,7 @@ conferir(
 
 const noAlmoco = await rpc("reservar", {
   p_barbearia: casa.id,
-  p_barbeiro: diego.id,
+  p_barbeiro: anderson.id,
   p_servico: corte.id,
   p_nome: "Almoço",
   p_telefone: "84900000005",
@@ -293,7 +293,7 @@ conferir(
 
 const semClube = await rpc("reservar", {
   p_barbearia: casa.id,
-  p_barbeiro: diego.id,
+  p_barbeiro: anderson.id,
   p_servico: corte.id,
   p_nome: "Sem Assinatura",
   p_telefone: "84900000006",
@@ -325,7 +325,7 @@ for (const telefone of [
     await chamar(`clients?id=eq.${c.id}`, SECRET, { method: "DELETE" });
   }
 }
-await chamar(`access_keys?id=eq.${idChaveKaio}`, SECRET, { method: "DELETE" });
+await chamar(`access_keys?id=eq.${idChaveDavi}`, SECRET, { method: "DELETE" });
 ok("cenário de teste removido");
 
 console.log("");
