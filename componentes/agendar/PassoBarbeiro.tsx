@@ -2,42 +2,41 @@
 
 import { Zap } from "lucide-react";
 
-import { BARBEIROS } from "@/agenda";
-import type { Servico } from "@/servicos";
 import { Retrato } from "@/componentes/base";
-import { contarLivres, type Escolha } from "@/lib/disponibilidade";
-import { rotuloDoDia } from "@/lib/semana";
+import { rotuloDe, type Dia } from "@/lib/agenda/dias";
+import type { Barbeiro, Escolha, Livre } from "./tipos";
 
 export function PassoBarbeiro({
-  servico,
-  diaId,
+  barbeiros,
   escolha,
-  extras,
-  semana,
+  dia,
+  horarios,
+  carregando,
   onEscolher,
 }: {
-  servico: Servico;
-  diaId: string;
-  escolha: Escolha | null;
-  extras?: Set<string>;
-  semana: number;
-  onEscolher: (valor: Escolha) => void;
+  barbeiros: Barbeiro[];
+  escolha: Escolha;
+  temEscolha: boolean;
+  dia: Dia;
+  horarios: Livre[] | null;
+  carregando: boolean;
+  onEscolher: (id: Escolha) => void;
 }) {
-  const dia = rotuloDoDia(semana, diaId);
-  const livresQualquer = contarLivres(
-    "qualquer",
-    diaId,
-    servico.duracaoMin,
-    extras,
-  );
+  const quando = rotuloDe(dia);
+
+  const livresDe = (id: string) =>
+    horarios?.filter((h) => h.barbeiros.includes(id)).length ?? 0;
+
+  const contagem = (n: number) =>
+    carregando || horarios === null ? "conferindo a agenda" : `${n} livres ${quando}`;
 
   return (
     <div className="flex flex-col gap-3">
       <button
         type="button"
-        onClick={() => onEscolher("qualquer")}
+        onClick={() => onEscolher(null)}
         className={`flex items-center gap-3 rounded-card border px-4 py-3.5 text-left transition-colors ${
-          escolha === "qualquer"
+          escolha === null
             ? "border-acao bg-superficie-ativa"
             : "border-borda-forte bg-superficie-ativa hover:border-acao"
         }`}
@@ -50,27 +49,23 @@ export function PassoBarbeiro({
             Tanto faz, primeiro que liberar
           </span>
           <span className="num text-xs text-texto-suave">
-            {livresQualquer} horários livres {dia}
+            {contagem(horarios?.length ?? 0)}
           </span>
         </span>
       </button>
 
       <ul className="grid gap-2 sm:grid-cols-3">
-        {BARBEIROS.map((barbeiro) => {
-          const livres = contarLivres(
-            barbeiro.id,
-            diaId,
-            servico.duracaoMin,
-            extras,
-          );
-          const ativo = escolha === barbeiro.id;
-          const cheio = livres === 0;
+        {barbeiros.map((b) => {
+          const livres = livresDe(b.id);
+          const ativo = escolha === b.id;
+          const cheio = !carregando && horarios !== null && livres === 0;
+
           return (
-            <li key={barbeiro.id}>
+            <li key={b.id}>
               <button
                 type="button"
                 disabled={cheio}
-                onClick={() => onEscolher(barbeiro.id)}
+                onClick={() => onEscolher(b.id)}
                 className={`flex h-full w-full items-center gap-3 rounded-card border p-3 text-left transition-colors sm:flex-col sm:items-stretch ${
                   ativo
                     ? "border-acao bg-superficie-ativa"
@@ -80,7 +75,7 @@ export function PassoBarbeiro({
                 }`}
               >
                 <Retrato
-                  iniciais={barbeiro.nome.slice(0, 2).toUpperCase()}
+                  iniciais={b.nome.slice(0, 2).toUpperCase()}
                   className="w-16 shrink-0 sm:w-full"
                   proporcao="1 / 1"
                 />
@@ -90,19 +85,17 @@ export function PassoBarbeiro({
                       cheio ? "text-texto-suave" : "text-texto"
                     }`}
                   >
-                    {barbeiro.nome}
+                    {b.nome}
                   </span>
                   <span className="text-xs text-texto-suave">
-                    {barbeiro.especialidade}
+                    {b.especialidade}
                   </span>
                   <span
                     className={`num text-xs ${
                       cheio ? "text-texto-apagado" : "text-clube"
                     }`}
                   >
-                    {cheio
-                      ? `agenda cheia ${dia}`
-                      : `${livres} livres ${dia}`}
+                    {cheio ? `agenda cheia ${quando}` : contagem(livres)}
                   </span>
                 </span>
               </button>

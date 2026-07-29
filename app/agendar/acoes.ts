@@ -49,6 +49,78 @@ export async function buscarHorarios(entrada: z.input<typeof consulta>) {
   });
 }
 
+export type Reconhecido = {
+  nome: string | null;
+  assinante: boolean;
+  creditosRestantes: number;
+  cicloAte: string | null;
+  vencida: boolean;
+};
+
+/**
+ * O telefone é a identidade do cliente: sem cadastro, sem senha. Se houver
+ * assinatura viva, devolve quantos cortes ainda cabem no ciclo.
+ */
+export async function reconhecerCliente(
+  telefoneBruto: string,
+): Promise<Reconhecido> {
+  const vazio: Reconhecido = {
+    nome: null,
+    assinante: false,
+    creditosRestantes: 0,
+    cicloAte: null,
+    vencida: false,
+  };
+
+  const telefone = telefoneBruto.replace(/\D/g, "");
+  if (telefone.length < 10) return vazio;
+
+  const { id } = await casa();
+  const supabase = clienteServico();
+
+  const { data: cliente } = await supabase
+    .from("clients")
+    .select("id, nome")
+    .eq("barbershop_id", id)
+    .eq("telefone", telefone)
+    .maybeSingle();
+
+  if (!cliente) return vazio;
+
+  const { data: assinatura } = await supabase
+    .from("subscriptions")
+    .select("id, status, cortes_mes, ciclo_inicio, ciclo_fim")
+    .eq("client_id", cliente.id)
+    .neq("status", "cancelada")
+    .maybeSingle();
+
+  if (!assinatura) return { ...vazio, nome: cliente.nome };
+
+  const vencida =
+    assinatura.status === "vencida" ||
+    new Date(assinatura.ciclo_fim) < new Date();
+
+  // Crédito só conta o que não foi cancelado: desistir não custa corte.
+  const { data: usos } = await supabase
+    .from("subscription_uses")
+    .select("appointment_id, appointments(status)")
+    .eq("subscription_id", assinatura.id)
+    .gte("usado_em", assinatura.ciclo_inicio);
+
+  const gastos = (usos ?? []).filter((u) => {
+    const ag = Array.isArray(u.appointments) ? u.appointments[0] : u.appointments;
+    return ag?.status !== "cancelado";
+  }).length;
+
+  return {
+    nome: cliente.nome,
+    assinante: !vencida,
+    creditosRestantes: Math.max(0, assinatura.cortes_mes - gastos),
+    cicloAte: assinatura.ciclo_fim,
+    vencida,
+  };
+}
+
 const reserva = z.object({
   data: z.string().regex(DATA),
   hora: z.string().regex(HORA),
@@ -58,6 +130,7 @@ const reserva = z.object({
   nome: z.string().trim().min(2).max(80),
   telefone: z.string().trim().min(10).max(20),
   usarClube: z.boolean().default(false),
+  formaPagamento: z.enum(["pix", "cadeira", "clube"]).default("cadeira"),
 });
 
 /** Mensagens que o cliente entende, no lugar do código de erro do Postgres. */
@@ -75,8 +148,23 @@ const RECADOS: Record<string, string> = {
   servico_indisponivel: "Esse serviço não está mais na régua.",
 };
 
+export type Pix = {
+  brcode: string;
+  chave: string;
+  titular: string;
+  expiraEm: string;
+  minutos: number;
+};
+
 export type ResultadoReserva =
-  | { ok: true; token: string; status: string; valorCentavos: number }
+  | {
+      ok: true;
+      token: string;
+      status: string;
+      valorCentavos: number;
+      barbeiro: string;
+      pix: Pix | null;
+    }
   | { ok: false; erro: string };
 
 export async function reservar(
@@ -135,12 +223,14 @@ export async function reservar(
     valor_centavos: number;
   };
 
-  // Pix só nasce quando há valor e a reserva está segurando o slot.
-  if (
-    agendamento.status === "pendente_pagamento" &&
-    agendamento.valor_centavos > 0 &&
-    casaAtual.pix_key
-  ) {
+  // Pix nasce quando há valor a pagar. Se a reserva está segurando o slot,
+  // ele também carrega o prazo; se o pagamento é opcional, é só a comodidade
+  // de pagar antes.
+  let pix: Pix | null = null;
+  const querPix =
+    dados.formaPagamento === "pix" || agendamento.status === "pendente_pagamento";
+
+  if (querPix && agendamento.valor_centavos > 0 && casaAtual.pix_key) {
     const cobranca = await provedorAtual().criarCobranca({
       barbeariaId: casaAtual.id,
       agendamentoId: agendamento.id,
@@ -161,6 +251,14 @@ export async function reservar(
       brcode: cobranca.brcode,
       expira_em: cobranca.expiraEm.toISOString(),
     });
+
+    pix = {
+      brcode: cobranca.brcode,
+      chave: casaAtual.pix_key,
+      titular: casaAtual.pix_titular ?? casaAtual.nome,
+      expiraEm: cobranca.expiraEm.toISOString(),
+      minutos: casaAtual.reserva_minutos,
+    };
   }
 
   await enfileirar({
@@ -176,10 +274,18 @@ export async function reservar(
     },
   });
 
+  const { data: quem } = await supabase
+    .from("barbers")
+    .select("apelido")
+    .eq("id", barbeiroId)
+    .maybeSingle();
+
   return {
     ok: true,
     token: agendamento.token_cliente,
     status: agendamento.status,
     valorCentavos: agendamento.valor_centavos,
+    barbeiro: quem?.apelido ?? "",
+    pix,
   };
 }

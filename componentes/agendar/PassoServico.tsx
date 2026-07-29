@@ -2,26 +2,29 @@
 
 import { useState } from "react";
 
-import { CATEGORIAS, SERVICOS, type Categoria, type Servico } from "@/servicos";
 import { Etiqueta } from "@/componentes/base";
-import { moeda } from "@/lib/formato";
+import { moedaCentavos } from "@/lib/formato";
+import { duracaoLabel, type Servico } from "./tipos";
 
 export function PassoServico({
-  servico,
+  servicos,
+  escolhido,
   onEscolher,
 }: {
-  servico: Servico | null;
+  servicos: Servico[];
+  escolhido: Servico | null;
   onEscolher: (id: string) => void;
 }) {
-  const [categoria, setCategoria] = useState<Categoria>(
-    servico?.categoria ?? "Cortes",
+  const categorias = [...new Set(servicos.map((s) => s.categoria))];
+  const [categoria, setCategoria] = useState(
+    escolhido?.categoria ?? categorias[0],
   );
-  const lista = SERVICOS.filter((s) => s.categoria === categoria);
+  const lista = servicos.filter((s) => s.categoria === categoria);
 
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {CATEGORIAS.map((c) => {
+        {categorias.map((c) => {
           const ativa = c === categoria;
           return (
             <button
@@ -43,14 +46,14 @@ export function PassoServico({
 
       <ul className="flex flex-col gap-2">
         {lista.map((s) => {
-          const escolhido = servico?.id === s.id;
+          const ativo = escolhido?.id === s.id;
           return (
             <li key={s.id}>
               <button
                 type="button"
                 onClick={() => onEscolher(s.id)}
                 className={`flex w-full items-center gap-4 rounded-card border px-4 py-3 text-left transition-colors ${
-                  escolhido
+                  ativo
                     ? "border-acao bg-superficie-ativa"
                     : "border-borda bg-superficie-ativa hover:border-borda-forte"
                 }`}
@@ -67,15 +70,15 @@ export function PassoServico({
                     ) : null}
                   </span>
                   <span className="num text-xs text-texto-suave">
-                    {s.duracaoLabel}
+                    {duracaoLabel(s.duracaoMin)}
                   </span>
                 </span>
                 <span
                   className={`num font-titulo text-lg font-bold ${
-                    escolhido ? "text-acao" : "text-texto"
+                    ativo ? "text-acao" : "text-texto"
                   }`}
                 >
-                  {moeda(s.preco)}
+                  {moedaCentavos(s.precoCentavos)}
                 </span>
               </button>
             </li>
