@@ -1,0 +1,108 @@
+"use server";
+
+import { z } from "zod";
+
+import { casa } from "@/lib/dados/casa";
+import { enfileirar } from "@/lib/notify/whatsapp";
+import { provedorAtual } from "@/lib/payments/provider";
+import { svgDoBrcode } from "@/lib/pix/qr";
+import { clienteServico } from "@/lib/supabase/servidor";
+
+/**
+ * Entrada no clube pela landing.
+ *
+ * Gera o pix da mensalidade na hora, mas NÃO ativa a assinatura: quem confirma
+ * que o dinheiro caiu continua sendo o Johny, no painel, igual ao pix de
+ * agendamento. O cliente entra na fila de cobrança com o pedido registrado.
+ */
+
+const entrada = z.object({
+  nome: z.string().trim().min(2).max(80),
+  telefone: z.string().trim().min(10).max(20),
+});
+
+export type PedidoClube =
+  | {
+      ok: true;
+      brcode: string;
+      qrSvg: string | null;
+      chave: string;
+      titular: string;
+      valor: string;
+      jaAssinante: boolean;
+    }
+  | { ok: false; erro: string };
+
+export async function pedirClube(
+  dados: z.input<typeof entrada>,
+): Promise<PedidoClube> {
+  const analise = entrada.safeParse(dados);
+  if (!analise.success) return { ok: false, erro: "Confira nome e WhatsApp." };
+
+  const barbearia = await casa();
+  if (!barbearia.clube_ativo || !barbearia.pix_key) {
+    return { ok: false, erro: "O clube está fechado no momento." };
+  }
+
+  const telefone = analise.data.telefone.replace(/\D/g, "");
+  const supabase = clienteServico();
+
+  const { data: cliente } = await supabase
+    .from("clients")
+    .upsert(
+      {
+        barbershop_id: barbearia.id,
+        nome: analise.data.nome,
+        telefone,
+      },
+      { onConflict: "barbershop_id,telefone" },
+    )
+    .select("id")
+    .single();
+
+  if (!cliente) return { ok: false, erro: "Não consegui registrar agora." };
+
+  const { data: assinatura } = await supabase
+    .from("subscriptions")
+    .select("id, status")
+    .eq("client_id", cliente.id)
+    .eq("status", "ativa")
+    .maybeSingle();
+
+  const cobranca = await provedorAtual().criarCobranca({
+    barbeariaId: barbearia.id,
+    // Sem agendamento, o txid sai do cliente: é o que deixa o Johny saber de
+    // quem é o pix quando ele olhar o extrato.
+    agendamentoId: cliente.id,
+    valorCentavos: barbearia.clube_preco_centavos,
+    chavePix: barbearia.pix_key,
+    titular: barbearia.pix_titular ?? barbearia.nome,
+    cidade: barbearia.cidade,
+    minutos: 60 * 24,
+  });
+
+  if (!assinatura) {
+    await enfileirar({
+      barbeariaId: barbearia.id,
+      destino: "owner",
+      template: "mensalidade_vencendo",
+      telefone,
+      dados: {
+        cliente: analise.data.nome,
+        quando: "quer entrar no clube",
+        valor: `R$ ${barbearia.clube_preco_centavos / 100}`,
+        pix: barbearia.pix_key,
+      },
+    });
+  }
+
+  return {
+    ok: true,
+    brcode: cobranca.brcode,
+    qrSvg: await svgDoBrcode(cobranca.brcode).catch(() => null),
+    chave: barbearia.pix_key,
+    titular: barbearia.pix_titular ?? barbearia.nome,
+    valor: `R$ ${barbearia.clube_preco_centavos / 100}`,
+    jaAssinante: Boolean(assinatura),
+  };
+}

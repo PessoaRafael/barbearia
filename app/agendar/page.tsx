@@ -6,8 +6,16 @@ import { Fluxo } from "@/componentes/agendar/Fluxo";
 import { proximosDias } from "@/lib/agenda/dias";
 import { barbeirosAtivos, casa, servicosAtivos } from "@/lib/dados/casa";
 
-/** A grade muda o tempo todo: nada de cache entre visitas. */
-export const dynamic = "force-dynamic";
+/**
+ * Só a moldura é cacheada: serviços, barbeiros e a régua de dias. A grade de
+ * horários, que muda a todo minuto, continua vindo pela ação assim que o
+ * cliente escolhe o serviço, então nada aqui fica velho.
+ *
+ * Cinco minutos porque a régua começa em "hoje": depois da virada da meia
+ * noite, é o máximo que ela pode ficar defasada, e a essa hora a casa está
+ * fechada.
+ */
+export const revalidate = 300;
 
 export default async function Agendar() {
   const [barbearia, servicos, barbeiros] = await Promise.all([

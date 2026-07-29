@@ -13,6 +13,7 @@ import { BARBEIROS } from "@/agenda";
 import { CLUBE, METRICAS } from "@/painel";
 import { CATEGORIAS, SERVICOS } from "@/servicos";
 import { Etiqueta, Logo, Retrato, Secao } from "@/componentes/base";
+import { ModalClube } from "@/componentes/site/ModalClube";
 import { CASA } from "@/lib/casa";
 import { duracaoCurta, moeda } from "@/lib/formato";
 
@@ -216,12 +217,11 @@ function Clube() {
               </li>
             ))}
           </ul>
-          <Link
-            href="/agendar"
-            className="inline-flex min-h-toque w-full items-center justify-center rounded-pill bg-acao px-6 font-titulo text-base font-semibold text-acao-sobre transition-colors hover:bg-acao-hover sm:w-auto sm:self-start"
-          >
-            Assinar e marcar o primeiro
-          </Link>
+          <ModalClube
+            preco={moeda(CLUBE.mensalidade)}
+            cortes={CLUBE.cortesPorMes}
+            beneficios={CLUBE.beneficios}
+          />
         </div>
       </div>
     </Secao>
