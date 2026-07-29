@@ -5,13 +5,20 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "token:owner": "node scripts/token-owner.mjs",
+    "teste:pix": "node --experimental-strip-types scripts/teste-brcode.mjs",
+    "teste:rls": "node scripts/teste-rls.mjs"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.4",
+    "@supabase/supabase-js": "^2.111.0",
+    "date-fns": "^4.4.0",
     "lucide-react": "^0.454.0",
     "next": "^15.1.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",
