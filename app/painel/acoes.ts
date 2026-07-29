@@ -131,6 +131,131 @@ export async function revogarChaveDe(chaveId: string) {
   return { ok: true };
 }
 
+const assinante = z.object({
+  nome: z.string().trim().min(2).max(80),
+  telefone: z.string().trim().min(10).max(20),
+});
+
+/**
+ * Coloca alguém no clube. O telefone é a chave: se o cliente já existe (marcou
+ * alguma vez), a assinatura cola nele e o saldo aparece no agendamento na hora.
+ */
+export async function inscreverNoClube(entrada: z.input<typeof assinante>) {
+  const analise = assinante.safeParse(entrada);
+  if (!analise.success) return { erro: "Confira nome e WhatsApp." };
+
+  const sessao = await exigirDono();
+  const telefone = analise.data.telefone.replace(/\D/g, "");
+  const supabase = clienteServico();
+
+  const { data: casa } = await supabase
+    .from("barbershops")
+    .select("clube_preco_centavos, clube_cortes_mes")
+    .eq("id", sessao.barbeariaId)
+    .single();
+
+  const { data: cliente } = await supabase
+    .from("clients")
+    .upsert(
+      {
+        barbershop_id: sessao.barbeariaId,
+        nome: analise.data.nome,
+        telefone,
+      },
+      { onConflict: "barbershop_id,telefone" },
+    )
+    .select("id")
+    .single();
+
+  if (!cliente || !casa) return { erro: "Não consegui cadastrar." };
+
+  const { data: existente } = await supabase
+    .from("subscriptions")
+    .select("id, status")
+    .eq("client_id", cliente.id)
+    .neq("status", "cancelada")
+    .maybeSingle();
+
+  const hoje = new Date();
+  const fim = new Date(hoje);
+  fim.setMonth(fim.getMonth() + 1);
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+
+  // Já era assinante: isso aqui é a renovação, empurrando o ciclo um mês.
+  if (existente) {
+    await supabase
+      .from("subscriptions")
+      .update({
+        status: "ativa",
+        ciclo_inicio: iso(hoje),
+        ciclo_fim: iso(fim),
+        proxima_cobranca: iso(fim),
+      })
+      .eq("id", existente.id);
+
+    revalidatePath("/painel");
+    return { ok: true, renovou: true };
+  }
+
+  const { error } = await supabase.from("subscriptions").insert({
+    barbershop_id: sessao.barbeariaId,
+    client_id: cliente.id,
+    status: "ativa",
+    preco_centavos: casa.clube_preco_centavos,
+    cortes_mes: casa.clube_cortes_mes,
+    ciclo_inicio: iso(hoje),
+    ciclo_fim: iso(fim),
+    proxima_cobranca: iso(fim),
+  });
+
+  if (error) return { erro: "Não consegui cadastrar." };
+
+  revalidatePath("/painel");
+  return { ok: true, renovou: false };
+}
+
+/** Recebeu a mensalidade: empurra o ciclo e zera o consumo de créditos. */
+export async function registrarMensalidade(assinaturaId: string) {
+  const sessao = await exigirDono();
+  const supabase = clienteServico();
+
+  const hoje = new Date();
+  const fim = new Date(hoje);
+  fim.setMonth(fim.getMonth() + 1);
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+
+  const { error } = await supabase
+    .from("subscriptions")
+    .update({
+      status: "ativa",
+      ciclo_inicio: iso(hoje),
+      ciclo_fim: iso(fim),
+      proxima_cobranca: iso(fim),
+    })
+    .eq("id", assinaturaId)
+    .eq("barbershop_id", sessao.barbeariaId);
+
+  if (error) return { erro: "Não consegui registrar." };
+
+  revalidatePath("/painel");
+  return { ok: true };
+}
+
+export async function cancelarAssinatura(assinaturaId: string) {
+  const sessao = await exigirDono();
+
+  const { error } = await clienteServico()
+    .from("subscriptions")
+    .update({ status: "cancelada", cancelada_em: new Date().toISOString() })
+    .eq("id", assinaturaId)
+    .eq("barbershop_id", sessao.barbeariaId);
+
+  if (error) return { erro: "Não consegui cancelar." };
+
+  revalidatePath("/painel");
+  return { ok: true };
+}
+
 const servico = z.object({
   id: z.string().uuid().nullable(),
   nome: z.string().trim().min(2).max(60),

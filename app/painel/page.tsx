@@ -21,6 +21,7 @@ import {
   RevogarChave,
   SoltarBloqueio,
 } from "@/componentes/painel/Acoes";
+import { Clube } from "@/componentes/painel/Clube";
 import { Configuracoes } from "@/componentes/painel/Configuracoes";
 import { Servicos } from "@/componentes/painel/Servicos";
 import { sair } from "@/app/entrar/acoes";
@@ -41,7 +42,7 @@ import {
   servicos as listarServicos,
 } from "@/lib/dados/painel";
 import { moedaCentavos, telefoneBonito } from "@/lib/formato";
-import { textoDe } from "@/lib/notify/whatsapp";
+import { textoDe } from "@/lib/notify/textos";
 
 export const dynamic = "force-dynamic";
 
@@ -431,64 +432,7 @@ function AbaPix({
 
 async function AbaClube({ sessao, pix }: { sessao: Sessao; pix: string }) {
   const lista = await assinantes(sessao);
-  const vencidos = lista.filter((a) => a.status === "vencida");
-
-  return (
-    <Cartao titulo={`Clube · ${lista.length} assinantes`}>
-      {lista.length === 0 ? (
-        <Vazio texto="Nenhum assinante ainda. O clube aparece na landing para quem quiser entrar." />
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {lista.map((a) => (
-            <li
-              key={a.id}
-              className={`flex flex-wrap items-center gap-x-4 gap-y-2 rounded-card border px-4 py-3 ${
-                a.status === "vencida"
-                  ? "border-alerta/40 bg-superficie-ativa"
-                  : "border-borda bg-superficie-ativa"
-              }`}
-            >
-              <div className="flex min-w-0 flex-[1_1_55%] flex-col">
-                <span className="truncate font-titulo text-sm font-semibold">
-                  {a.nome}
-                </span>
-                <span
-                  className={`num truncate text-xs ${
-                    a.status === "vencida" ? "text-alerta" : "text-texto-suave"
-                  }`}
-                >
-                  {a.status === "vencida"
-                    ? `vencida em ${a.proximaCobranca}`
-                    : `ciclo até ${a.cicloFim}`}
-                </span>
-              </div>
-              <span className="num ml-auto shrink-0 font-titulo text-base font-bold">
-                {moedaCentavos(a.precoCentavos)}
-              </span>
-              {a.status === "vencida" ? (
-                <AvisoWhatsapp
-                  telefone={a.telefone}
-                  texto={textoDe("mensalidade_vencida", {
-                    cliente: a.nome.split(" ")[0],
-                    quando: a.proximaCobranca,
-                    valor: moedaCentavos(a.precoCentavos),
-                    pix,
-                  })}
-                />
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {vencidos.length ? (
-        <p className="text-xs text-alerta">
-          {vencidos.length} mensalidade(s) vencida(s). O botão monta a mensagem;
-          quem confirma o pagamento é você.
-        </p>
-      ) : null}
-    </Cartao>
-  );
+  return <Clube lista={lista} pixKey={pix} />;
 }
 
 async function AbaClientes({ sessao }: { sessao: Sessao }) {

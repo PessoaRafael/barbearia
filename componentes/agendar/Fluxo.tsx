@@ -427,6 +427,18 @@ export function Fluxo({
                         {servico.nome} · {nomeBarbeiro} · {quando} ·{" "}
                         {resumoPagamento}
                       </p>
+
+                      {forma === "pix" ? (
+                        <p className="flex items-start gap-2 rounded-card border border-borda bg-superficie-ativa px-4 py-3 text-xs text-texto-suave">
+                          <QrCode className="mt-0.5 h-4 w-4 shrink-0 text-acao" strokeWidth={2} />
+                          <span>
+                            O QR e o código copia e cola aparecem aqui na hora
+                            que você confirmar. Cada horário gera um código com
+                            o seu valor, para o Johny achar seu pagamento no
+                            extrato.
+                          </span>
+                        </p>
+                      ) : null}
                       <button
                         type="button"
                         onClick={confirmar}
@@ -607,8 +619,8 @@ function Pagamento({
         }
         apoio={
           obrigatorio
-            ? "A cadeira fica reservada no seu nome enquanto o pix não cai."
-            : "Adianta o pagamento e chega só para sentar."
+            ? "A cadeira fica reservada enquanto o pix não cai. O QR aparece ao confirmar."
+            : "O QR e o código copia e cola aparecem assim que você confirmar."
         }
         valor={cheio}
         ativo={forma === "pix"}
@@ -739,7 +751,7 @@ function CardClube({
             </span>
             <span className="pb-1 text-sm text-texto-suave">/mês</span>
           </div>
-          <p className="num text-xs text-texto-suave">
+          <p className="text-xs text-texto-suave">
             {clube.cortesMes} cortes por mês. Informe seu WhatsApp no passo 4 que
             eu reconheço sua assinatura.
           </p>
