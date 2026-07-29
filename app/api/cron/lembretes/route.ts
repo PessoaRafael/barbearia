@@ -3,8 +3,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { clienteServico } from "@/lib/supabase/servidor";
 
 /**
- * Enfileira o lembrete de quem corta daqui a pouco e marca as mensalidades
- * vencidas. Roda de hora em hora.
+ * Enfileira os lembretes do dia e marca as mensalidades vencidas.
+ *
+ * Roda uma vez por manhã, não de hora em hora: o plano Hobby da Vercel só
+ * aceita cron diário. Como a mensagem fica numa fila para o Johny disparar no
+ * wa.me, juntar o dia inteiro de uma vez funciona melhor do que pingar de hora
+ * em hora — ele abre a fila e manda tudo.
  */
 
 export const dynamic = "force-dynamic";
@@ -17,15 +21,20 @@ export async function GET(requisicao: NextRequest) {
 
   const supabase = clienteServico();
 
-  const { data: casas } = await supabase
-    .from("barbershops")
-    .select("id, lembrete_horas");
+  // lembrete_horas fica no banco para quando houver API oficial de WhatsApp e
+  // der para disparar na hora exata. No digest diário ele não é usado.
+  const { data: casas } = await supabase.from("barbershops").select("id");
 
   let enfileirados = 0;
 
   for (const casa of casas ?? []) {
-    const de = new Date(Date.now() + casa.lembrete_horas * 60 * 60 * 1000);
-    const ate = new Date(de.getTime() + 60 * 60 * 1000);
+    // Daqui até o fim do expediente de hoje, no fuso da casa.
+    const de = new Date();
+    const hoje = new Date(
+      de.toLocaleString("en-US", { timeZone: "America/Fortaleza" }),
+    );
+    const ate = new Date(de);
+    ate.setUTCHours(ate.getUTCHours() + (24 - hoje.getHours()));
 
     const { data: proximos } = await supabase
       .from("appointments")

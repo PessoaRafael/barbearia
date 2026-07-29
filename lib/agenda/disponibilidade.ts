@@ -46,6 +46,23 @@ function sobrepoe(
   return inicioA < fimB && inicioB < fimA;
 }
 
+/**
+ * Devolve à grade o pix que estourou o prazo.
+ *
+ * Roda junto com a consulta de disponibilidade em vez de depender de um cron
+ * de minuto em minuto — que o plano Hobby da Vercel não aceita. O horário só
+ * precisa voltar quando alguém for olhar a grade, e é exatamente aí que isto
+ * acontece. O cron diário fica como rede de segurança.
+ */
+async function devolverPixVencido() {
+  try {
+    await clienteServico().rpc("expirar_pendentes");
+  } catch {
+    // Não é motivo para derrubar a consulta: no pior caso um horário
+    // continua preso até a próxima chamada.
+  }
+}
+
 export async function horariosLivres(entrada: {
   barbeariaId: string;
   data: string;
@@ -55,6 +72,8 @@ export async function horariosLivres(entrada: {
   const { barbeariaId, data, duracaoMin } = entrada;
   const supabase = clienteServico();
   const dow = diaDaSemana(data);
+
+  await devolverPixVencido();
 
   const { data: fechado } = await supabase
     .from("closures")
