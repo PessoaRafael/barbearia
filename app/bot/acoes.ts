@@ -81,16 +81,57 @@ async function exemplosDeUso() {
     barbeirosAtivos(),
   ]);
 
-  const principal = servicos[1]?.nome ?? servicos[0]?.nome ?? "corte";
-  const rapido = servicos.find((s) => s.duracao_min <= 30)?.nome ?? principal;
+  // Exemplos com serviço que existe de verdade: frase que o bot não entenderia
+  // ensinaria errado logo para quem confiou nela.
+  const corte =
+    servicos.find((s) => s.coberto_pelo_clube)?.nome ??
+    servicos[0]?.nome ??
+    "corte";
+  const outro =
+    servicos.find((s) => !s.coberto_pelo_clube)?.nome ?? corte;
   const quem = barbeiros[1]?.apelido ?? barbeiros[0]?.apelido ?? "";
 
   return [
-    `${principal} amanhã de tarde${quem ? ` com o ${quem}` : ""}`,
-    `tem horário hoje pra ${rapido.toLowerCase()}?`,
-    "quanto custa a barba?",
+    `${corte} amanhã de tarde${quem ? ` com o ${quem}` : ""}`,
+    `tem horário hoje pra ${corte.toLowerCase()}?`,
+    `quanto custa ${outro.toLowerCase()}?`,
     "sábado de manhã, tanto faz quem corta",
   ];
+}
+
+/**
+ * Como o cliente chama cada serviço, ligado pelo nome e não por id fixo: assim
+ * o Johny pode renomear ou criar serviço no painel sem quebrar o chat.
+ *
+ * De fora ficam palavras ambíguas de propósito. "máquina" está em Corte
+ * máquina e em Máquina & tesoura; "tesoura" está em dois; "navalha" lembra
+ * barba e acréscimo navalhado. Nesses casos o próprio nome já resolve, e um
+ * apelido só faria o bot escolher errado com cara de certeza.
+ */
+const APELIDOS: Record<string, string[]> = {
+  "degradê": ["degrade", "fade", "degradezinho"],
+  "criança": ["crianca", "filho", "menino", "infantil"],
+  "pigmentada": ["pigmentada", "pigmentacao"],
+  "barbaterapia": ["barboterapia", "terapia de barba"],
+  "sobrancelha": ["sobrancelha", "sombrancelha"],
+  "base": ["base do cabelo"],
+  "linha": ["linha", "risco"],
+  "alisante": ["alisamento", "relaxamento"],
+  "hidrataç": ["hidratacao", "hidratar"],
+  "progressiva": ["progressiva", "escova progressiva"],
+};
+
+function apelidosDe(servicos: { id: string; nome: string }[]) {
+  const mapa: Record<string, string[]> = {};
+
+  for (const [pedaco, apelidos] of Object.entries(APELIDOS)) {
+    const alvo = servicos.find((s) =>
+      normalizar(s.nome).includes(normalizar(pedaco)),
+    );
+    if (alvo) mapa[alvo.id] = apelidos;
+  }
+
+  return mapa;
 }
 
 /** "amanhã" no começo da frase vira "Amanhã". */
@@ -174,22 +215,7 @@ export async function conversar(
   const intencao = acharIntencao(texto);
 
   if (!estado.servicoId) {
-    const achado = acharPorNome(texto, listaServicos, {
-      [listaServicos.find((s) => s.nome.includes("degradê"))?.id ?? ""]: [
-        "degrade",
-        "fade",
-        "maquina",
-      ],
-      [listaServicos.find((s) => s.nome.includes("social"))?.id ?? ""]: [
-        "social",
-        "tesoura",
-        "normal",
-      ],
-      [listaServicos.find((s) => s.nome.includes("Barba"))?.id ?? ""]: [
-        "barba",
-        "navalha",
-      ],
-    });
+    const achado = acharPorNome(texto, listaServicos, apelidosDe(listaServicos));
     if (achado) estado.servicoId = achado.id;
   }
 
@@ -235,12 +261,54 @@ export async function conversar(
 
   // ---- perguntas que não são agendamento -----------------------------------
 
-  if (intencao === "preco" && !servico) {
+  /**
+   * Pergunta vem antes de escolha.
+   *
+   * "quanto custa a barba?" tem a palavra barba, então a extração já marcava o
+   * serviço e o bot seguia para "com quem você quer cortar?", sem responder o
+   * preço. Quem pergunta quer o número primeiro, e só depois decide marcar.
+   */
+  if (intencao === "preco") {
+    if (servico) {
+      falas.push(
+        `${servico.nome} sai ${moedaCentavos(servico.preco_centavos)}.` +
+          (servico.coberto_pelo_clube
+            ? " Quem é do clube não paga nada por ele."
+            : ""),
+      );
+      falas.push("Quer que eu marque?");
+
+      return {
+        estado,
+        falas,
+        opcoes: [
+          { rotulo: "Quero marcar", valor: "quero marcar" },
+          { rotulo: "Ver a tabela toda", valor: "ver a tabela toda" },
+        ],
+      };
+    }
+
     falas.push(
-      "A tabela é essa:\n" +
-        servicos
-          .map((s) => `• ${s.nome}, ${moedaCentavos(s.preco_centavos)} (${s.duracao_min} min)`)
-          .join("\n"),
+      servicos
+        .map((s) => `• ${s.nome} — ${moedaCentavos(s.preco_centavos)}`)
+        .join("\n"),
+    );
+    falas.push("Qual deles você quer marcar?");
+
+    return {
+      estado,
+      falas,
+      opcoes: servicos.slice(0, 4).map((s) => ({ rotulo: s.nome, valor: s.nome })),
+    };
+  }
+
+  // "ver a tabela toda" depois de perguntar o preço de um serviço.
+  if (/ver a tabela/.test(normalizar(texto))) {
+    estado.servicoId = undefined;
+    falas.push(
+      servicos
+        .map((s) => `• ${s.nome} — ${moedaCentavos(s.preco_centavos)}`)
+        .join("\n"),
     );
     falas.push("Qual deles você quer marcar?");
     return {
