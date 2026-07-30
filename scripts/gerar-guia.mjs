@@ -8,7 +8,8 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 const RAIZ = process.cwd();
@@ -43,12 +44,30 @@ if (!navegador) {
   process.exit(0);
 }
 
-execFileSync(navegador, [
-  "--headless",
-  "--disable-gpu",
-  "--no-pdf-header-footer",
-  `--print-to-pdf=${SAIDA_PDF}`,
-  `file:///${SAIDA_HTML.replace(/\\/g, "/")}`,
-]);
+/**
+ * Perfil descartável é obrigatório: com o Chrome já aberto, o headless tenta
+ * reusar o perfil do usuário, o processo devolve na hora e o PDF nunca é
+ * escrito, sem erro nenhum na tela.
+ */
+const perfil = resolve(tmpdir(), `guia-chrome-${process.pid}`);
 
+execFileSync(
+  navegador,
+  [
+    "--headless=new",
+    "--disable-gpu",
+    "--no-sandbox",
+    `--user-data-dir=${perfil}`,
+    "--no-pdf-header-footer",
+    "--virtual-time-budget=6000",
+    `--print-to-pdf=${SAIDA_PDF}`,
+    `file:///${SAIDA_HTML.replace(/\\/g, "/")}`,
+  ],
+  { stdio: "inherit" },
+);
+
+rmSync(perfil, { recursive: true, force: true });
+
+const gerado = statSync(SAIDA_PDF);
 console.log(`pdf:  ${SAIDA_PDF}`);
+console.log(`      ${Math.round(gerado.size / 1024)} KB, ${gerado.mtime.toLocaleTimeString("pt-BR")}`);
