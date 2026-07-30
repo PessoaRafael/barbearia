@@ -30,12 +30,9 @@ export default async function Landing() {
   ]);
 
   const numeros = [
+    { valor: CASA.clientesAtendidos, rotulo: "clientes atendidos" },
     { valor: barbeiros.length, rotulo: "barbeiros na casa" },
     { valor: servicos.length, rotulo: "serviços na régua" },
-    {
-      valor: barbearia.clube_cortes_mes === 0 ? "∞" : barbearia.clube_cortes_mes,
-      rotulo: "cortes no clube",
-    },
   ];
 
   return (
@@ -164,7 +161,7 @@ function Servicos({ servicos }: { servicos: ServicoDb[] }) {
     <Secao
       id="servicos"
       titulo="O que a gente faz"
-      apoio="Preço fechado, sem surpresa na hora de pagar."
+      apoio="Preço fechado, sem surpresa na hora de pagar. Quem é do Clube não paga nada pelo corte."
     >
       <div className="flex flex-col gap-6">
         {categorias.map((categoria) => {
@@ -185,9 +182,10 @@ function Servicos({ servicos }: { servicos: ServicoDb[] }) {
                         <span className="font-titulo text-base font-semibold">
                           {servico.nome}
                         </span>
-                        {servico.coberto_pelo_clube ? (
-                          <Etiqueta tom="clube">no clube</Etiqueta>
-                        ) : null}
+                        {/* Nada de etiqueta de clube por serviço: repetida em
+                            todo corte, ela vira ruído e ainda lê como "só para
+                            quem é do clube". Quem explica isso é a seção do
+                            Clube, logo abaixo. */}
                         {servico.tag ? (
                           <Etiqueta tom="neutro">{servico.tag}</Etiqueta>
                         ) : null}

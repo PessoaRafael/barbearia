@@ -5,6 +5,12 @@ export const CASA = {
   endereco: "R. Djalma Maranhão, 463-2, Nova Descoberta",
   cep: "59075-290",
   telefone: "(84) 99983-5180",
+  /**
+   * História da casa, contada pelo Johny. Não sai do banco de propósito: o
+   * sistema nasceu agora e só conhece os clientes cadastrados nele, mas a
+   * barbearia é bem mais velha que isso.
+   */
+  clientesAtendidos: "+500",
   linkAgendamento: "johnybarbearia.com.br/agendar",
   expediente: [
     { dia: "Segunda a sexta", horario: "08:30 às 18:30" },
