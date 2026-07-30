@@ -2,228 +2,230 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Johny Barbearia — Guia de uso</title>
 <style>
-  /* Fundo claro de propósito: o guia vai ser impresso, e a tela escura do
-     sistema gastaria um cartucho por cópia. O amarelo da marca fica. */
-  @page { size: A4; margin: 14mm; }
+  @page { size: A4; margin: 0; }
 
   :root {
-    --tinta: #1a1710;
-    --suave: #5f5949;
-    --linha: #ddd6c2;
-    --papel: #fffdf7;
+    --tinta:   #1a1710;
+    --suave:   #6b6455;
+    --linha:   #e3dcca;
+    --papel:   #fffdf7;
+    --creme:   #faf6ea;
     --amarelo: #F5CE0A;
-    --verde: #7d8a4a;
     --laranja: #C9622F;
+    --verde:   #7d8a4a;
   }
 
   * { box-sizing: border-box; }
 
+  html { background: #d8d3c4; }
+
   body {
     margin: 0;
-    background: var(--papel);
     color: var(--tinta);
-    font: 15px/1.55 "Segoe UI", system-ui, sans-serif;
+    font: 15px/1.6 "Segoe UI", -apple-system, system-ui, sans-serif;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
-  .folha { padding: 0 0 18mm; }
-  .folha + .folha { page-break-before: always; }
+  /* A folha tem largura fixa de A4. Sem isso o texto se espalha na tela
+     inteira e o guia fica com cara de arquivo cru. */
+  .folha {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 18mm 20mm;
+    background: var(--papel);
+    position: relative;
+  }
+  .folha + .folha { margin-top: 8mm; }
 
-  h1 { font-size: 30px; margin: 0 0 6px; letter-spacing: -0.02em; }
+  @media print {
+    html { background: none; }
+    .folha { box-shadow: none; }
+    /* Precisa repetir o seletor de irmão: `.folha + .folha` tem
+       especificidade maior que `.folha`, e a margem de 8mm da tela sobraria
+       aqui, empurrando cada folha para uma página a mais. */
+    .folha, .folha + .folha { margin: 0; }
+    .folha { break-after: page; page-break-after: always; }
+    .folha:last-child { break-after: auto; page-break-after: auto; }
+  }
+  @media screen {
+    .folha { box-shadow: 0 2px 14px rgba(0,0,0,.18); }
+  }
+
+  h1 { font-size: 27px; margin: 0 0 4px; letter-spacing: -.02em; }
   h2 {
-    font-size: 21px;
-    margin: 0 0 14px;
-    padding-bottom: 8px;
-    border-bottom: 3px solid var(--amarelo);
-    letter-spacing: -0.01em;
+    font-size: 20px; margin: 0 0 4px; letter-spacing: -.01em;
   }
-  h3 { font-size: 16px; margin: 18px 0 6px; }
-  p { margin: 0 0 10px; }
+  h3 { font-size: 15px; margin: 20px 0 5px; }
+  p  { margin: 0 0 11px; }
   .apoio { color: var(--suave); }
 
-  .capa {
-    text-align: center;
-    padding: 40mm 0 0;
+  .cabecalho {
+    display: flex; align-items: center; gap: 12px;
+    padding-bottom: 12px; margin-bottom: 20px;
+    border-bottom: 3px solid var(--amarelo);
   }
-  .marca {
-    width: 78px; height: 78px; margin: 0 auto 18px;
-    background: var(--amarelo);
-    border-radius: 22px;
+  .cabecalho .num {
+    width: 34px; height: 34px; flex: none;
+    background: var(--amarelo); color: #111;
+    border-radius: 50%;
     display: grid; place-items: center;
-    font-size: 27px; font-weight: 800; color: #111;
+    font-size: 17px; font-weight: 800;
   }
-  .capa h1 { font-size: 38px; }
-  .capa .sub { font-size: 17px; color: var(--suave); margin-top: 4px; }
+  .cabecalho .sub { font-size: 13px; color: var(--suave); }
+
+  /* ── capa ── */
+  .capa { display: flex; flex-direction: column; justify-content: center; text-align: center; }
+  .capa img {
+    width: 96px; height: 96px; border-radius: 26px;
+    margin: 0 auto 20px; display: block;
+  }
+  .capa h1 { font-size: 40px; }
+  .capa .sub { font-size: 17px; color: var(--suave); margin-bottom: 34px; }
 
   .indice {
-    margin: 28px auto 0; max-width: 330px; text-align: left;
-    border: 1px solid var(--linha); border-radius: 12px; padding: 16px 20px;
+    text-align: left; max-width: 340px; margin: 0 auto;
+    border: 1px solid var(--linha); border-radius: 14px;
+    padding: 18px 22px; background: var(--creme);
   }
-  .indice ol { margin: 0; padding-left: 20px; }
-  .indice li { margin: 5px 0; }
+  .indice div { display: flex; gap: 10px; padding: 5px 0; font-size: 15px; }
+  .indice b { color: var(--amarelo); -webkit-text-stroke: .3px #b99c07; }
 
-  ol.passos { margin: 0 0 14px; padding-left: 22px; }
-  ol.passos li { margin: 0 0 9px; }
+  ol.passos { margin: 0 0 14px; padding-left: 20px; }
+  ol.passos li { margin: 0 0 8px; }
 
   .aviso {
     border-left: 4px solid var(--amarelo);
-    background: #fdf8e3;
-    padding: 10px 14px;
-    margin: 12px 0;
-    border-radius: 0 8px 8px 0;
+    background: #fdf6dd;
+    padding: 11px 15px; margin: 14px 0;
+    border-radius: 0 9px 9px 0;
   }
   .aviso.perigo { border-color: var(--laranja); background: #fbeee7; }
-  .aviso strong { display: block; margin-bottom: 2px; }
+  .aviso strong { display: block; margin-bottom: 3px; }
 
-  /* Desenho das telas, com as cores reais do sistema. */
+  /* ── telas do sistema ── */
   .tela {
+    position: relative;
     background: #1E1B12;
-    border: 1px solid #2E2A1C;
-    border-radius: 12px;
+    border-radius: 13px;
     padding: 14px;
-    margin: 12px 0;
+    margin: 14px 0 6px;
     color: #F5F0E4;
     font-size: 13px;
+    line-height: 1.45;
   }
   .tela .topo {
     display: flex; align-items: center; gap: 8px;
     padding-bottom: 10px; margin-bottom: 10px;
     border-bottom: 1px solid #2E2A1C;
   }
-  .tela .logo {
-    width: 26px; height: 26px; border-radius: 8px;
-    background: var(--amarelo); color: #111;
-    display: grid; place-items: center; font-size: 11px; font-weight: 800;
-  }
+  .tela .topo img { width: 24px; height: 24px; border-radius: 7px; }
   .tela .cartao {
     border: 1px solid #2E2A1C; border-radius: 9px;
     padding: 9px 11px; margin: 6px 0; background: #221F14;
   }
   .tela .cartao.aceso { border-color: var(--amarelo); }
   .tela .rotulo { color: #B3AC94; font-size: 12px; }
-  .tela .valor { color: var(--amarelo); font-weight: 700; }
+  .tela .valor  { color: var(--amarelo); font-weight: 700; }
+  .tela .linha  { display: flex; gap: 7px; }
+  .tela .linha > * { flex: 1; }
+
   .botao {
-    display: inline-block; padding: 7px 15px; border-radius: 999px;
+    display: inline-block; padding: 6px 14px; border-radius: 999px;
     background: var(--amarelo); color: #111; font-weight: 700; font-size: 12px;
   }
-  .botao.vazado {
-    background: transparent; color: #F5F0E4;
-    border: 1px solid #4A422A; font-weight: 600;
-  }
-  .botao.perigo { background: transparent; color: var(--laranja); border: 1px solid var(--laranja); }
-  .legenda { font-size: 12px; color: var(--suave); margin: -6px 0 14px; }
-
-  /* Setas e números apontando para as partes da tela. Em papel, número com
-     legenda embaixo lê melhor que balão flutuante, que sempre tampa algo. */
-  .tela { position: relative; }
+  .botao.vazado { background: none; color: #F5F0E4; border: 1px solid #4A422A; font-weight: 600; }
+  .botao.perigo { background: none; color: var(--laranja); border: 1px solid var(--laranja); }
 
   .nota {
-    position: absolute;
-    width: 22px; height: 22px;
+    position: absolute; width: 21px; height: 21px;
     background: var(--amarelo); color: #111;
-    border: 2px solid var(--papel);
-    border-radius: 50%;
+    border: 2px solid var(--papel); border-radius: 50%;
     display: grid; place-items: center;
-    font-size: 12px; font-weight: 800;
-    z-index: 2;
+    font-size: 11px; font-weight: 800; z-index: 2;
   }
-
-  .seta {
-    position: absolute;
-    height: 2px;
-    background: var(--amarelo);
-    z-index: 1;
-  }
+  .seta { position: absolute; height: 2px; background: var(--amarelo); z-index: 1; }
   .seta::after {
-    content: "";
-    position: absolute;
-    right: -1px; top: -3px;
-    border-left: 7px solid var(--amarelo);
-    border-top: 4px solid transparent;
-    border-bottom: 4px solid transparent;
-  }
-  .seta.esquerda::after {
-    right: auto; left: -1px;
-    border-left: none;
+    content: ""; position: absolute; left: -1px; top: -3px;
     border-right: 7px solid var(--amarelo);
+    border-top: 4px solid transparent; border-bottom: 4px solid transparent;
   }
 
-  ol.notas {
-    margin: 0 0 16px; padding: 0; list-style: none;
-    counter-reset: nota;
-  }
+  ol.notas { margin: 0 0 16px; padding: 0; list-style: none; counter-reset: n; }
   ol.notas li {
-    counter-increment: nota;
-    position: relative;
-    padding-left: 30px;
-    margin: 7px 0;
-    font-size: 14px;
+    counter-increment: n; position: relative;
+    padding-left: 29px; margin: 8px 0; font-size: 14px;
   }
   ol.notas li::before {
-    content: counter(nota);
-    position: absolute; left: 0; top: 1px;
-    width: 21px; height: 21px;
-    background: var(--amarelo); color: #111;
-    border-radius: 50%;
-    display: grid; place-items: center;
-    font-size: 12px; font-weight: 800;
+    content: counter(n);
+    position: absolute; left: 0; top: 2px;
+    width: 20px; height: 20px;
+    background: var(--amarelo); color: #111; border-radius: 50%;
+    display: grid; place-items: center; font-size: 11px; font-weight: 800;
   }
 
-  table { width: 100%; border-collapse: collapse; margin: 10px 0 14px; }
-  th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--linha); vertical-align: top; }
-  th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--suave); }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 16px; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--linha); vertical-align: top; }
+  th { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--suave); }
+  tr:nth-child(even) td { background: var(--creme); }
 
   .rodape {
-    margin-top: 20px; padding-top: 10px;
-    border-top: 1px solid var(--linha);
-    font-size: 12px; color: var(--suave);
+    position: absolute; left: 20mm; right: 20mm; bottom: 12mm;
+    display: flex; justify-content: space-between;
+    padding-top: 8px; border-top: 1px solid var(--linha);
+    font-size: 11px; color: var(--suave);
   }
 </style>
 </head>
 <body>
 
-<!-- ─────────────────────────────── CAPA ─────────────────────────────── -->
+<!-- ───────────────────────────── CAPA ───────────────────────────── -->
 <section class="folha capa">
-  <div class="marca">JB</div>
+  <img src="__LOGO__" alt="Johny Barbearia">
   <h1>Johny Barbearia</h1>
   <p class="sub">Guia de uso do sistema de agendamento</p>
 
   <div class="indice">
-    <ol>
-      <li>Como o cliente marca</li>
-      <li>Entrar no sistema</li>
-      <li>Painel do Johny: o dia a dia</li>
-      <li>Conferir o pix</li>
-      <li>Clube e equipe</li>
-      <li>Para os barbeiros</li>
-      <li>Se der problema</li>
-    </ol>
+    <div><b>1</b> Como o cliente marca</div>
+    <div><b>2</b> Entrar no sistema</div>
+    <div><b>3</b> O dia a dia no painel</div>
+    <div><b>4</b> Conferir o pix</div>
+    <div><b>5</b> Clube e equipe</div>
+    <div><b>6</b> Para os barbeiros</div>
+    <div><b>7</b> Se der problema</div>
   </div>
 
-  <p class="sub" style="margin-top:26px">
+  <p class="sub" style="margin:30px 0 0;font-size:14px">
     Guarde a sua chave de acesso. É ela que abre tudo.
   </p>
 </section>
 
-<!-- ────────────────────────── 1. O CLIENTE ──────────────────────────── -->
+<!-- ───────────────────────── 1. O CLIENTE ───────────────────────── -->
 <section class="folha">
-  <h2>1. Como o cliente marca</h2>
+  <div class="cabecalho">
+    <span class="num">1</span>
+    <div><h2>Como o cliente marca</h2>
+      <div class="sub">Sem aplicativo, sem cadastro, sem senha</div></div>
+  </div>
 
-  <p>Ele tem dois caminhos, e os dois dão no mesmo lugar. Não precisa baixar
-  aplicativo nem criar senha.</p>
+  <p>Ele tem dois caminhos, e os dois dão no mesmo lugar.</p>
 
   <h3>Pelo site</h3>
   <p class="apoio">Escolhe serviço, barbeiro, dia e horário, põe nome e
   WhatsApp, e paga no pix.</p>
 
   <h3>Pelo chat</h3>
-  <p class="apoio">Escreve do jeito dele, tipo <em>“corte degradê amanhã de
-  tarde com o Anderson”</em>, e o sistema já entende tudo de uma vez.</p>
+  <p class="apoio">Escreve do jeito dele e o sistema entende tudo de uma vez.</p>
 
   <div class="tela">
-    <div class="topo"><div class="logo">JB</div><strong>Marcar pelo chat</strong></div>
-    <div class="cartao">Corte degradê amanhã de tarde com o Anderson</div>
+    <div class="topo"><img src="__LOGO__" alt=""><strong>Marcar pelo chat</strong></div>
+    <div class="cartao" style="margin-left:28%;background:#F5CE0A;color:#111;font-weight:600">
+      Corte degradê amanhã de tarde com o Anderson
+    </div>
     <div class="cartao">Amanhã tenho 8 horários de tarde:</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
       <span class="botao vazado">14:00</span>
@@ -232,77 +234,86 @@
       <span class="botao vazado">15:30</span>
     </div>
   </div>
-  <p class="legenda">O chat entende a frase inteira e só pergunta o que faltou.</p>
+  <p class="apoio" style="font-size:13px">Uma frase resolve serviço, dia, turno
+  e barbeiro de uma vez só.</p>
 
   <div class="aviso">
     <strong>O horário só vale depois que você confirma o pix</strong>
-    Até lá a cadeira fica reservada por 1 hora, mas não está confirmada. Quem
-    dá o ok é você, no painel.
+    Até lá a cadeira fica reservada por 1 hora, mas não está confirmada.
+    Quem dá o ok é você, no painel.
   </div>
 
-  <p>O cliente recebe um link só dele. Por esse link ele vê o horário e
-  cancela sozinho, até 2 horas antes. Depois disso, só falando com você.</p>
+  <p>O cliente recebe um link só dele. Por ali ele vê o horário e cancela
+  sozinho, até 2 horas antes. Depois disso, só falando com você.</p>
+
+  <div class="rodape"><span>Johny Barbearia</span><span>1</span></div>
 </section>
 
-<!-- ────────────────────────── 2. ENTRAR ─────────────────────────────── -->
+<!-- ───────────────────────── 2. ENTRAR ──────────────────────────── -->
 <section class="folha">
-  <h2>2. Entrar no sistema</h2>
+  <div class="cabecalho">
+    <span class="num">2</span>
+    <div><h2>Entrar no sistema</h2>
+      <div class="sub">Só a chave, nada de e-mail e senha</div></div>
+  </div>
 
-  <p>Não tem e-mail nem senha. Você entra com uma <strong>chave</strong>, que
-  parece com isso:</p>
+  <p>Você entra com uma <strong>chave</strong>, que parece com isso:</p>
 
-  <p style="font-size:26px;font-weight:800;letter-spacing:2px;margin:14px 0">
+  <p style="font-size:29px;font-weight:800;letter-spacing:3px;margin:16px 0;
+            text-align:center;background:var(--creme);border:1px solid var(--linha);
+            border-radius:12px;padding:16px">
     JHNY-K7M2-P9XR
   </p>
 
   <ol class="passos">
     <li>Abra <strong>johnybarbearia.com.br/entrar</strong></li>
-    <li>Digite a chave (ela aparece em maiúsculas sozinha)</li>
+    <li>Digite a chave, que já vira maiúscula sozinha</li>
     <li>Toque em <strong>Entrar</strong></li>
   </ol>
 
-  <div class="tela">
-    <div style="text-align:center">
-      <div class="logo" style="margin:0 auto 10px">JB</div>
-      <strong>Entrar na barbearia</strong>
-      <p class="rotulo" style="margin:4px 0 12px">Use a chave que o Johny te mandou.</p>
-      <div class="cartao" style="letter-spacing:2px;font-weight:700">JHNY-XXXX-XXXX</div>
-      <div style="margin-top:10px"><span class="botao">Entrar</span></div>
-    </div>
+  <div class="tela" style="max-width:340px;margin-left:auto;margin-right:auto;text-align:center">
+    <img src="__LOGO__" alt="" style="width:44px;height:44px;border-radius:13px;margin-bottom:8px">
+    <div><strong>Entrar na barbearia</strong></div>
+    <div class="rotulo" style="margin:3px 0 12px">Use a chave que o Johny te mandou.</div>
+    <div class="cartao" style="letter-spacing:3px;font-weight:700">JHNY-XXXX-XXXX</div>
+    <div style="margin-top:10px"><span class="botao">Entrar</span></div>
   </div>
 
-  <p>O sistema lembra de você por 30 dias. Depois disso pede a chave de novo.</p>
+  <p style="margin-top:16px">O sistema lembra de você por <strong>30 dias</strong>.</p>
 
   <div class="aviso perigo">
     <strong>A chave é pessoal</strong>
     Quem tem a chave entra na agenda. Não repasse. Se alguém sair da equipe ou
-    perder o celular, o Johny cancela a chave em um toque e a pessoa cai na
-    hora.
+    perder o celular, o Johny cancela a chave em um toque e a pessoa cai na hora.
   </div>
+
+  <div class="rodape"><span>Johny Barbearia</span><span>2</span></div>
 </section>
 
-<!-- ────────────────────────── 3. PAINEL ─────────────────────────────── -->
+<!-- ───────────────────────── 3. PAINEL ──────────────────────────── -->
 <section class="folha">
-  <h2>3. Painel do Johny: o dia a dia</h2>
+  <div class="cabecalho">
+    <span class="num">3</span>
+    <div><h2>O dia a dia no painel</h2>
+      <div class="sub">Para o Johny</div></div>
+  </div>
 
-  <p>Ao entrar, você cai na <strong>Agenda</strong>. No alto ficam os três
-  números do dia:</p>
+  <p>Ao entrar você cai na <strong>Agenda</strong>, com os três números do dia
+  no alto.</p>
 
-  <div class="tela" style="padding-bottom:34px">
-    <div style="display:flex;gap:8px">
-      <div class="cartao" style="flex:1"><div class="rotulo">Marcados</div><strong style="font-size:19px">12</strong></div>
-      <div class="cartao" style="flex:1"><div class="rotulo">A receber</div><strong style="font-size:19px">R$ 430</strong></div>
-      <div class="cartao" style="flex:1"><div class="rotulo">Pix pendente</div><strong style="font-size:19px;color:#C9622F">2</strong></div>
+  <div class="tela">
+    <div class="linha">
+      <div class="cartao"><div class="rotulo">Marcados</div><strong style="font-size:19px">12</strong></div>
+      <div class="cartao"><div class="rotulo">A receber</div><strong style="font-size:19px">R$ 430</strong></div>
+      <div class="cartao"><div class="rotulo">Pix pendente</div><strong style="font-size:19px;color:#C9622F">2</strong></div>
     </div>
     <div class="cartao"><strong>09:00</strong> · Corte degradê · Wesley
-      <div class="rotulo">(84) 99999-0000</div>
-    </div>
+      <div class="rotulo">(84) 99999-0000</div></div>
     <div class="cartao"><strong>10:00</strong> · Corte + barba · Marcos
-      <div class="rotulo">(84) 99999-1111</div>
-    </div>
+      <div class="rotulo">(84) 99999-1111</div></div>
 
-    <span class="nota" style="top:44px; right:38px">1</span>
-    <span class="seta" style="top:54px; right:60px; width:24px; transform:rotate(-90deg); transform-origin:right center"></span>
+    <span class="nota" style="top:12px;right:8px">1</span>
+    <span class="seta" style="top:22px;right:30px;width:22px"></span>
   </div>
 
   <ol class="notas">
@@ -310,9 +321,9 @@
       dinheiro esperando você conferir. Zero é o normal.</li>
   </ol>
 
-  <h3>Quando o cliente sentar e terminar</h3>
+  <h3>Quando o cliente terminar</h3>
   <p>Toque em <strong>Concluir</strong> no horário dele. Isso lança o valor no
-  caixa e conta o corte no histórico do cliente. Se ele não apareceu, toque em
+  caixa e conta o corte no histórico. Se ele não veio, toque em
   <strong>Faltou</strong>.</p>
 
   <table>
@@ -320,164 +331,158 @@
     <tr><td>Agenda</td><td>O dia, por barbeiro</td></tr>
     <tr><td>Pix</td><td>Confirmar quem pagou</td></tr>
     <tr><td>Clube</td><td>Assinantes e mensalidade</td></tr>
-    <tr><td>Clientes</td><td>Quem já cortou, quanto gastou, quantas faltas</td></tr>
-    <tr><td>Serviços</td><td>Mudar preço e duração</td></tr>
+    <tr><td>Clientes</td><td>Histórico, gasto e faltas</td></tr>
+    <tr><td>Serviços</td><td>Preço e duração</td></tr>
     <tr><td>Caixa</td><td>O que entrou hoje</td></tr>
     <tr><td>Fila</td><td>Quem quis um dia cheio</td></tr>
     <tr><td>Equipe</td><td>Chaves dos barbeiros</td></tr>
     <tr><td>Ajustes</td><td>Pix, clube e tempo de reserva</td></tr>
   </table>
+
+  <div class="rodape"><span>Johny Barbearia</span><span>3</span></div>
 </section>
 
-<!-- ────────────────────────── 4. PIX ────────────────────────────────── -->
+<!-- ───────────────────────── 4. PIX ─────────────────────────────── -->
 <section class="folha">
-  <h2>4. Conferir o pix</h2>
+  <div class="cabecalho">
+    <span class="num">4</span>
+    <div><h2>Conferir o pix</h2>
+      <div class="sub">A parte mais importante do seu dia</div></div>
+  </div>
 
-  <p>Esta é a parte mais importante do seu dia. <strong>O sistema não sabe
-  quando o dinheiro cai</strong> — quem sabe é você, olhando o extrato.</p>
+  <p><strong>O sistema não sabe quando o dinheiro cai.</strong> Quem sabe é
+  você, olhando o extrato.</p>
 
   <ol class="passos">
     <li>Abra a aba <strong>Pix</strong></li>
     <li>Veja o nome, o horário e o valor</li>
-    <li>Confira no seu banco se o valor caiu</li>
+    <li>Confira no seu banco se caiu</li>
     <li>Toque em <strong>Recebi</strong> ou <strong>Não caiu</strong></li>
   </ol>
 
-  <div class="tela" style="padding-right:52px">
+  <div class="tela" style="padding-right:44px">
     <div class="cartao aceso">
       <div style="display:flex;justify-content:space-between">
         <strong>Wesley Costa</strong><span class="valor">R$ 40</span>
       </div>
       <div class="rotulo">Corte degradê · Anderson · 16:00</div>
       <div class="rotulo" style="color:#C9622F;margin-top:4px">expira às 17:00</div>
-      <div style="margin-top:8px;display:flex;gap:6px">
+      <div style="margin-top:9px;display:flex;gap:6px">
         <span class="botao">Recebi</span>
         <span class="botao perigo">Não caiu</span>
       </div>
     </div>
 
-    <span class="nota" style="top:16px; right:14px">1</span>
-    <span class="seta esquerda" style="top:26px; right:38px; width:26px"></span>
-
-    <span class="nota" style="top:56px; right:14px">2</span>
-    <span class="seta esquerda" style="top:66px; right:38px; width:26px"></span>
-
-    <span class="nota" style="bottom:18px; right:14px">3</span>
-    <span class="seta esquerda" style="bottom:28px; right:38px; width:26px"></span>
+    <span class="nota" style="top:20px;right:8px">1</span>
+    <span class="seta" style="top:30px;right:30px;width:20px"></span>
+    <span class="nota" style="top:56px;right:8px">2</span>
+    <span class="seta" style="top:66px;right:30px;width:20px"></span>
+    <span class="nota" style="bottom:20px;right:8px">3</span>
+    <span class="seta" style="bottom:30px;right:30px;width:20px"></span>
   </div>
 
   <ol class="notas">
     <li><strong>Quanto e de quem.</strong> É esse valor exato que você procura
-      no extrato do banco.</li>
-    <li><strong>O prazo.</strong> Passou dessa hora sem você confirmar, o
-      horário volta sozinho para a agenda.</li>
+      no extrato.</li>
+    <li><strong>O prazo.</strong> Passou dessa hora sem confirmar, o horário
+      volta sozinho para a agenda.</li>
     <li><strong>A decisão.</strong> Só toque depois de ver o dinheiro na conta.</li>
   </ol>
 
-  <p><strong>Recebi</strong> confirma o horário, lança no caixa e abre logo o
-  botão de avisar o cliente no WhatsApp. <strong>Toque nesse botão</strong> —
-  a mensagem já vai escrita, e é assim que o cliente descobre que está
-  confirmado.</p>
+  <p><strong>Recebi</strong> confirma o horário, lança no caixa e abre o botão
+  de avisar o cliente no WhatsApp. <strong>Toque nesse botão</strong>: a
+  mensagem já vai escrita, e é assim que ele descobre que está confirmado.</p>
 
   <div class="aviso perigo">
     <strong>Nunca confirme só pelo comprovante</strong>
     Print de pix é fácil de falsificar. Confirme olhando o seu extrato, sempre.
-    O comprovante que o cliente manda serve só para você olhar mais rápido.
+    O comprovante serve só para você olhar mais rápido.
   </div>
 
-  <p><strong>Não caiu</strong> cancela e devolve o horário para a agenda.</p>
-
-  <p class="apoio">Se você não fizer nada, depois de 1 hora o horário volta
-  sozinho para a grade e o cliente é avisado.</p>
+  <div class="rodape"><span>Johny Barbearia</span><span>4</span></div>
 </section>
 
-<!-- ────────────────────────── 5. CLUBE E EQUIPE ─────────────────────── -->
+<!-- ───────────────────────── 5. CLUBE E EQUIPE ──────────────────── -->
 <section class="folha">
-  <h2>5. Clube e equipe</h2>
+  <div class="cabecalho">
+    <span class="num">5</span>
+    <div><h2>Clube e equipe</h2>
+      <div class="sub">Assinantes e acesso dos barbeiros</div></div>
+  </div>
 
   <h3>Colocar alguém no clube</h3>
   <ol class="passos">
     <li>Aba <strong>Clube</strong> → <strong>Colocar no clube</strong></li>
     <li>Nome e WhatsApp</li>
   </ol>
-  <p>É o <strong>WhatsApp que liga tudo</strong>. Quando essa pessoa for
-  agendar e digitar o mesmo número, o saldo de cortes aparece sozinho para ela.</p>
-
-  <p>Quando ela pagar a mensalidade, toque em <strong>Recebi o mês</strong>.
-  Isso renova o ciclo por 30 dias. Vencida, ela aparece em laranja e o corte
-  volta a sair avulso.</p>
+  <p>É o <strong>WhatsApp que liga tudo</strong>. Quando essa pessoa agendar e
+  digitar o mesmo número, o saldo de cortes aparece sozinho para ela.</p>
+  <p>Quando ela pagar a mensalidade, toque em <strong>Recebi o mês</strong>:
+  isso renova o ciclo por 30 dias. Vencida, ela fica em laranja e o corte volta
+  a sair avulso.</p>
 
   <h3>Dar acesso a um barbeiro</h3>
   <ol class="passos">
     <li>Aba <strong>Equipe</strong></li>
-    <li>Toque em <strong>Gerar chave</strong> no nome dele</li>
-    <li>Toque em <strong>Mandar no WhatsApp</strong></li>
+    <li><strong>Gerar chave</strong> no nome dele</li>
+    <li><strong>Mandar no WhatsApp</strong></li>
   </ol>
 
-  <div class="tela" style="padding-right:52px">
+  <div class="tela" style="padding-right:44px">
     <div class="cartao aceso">
       <div class="rotulo">Chave do Anderson</div>
       <div style="font-size:20px;font-weight:800;letter-spacing:2px;color:#F5CE0A">JHNY-K7M2-P9XR</div>
-      <div class="rotulo" style="color:#C9622F;margin-top:6px">
-        Essa chave não aparece de novo.
-      </div>
-      <div style="margin-top:8px;display:flex;gap:6px">
+      <div class="rotulo" style="color:#C9622F;margin-top:6px">Essa chave não aparece de novo.</div>
+      <div style="margin-top:9px;display:flex;gap:6px">
         <span class="botao">Copiar</span>
         <span class="botao vazado">Mandar no WhatsApp</span>
       </div>
     </div>
-
-    <span class="nota" style="top:32px; right:14px">1</span>
-    <span class="seta esquerda" style="top:42px; right:38px; width:26px"></span>
-
-    <span class="nota" style="bottom:20px; right:14px">2</span>
-    <span class="seta esquerda" style="bottom:30px; right:38px; width:26px"></span>
+    <span class="nota" style="top:34px;right:8px">1</span>
+    <span class="seta" style="top:44px;right:30px;width:20px"></span>
+    <span class="nota" style="bottom:20px;right:8px">2</span>
+    <span class="seta" style="bottom:30px;right:30px;width:20px"></span>
   </div>
 
   <ol class="notas">
-    <li><strong>Anote ou mande agora.</strong> Depois de fechar esta tela, nem
-      você consegue ver a chave de novo.</li>
-    <li><strong>Mandar no WhatsApp</strong> já abre a conversa com o texto
-      pronto. É o caminho mais rápido.</li>
+    <li><strong>Anote ou mande agora.</strong> Depois de fechar, nem você vê a
+      chave de novo.</li>
+    <li><strong>Mandar no WhatsApp</strong> abre a conversa com o texto pronto.</li>
   </ol>
 
-  <div class="aviso">
-    <strong>A chave aparece uma vez só</strong>
-    Nem você consegue vê-la depois. Se perder, é só gerar outra — a antiga para
-    de funcionar na hora.
-  </div>
-
   <p>Na lista você vê <strong>quando cada um entrou pela última vez</strong>.
-  Para tirar o acesso de alguém, toque em <strong>Revogar</strong>.</p>
+  Para tirar o acesso, toque em <strong>Revogar</strong>.</p>
+
+  <div class="rodape"><span>Johny Barbearia</span><span>5</span></div>
 </section>
 
-<!-- ────────────────────────── 6. BARBEIROS ──────────────────────────── -->
+<!-- ───────────────────────── 6. BARBEIROS ───────────────────────── -->
 <section class="folha">
-  <h2>6. Para os barbeiros</h2>
-
-  <p class="apoio">Esta página é para o Anderson e o Davi.</p>
+  <div class="cabecalho">
+    <span class="num">6</span>
+    <div><h2>Para os barbeiros</h2>
+      <div class="sub">Anderson e Davi</div></div>
+  </div>
 
   <p>Você entra com a chave que o Johny mandou, em
   <strong>johnybarbearia.com.br/entrar</strong>, e cai direto na
   <strong>sua agenda</strong>.</p>
 
-  <div class="tela">
-    <div class="topo"><div class="logo">JB</div><strong>Anderson</strong>
+  <div class="tela" style="padding-right:44px">
+    <div class="topo"><img src="__LOGO__" alt=""><strong>Anderson</strong>
       <span class="rotulo">sua agenda</span></div>
-    <div style="display:flex;gap:8px">
-      <div class="cartao" style="flex:1"><div class="rotulo">Seus atendimentos</div><strong style="font-size:19px">6</strong></div>
-      <div class="cartao" style="flex:1"><div class="rotulo">Você gerou</div><strong style="font-size:19px;color:#F5CE0A">R$ 240</strong></div>
+    <div class="linha">
+      <div class="cartao"><div class="rotulo">Seus atendimentos</div><strong style="font-size:19px">6</strong></div>
+      <div class="cartao"><div class="rotulo">Você gerou</div><strong style="font-size:19px;color:#F5CE0A">R$ 240</strong></div>
     </div>
-    <div class="cartao">
-      <strong>14:00</strong> · Corte degradê · Bruno
-      <div style="margin-top:6px;display:flex;gap:6px">
+    <div class="cartao"><strong>14:00</strong> · Corte degradê · Bruno
+      <div style="margin-top:7px;display:flex;gap:6px">
         <span class="botao vazado">Concluir</span>
         <span class="botao vazado">Faltou</span>
       </div>
     </div>
-
-    <span class="nota" style="bottom:18px; right:14px">1</span>
-    <span class="seta esquerda" style="bottom:28px; right:38px; width:26px"></span>
+    <span class="nota" style="bottom:20px;right:8px">1</span>
+    <span class="seta" style="bottom:30px;right:30px;width:20px"></span>
   </div>
 
   <ol class="notas">
@@ -485,7 +490,6 @@
       valor no caixa e conta o atendimento como seu.</li>
   </ol>
 
-  <h3>O que você faz aqui</h3>
   <table>
     <tr><th>Ação</th><th>Quando usar</th></tr>
     <tr><td>Concluir</td><td>Terminou o corte</td></tr>
@@ -494,68 +498,50 @@
     <tr><td>Trocar o dia</td><td>Ver amanhã ou o resto da semana</td></tr>
   </table>
 
-  <p><strong>Fechar um horário</strong> tira aquele pedaço do dia da agenda, e
-  ninguém consegue marcar ali. Para reabrir, toque em <strong>Liberar</strong>.</p>
-
   <div class="aviso">
     <strong>Você só vê a sua agenda</strong>
-    Não aparece a agenda dos outros, nem o faturamento da casa, nem preço, nem
+    Não aparece a agenda dos outros, nem faturamento da casa, nem preço, nem
     clube. Isso é do Johny.
   </div>
+
+  <div class="rodape"><span>Johny Barbearia</span><span>6</span></div>
 </section>
 
-<!-- ────────────────────────── 7. PROBLEMAS ──────────────────────────── -->
+<!-- ───────────────────────── 7. PROBLEMAS ───────────────────────── -->
 <section class="folha">
-  <h2>7. Se der problema</h2>
+  <div class="cabecalho">
+    <span class="num">7</span>
+    <div><h2>Se der problema</h2>
+      <div class="sub">Aconteceu isso, faça aquilo</div></div>
+  </div>
 
   <table>
     <tr><th>Aconteceu</th><th>O que fazer</th></tr>
-    <tr>
-      <td>Perdi minha chave</td>
-      <td>Barbeiro: peça outra ao Johny, na aba Equipe. Johny: fale com quem
-      cuida do sistema.</td>
-    </tr>
-    <tr>
-      <td>Diz “chave inválida”</td>
-      <td>Confira letra por letra. A chave não tem as letras O e I, nem os
-      números 0 e 1.</td>
-    </tr>
-    <tr>
-      <td>Errei e confirmei um pix</td>
-      <td>Cancele o horário na agenda. O horário volta para a grade.</td>
-    </tr>
-    <tr>
-      <td>Cliente pagou mas o horário sumiu</td>
-      <td>Passou de 1 hora sem confirmação. Marque de novo pelo painel, em
-      Encaixar.</td>
-    </tr>
-    <tr>
-      <td>Cliente quer cancelar em cima da hora</td>
-      <td>Ele só cancela sozinho até 2 horas antes. Depois, cancele você pela
-      agenda.</td>
-    </tr>
-    <tr>
-      <td>Preciso mudar preço</td>
-      <td>Aba Serviços → Editar. Muda na hora, no site e no chat.</td>
-    </tr>
-    <tr>
-      <td>Vou fechar a barbearia num dia</td>
-      <td>Peça para bloquear o dia. Feriado tem lugar próprio no sistema.</td>
-    </tr>
+    <tr><td>Perdi minha chave</td><td>Barbeiro: peça outra ao Johny, na aba Equipe.</td></tr>
+    <tr><td>Diz “chave inválida”</td><td>Confira letra por letra. A chave não tem O nem I, e não tem 0 nem 1.</td></tr>
+    <tr><td>Confirmei um pix por engano</td><td>Cancele o horário na agenda. Ele volta para a grade.</td></tr>
+    <tr><td>Cliente pagou mas o horário sumiu</td><td>Passou de 1 hora sem confirmação. Marque de novo em Encaixar.</td></tr>
+    <tr><td>Cliente quer cancelar em cima da hora</td><td>Ele só cancela sozinho até 2 horas antes. Depois, cancele você.</td></tr>
+    <tr><td>Preciso mudar preço</td><td>Aba Serviços → Editar. Muda na hora, no site e no chat.</td></tr>
+    <tr><td>Vou fechar a barbearia num dia</td><td>Bloqueie o dia pelo painel.</td></tr>
   </table>
 
   <h3>Rotina que vale a pena</h3>
   <ol class="passos">
     <li><strong>De manhã:</strong> abra o painel e veja o dia</li>
     <li><strong>Durante o dia:</strong> olhe o número de pix pendente</li>
-    <li><strong>Ao terminar cada corte:</strong> toque em Concluir</li>
+    <li><strong>A cada corte:</strong> toque em Concluir</li>
     <li><strong>No fim do dia:</strong> confira o Caixa</li>
   </ol>
 
-  <div class="rodape">
-    Johny Barbearia · R. Djalma Maranhão, 463-2, Nova Descoberta, Natal/RN<br>
-    (84) 99983-5180
+  <div style="margin-top:26px;padding:16px 20px;background:var(--creme);
+              border:1px solid var(--linha);border-radius:12px;text-align:center">
+    <strong>Johny Barbearia</strong><br>
+    <span class="apoio">R. Djalma Maranhão, 463-2, Nova Descoberta, Natal/RN</span><br>
+    <span class="apoio">(84) 99983-5180</span>
   </div>
+
+  <div class="rodape"><span>Johny Barbearia</span><span>7</span></div>
 </section>
 
 </body>

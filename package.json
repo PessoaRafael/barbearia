@@ -11,7 +11,8 @@
     "teste:rls": "node scripts/teste-rls.mjs",
     "teste:painel": "node scripts/teste-barbeiro.mjs",
     "teste:bot": "node --experimental-strip-types scripts/teste-bot.mjs",
-    "zerar:teste": "node scripts/zerar-teste.mjs"
+    "zerar:teste": "node scripts/zerar-teste.mjs",
+    "guia": "node scripts/gerar-guia.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
