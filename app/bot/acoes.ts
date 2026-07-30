@@ -214,6 +214,19 @@ export async function conversar(
 
   const intencao = acharIntencao(texto);
 
+  // Recomeçar zera tudo antes de qualquer extração, senão o serviço citado na
+  // mesma frase entraria no estado que acabou de ser limpo.
+  if (intencao === "recomecar") {
+    return {
+      estado: {},
+      falas: ["Beleza, do zero. O que você quer fazer?"],
+      opcoes: servicos.slice(0, 4).map((s) => ({
+        rotulo: `${s.nome} · ${moedaCentavos(s.preco_centavos)}`,
+        valor: s.nome,
+      })),
+    };
+  }
+
   if (!estado.servicoId) {
     const achado = acharPorNome(texto, listaServicos, apelidosDe(listaServicos));
     if (achado) estado.servicoId = achado.id;
@@ -255,6 +268,16 @@ export async function conversar(
   if (!estado.nome && estado.telefone) {
     const achado = acharNome(texto);
     if (achado) estado.nome = achado;
+  }
+
+  /**
+   * Nada da mensagem entrou no estado? Então o bot não entendeu, e repetir a
+   * mesma pergunta sem dizer nada é o que faz o cliente achar que travou.
+   * Comparo antes e depois em vez de confiar em cada extrator.
+   */
+  const mudou = JSON.stringify(estado) !== JSON.stringify(estadoAtual);
+  if (!mudou && !intencao && texto.length > 0) {
+    falas.push("Essa eu não peguei. Pode escrever de outro jeito, ou tocar numa das opções.");
   }
 
   const servico = servicos.find((s) => s.id === estado.servicoId) ?? null;

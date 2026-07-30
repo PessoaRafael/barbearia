@@ -8,6 +8,7 @@ import {
   acharForma,
   acharHora,
   acharIntencao,
+  acharNome,
   acharPorNome,
   acharTelefone,
   acharTurno,
@@ -84,7 +85,26 @@ conferir("endereço", acharIntencao("onde fica voces"), "endereco");
 conferir("cancelar", acharIntencao("preciso desmarcar"), "cancelar");
 conferir("saudação", acharIntencao("bom dia"), "saudacao");
 
-console.log("\n7. A frase que faz parecer IA");
+console.log("\n7. Bugs que já morderam antes");
+
+// O botão de dia mandava o rótulo de volta e o bot repetia a pergunta.
+conferir("data crua do botão", acharData("2026-08-06", DIAS), "2026-08-06");
+conferir("abreviação do dia", acharData("qua 05/ago", DIAS), "2026-08-05");
+
+// "cartão de crédito" tem a palavra crédito e virava crédito do clube.
+conferir("cartão de crédito não é clube", acharForma("vou de cartão de crédito"), "cadeira");
+conferir("clube continua sendo clube", acharForma("usa meu credito do clube"), "clube");
+
+// Nome era recusado por conter pedaço de palavra do ruído.
+conferir("Sérgio é nome", acharNome("Sérgio"), "Sérgio");
+conferir("Simone é nome", acharNome("Simone"), "Simone");
+conferir("Nao é nome, é recusa", acharNome("não"), undefined);
+conferir("frase de agendamento não é nome", acharNome("quero marcar"), undefined);
+
+conferir("recomeçar é reconhecido", acharIntencao("quero recomeçar"), "recomecar");
+conferir("negativa é reconhecida", acharIntencao("não, obrigado"), "negar");
+
+console.log("\n8. A frase que faz parecer IA");
 const frase = "quero corte degradê amanhã de tarde com o anderson";
 conferir("serviço", acharPorNome(frase, SERVICOS)?.id, "degrade");
 conferir("barbeiro", acharPorNome(frase, BARBEIROS)?.id, "anderson");

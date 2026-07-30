@@ -18,7 +18,15 @@ export type Extraido = {
   nome?: string;
   telefone?: string;
   forma?: "pix" | "cadeira" | "clube";
-  intencao?: "cancelar" | "preco" | "endereco" | "horario" | "clube" | "saudacao";
+  intencao?:
+    | "cancelar"
+    | "preco"
+    | "endereco"
+    | "horario"
+    | "clube"
+    | "saudacao"
+    | "recomecar"
+    | "negar";
 };
 
 const ACENTOS = new RegExp("[\\u0300-\\u036f]", "g");
@@ -216,17 +224,31 @@ export function acharTelefone(texto: string) {
 
 export function acharForma(texto: string): Extraido["forma"] {
   const limpo = normalizar(texto);
-  if (/\bpix\b|qr|codigo/.test(limpo)) return "pix";
-  if (/clube|assinat|credito|mensalidade/.test(limpo)) return "clube";
-  if (/dinheiro|cartao|especie|na hora|la mesmo|cadeira|debito|credito na maquina/.test(limpo)) {
+
+  /**
+   * A cadeira é testada antes do clube de propósito. "cartão de crédito" tem
+   * a palavra crédito, e com o clube na frente o cliente que ia pagar no
+   * cartão saía marcado como assinante, para depois a reserva falhar dizendo
+   * que ele não tem assinatura.
+   */
+  if (/dinheiro|cartao|especie|na hora|la mesmo|cadeira|debito/.test(limpo)) {
     return "cadeira";
   }
+  if (/\bpix\b|qr code|copia e cola/.test(limpo)) return "pix";
+  if (/clube|assinat|mensalidade|meu credito/.test(limpo)) return "clube";
+
   return undefined;
 }
 
 /** Perguntas que não são agendamento e merecem resposta direta. */
 export function acharIntencao(texto: string): Extraido["intencao"] {
   const limpo = normalizar(texto);
+
+  // Recomeçar antes de tudo: quem se perdeu no meio quer zerar, não continuar.
+  if (/recome|comecar de novo|do zero|zerar|esquece|deixa pra la/.test(limpo)) {
+    return "recomecar";
+  }
+  if (/^(nao|nada|deixa|agora nao)\b/.test(limpo)) return "negar";
 
   if (/^(oi|ola|opa|eae|e ai|bom dia|boa tarde|boa noite|fala)\b/.test(limpo)) {
     return "saudacao";
@@ -246,15 +268,22 @@ export function acharNome(texto: string) {
   if (cru.length < 2 || cru.length > 60) return undefined;
   if (/\d/.test(cru)) return undefined;
 
-  const limpo = normalizar(cru);
-  const ruido = /marcar|agendar|corte|barba|quero|queria|pode|ser|hoje|amanha|pix|dinheiro|sim|nao|ok/;
-  if (ruido.test(limpo)) return undefined;
+  /**
+   * O ruído é conferido palavra por palavra. Sem isso, "Sérgio" caía por
+   * conter "ser", e "Simone" por conter "sim": o bot recusava o nome da
+   * pessoa e ficava pedindo de novo.
+   */
+  const RUIDO = new Set([
+    "marcar", "agendar", "corte", "barba", "quero", "queria", "pode",
+    "ser", "hoje", "amanha", "pix", "dinheiro", "sim", "nao", "ok",
+    "clube", "cancelar", "obrigado", "blz", "beleza", "isso",
+  ]);
 
   const palavras = cru.split(/\s+/);
   if (palavras.length > 4) return undefined;
+  if (normalizar(cru).split(" ").some((p) => RUIDO.has(p))) return undefined;
 
-  return cru
-    .split(/\s+/)
+  return palavras
     .map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
     .join(" ");
 }

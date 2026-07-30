@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
+
 import { ChevronLeft, Lightbulb, SendHorizontal, X } from "lucide-react";
 
 import {
@@ -43,6 +44,13 @@ export function Conversa({
     fim.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [falas, pensando]);
 
+  /**
+   * O estado também vive num ref porque `mandar` fecha sobre o valor do
+   * render. Dois toques rápidos em sequência mandavam o estado velho na
+   * segunda chamada, e o bot perdia o que o cliente tinha acabado de escolher.
+   */
+  const estadoRef = useRef<Estado>({});
+
   function mandar(mensagem: string) {
     const limpo = mensagem.trim();
     if (!limpo || pensando) return;
@@ -52,7 +60,8 @@ export function Conversa({
     setOpcoes([]);
 
     comecar(async () => {
-      const r = await conversar(estado, limpo);
+      const r = await conversar(estadoRef.current, limpo);
+      estadoRef.current = r.estado;
       setEstado(r.estado);
       setFalas((atual) => [
         ...atual,
