@@ -596,8 +596,10 @@ function Pagamento({
           titulo="Usar 1 corte do clube"
           apoio={
             sobra > 0
-              ? `O clube cobre o corte. A barba sai por ${moedaCentavos(sobra)} na cadeira.`
-              : `Sobram ${(reconhecido?.creditosRestantes ?? 1) - 1} cortes no ciclo depois desse.`
+              ? `O clube cobre parte. Sobram ${moedaCentavos(sobra)} para pagar.`
+              : reconhecido?.ilimitado
+                ? "Você corta quantas vezes quiser. Esse não gasta nada."
+                : `Sobram ${(reconhecido?.creditosRestantes ?? 1) - 1} cortes no ciclo depois desse.`
           }
           valor={moedaCentavos(sobra)}
           ativo={forma === "clube"}
@@ -720,10 +722,15 @@ function CardClube({
 }) {
   if (!clube.ativo) return null;
 
+  // Zero em cortesMes é o clube sem limite: aí não há barra de progresso,
+  // porque não existe teto para preencher.
+  const ilimitado = clube.cortesMes === 0 || Boolean(reconhecido?.ilimitado);
   const usados = reconhecido?.assinante
     ? clube.cortesMes - reconhecido.creditosRestantes
     : 0;
-  const porcentagem = Math.round((usados / clube.cortesMes) * 100);
+  const porcentagem = ilimitado
+    ? 0
+    : Math.round((usados / Math.max(1, clube.cortesMes)) * 100);
 
   return (
     <div className="flex flex-col gap-3 rounded-grande border border-borda bg-superficie p-4">
@@ -738,20 +745,26 @@ function CardClube({
         <>
           <div className="flex items-baseline gap-2">
             <span className="num font-titulo text-3xl font-bold text-texto">
-              {usados}
+              {ilimitado ? "Livre" : usados}
             </span>
             <span className="num text-sm text-texto-suave">
-              de {clube.cortesMes} cortes usados
+              {ilimitado
+                ? `${reconhecido.cortesUsados} cortes neste mês`
+                : `de ${clube.cortesMes} cortes usados`}
             </span>
           </div>
-          <div className="h-2 w-full overflow-hidden rounded-pill bg-superficie-apagada">
-            <div
-              className="h-full rounded-pill bg-clube transition-all"
-              style={{ width: `${porcentagem}%` }}
-            />
-          </div>
+          {ilimitado ? null : (
+            <div className="h-2 w-full overflow-hidden rounded-pill bg-superficie-apagada">
+              <div
+                className="h-full rounded-pill bg-clube transition-all"
+                style={{ width: `${porcentagem}%` }}
+              />
+            </div>
+          )}
           <p className="text-xs text-texto-suave">
-            Sobram {reconhecido.creditosRestantes} cortes neste ciclo.
+            {ilimitado
+              ? "Corte quantas vezes quiser. Enquanto a mensalidade estiver em dia, o corte sai sem pagar nada."
+              : `Sobram ${reconhecido.creditosRestantes} cortes neste ciclo.`}
           </p>
         </>
       ) : (
@@ -763,8 +776,9 @@ function CardClube({
             <span className="pb-1 text-sm text-texto-suave">/mês</span>
           </div>
           <p className="text-xs text-texto-suave">
-            {clube.cortesMes} cortes por mês. Informe seu WhatsApp no passo 4 que
-            eu reconheço sua assinatura.
+            {clube.cortesMes === 0
+              ? "Corte quantas vezes quiser. Informe seu WhatsApp no passo 4 que eu reconheço sua assinatura."
+              : `${clube.cortesMes} cortes por mês. Informe seu WhatsApp no passo 4 que eu reconheço sua assinatura.`}
           </p>
         </>
       )}

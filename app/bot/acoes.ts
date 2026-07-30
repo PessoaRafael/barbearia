@@ -264,7 +264,9 @@ export async function conversar(
 
   if (intencao === "clube") {
     falas.push(
-      `O Clube Johny é ${moedaCentavos(barbearia.clube_preco_centavos)} por mês com ${barbearia.clube_cortes_mes} cortes. Se você já assina, é só me passar seu WhatsApp que eu vejo seu saldo.`,
+      barbearia.clube_cortes_mes === 0
+        ? `O Clube Johny é ${moedaCentavos(barbearia.clube_preco_centavos)} por mês e você corta quantas vezes quiser. Se já assina, me passa seu WhatsApp que eu confiro.`
+        : `O Clube Johny é ${moedaCentavos(barbearia.clube_preco_centavos)} por mês com ${barbearia.clube_cortes_mes} cortes. Se você já assina, é só me passar seu WhatsApp que eu vejo seu saldo.`,
     );
   }
 
@@ -460,7 +462,9 @@ export async function conversar(
     if (quem.nome) {
       falas.push(
         quem.assinante
-          ? `Achei você, ${quem.nome.split(" ")[0]}! Do clube, com ${quem.creditosRestantes} cortes sobrando neste ciclo.`
+          ? quem.ilimitado
+            ? `Achei você, ${quem.nome.split(" ")[0]}! Do clube, então o corte não sai nada.`
+            : `Achei você, ${quem.nome.split(" ")[0]}! Do clube, com ${quem.creditosRestantes} cortes sobrando neste ciclo.`
           : `Achei você, ${quem.nome.split(" ")[0]}.`,
       );
     }

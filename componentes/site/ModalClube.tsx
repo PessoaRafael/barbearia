@@ -77,8 +77,12 @@ export function ModalClube({
                   Clube Johny
                 </h2>
                 <p className="text-sm text-texto-medio">
-                  {preco} por mês, {cortes} cortes. Você escolhe o horário e o
-                  barbeiro, como qualquer cliente, só que sem pagar na cadeira.
+                  {preco} por mês
+                  {cortes === 0
+                    ? ", cortando quantas vezes quiser"
+                    : `, ${cortes} cortes`}
+                  . Você escolhe o horário e o barbeiro, como qualquer cliente,
+                  só que sem pagar nada na hora.
                 </p>
               </div>
               <button
@@ -111,8 +115,8 @@ export function ModalClube({
                 />
 
                 <p className="text-sm text-texto-medio">
-                  Assim que o pix cair, o Johny libera seus {cortes} cortes e te
-                  chama no WhatsApp. Não precisa mandar comprovante.
+                  Assim que o pix cair, o Johny libera o seu clube e te chama no
+                  WhatsApp.
                 </p>
 
                 <a

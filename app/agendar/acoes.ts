@@ -109,6 +109,9 @@ export async function entrarNaFila(entrada: z.input<typeof fila>) {
 export type Reconhecido = {
   nome: string | null;
   assinante: boolean;
+  /** Clube sem limite de cortes: creditosRestantes vem Infinity. */
+  ilimitado: boolean;
+  cortesUsados: number;
   creditosRestantes: number;
   cicloAte: string | null;
   vencida: boolean;
@@ -124,6 +127,8 @@ export async function reconhecerCliente(
   const vazio: Reconhecido = {
     nome: null,
     assinante: false,
+    ilimitado: false,
+    cortesUsados: 0,
     creditosRestantes: 0,
     cicloAte: null,
     vencida: false,
@@ -169,10 +174,18 @@ export async function reconhecerCliente(
     return ag?.status !== "cancelado";
   }).length;
 
+  // Zero em cortes_mes é ilimitado. Devolvo Infinity para quem consome não
+  // precisar conhecer a convenção: comparar com > 0 continua funcionando.
+  const ilimitado = assinatura.cortes_mes === 0;
+
   return {
     nome: cliente.nome,
     assinante: !vencida,
-    creditosRestantes: Math.max(0, assinatura.cortes_mes - gastos),
+    ilimitado,
+    cortesUsados: gastos,
+    creditosRestantes: ilimitado
+      ? Number.POSITIVE_INFINITY
+      : Math.max(0, assinatura.cortes_mes - gastos),
     cicloAte: assinatura.ciclo_fim,
     vencida,
   };

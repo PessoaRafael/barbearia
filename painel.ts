@@ -12,11 +12,12 @@ export const CLIENTE_LOGADO = {
 export const CLUBE = {
   nome: "Clube Johny",
   mensalidade: 99,
-  cortesPorMes: 4,
+  /** Zero é ilimitado: o assinante corta quantas vezes quiser. */
+  cortesPorMes: 0,
   assinantes: 62,
   beneficios: [
-    "Quatro cortes por mês, na hora que der",
-    "Prioridade nos horários de sábado",
+    "Corte quantas vezes quiser, sem limite no mês",
+    "Escolhe o horário e o barbeiro, como qualquer cliente",
     "Cancela quando quiser, sem multa",
   ],
 };
