@@ -137,6 +137,27 @@ export function Conversa({
           </div>
         ))}
 
+        {/**
+         * As opções ficam dentro da conversa, logo abaixo da pergunta, e não
+         * numa barra no rodapé. Coladas na pergunta o olho não precisa pular,
+         * e aqui elas podem quebrar linha em vez de rolar de lado, o que no
+         * celular deixava metade delas escondida.
+         */}
+        {opcoes.length && !pensando ? (
+          <div className="flex flex-wrap gap-2 pl-1">
+            {opcoes.map((o) => (
+              <button
+                key={o.valor}
+                type="button"
+                onClick={() => mandar(o.valor)}
+                className="inline-flex min-h-toque items-center rounded-pill border border-acao/60 bg-superficie-ativa px-4 font-titulo text-sm font-semibold text-texto transition-colors hover:border-acao hover:bg-acao hover:text-acao-sobre"
+              >
+                {o.rotulo}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
         {pensando ? (
           <div className="flex justify-start">
             <p className="flex gap-1 rounded-grande border border-borda bg-superficie px-4 py-4">
@@ -225,24 +246,6 @@ export function Conversa({
                     </button>
                   ))}
                 </div>
-              </div>
-            ) : null}
-
-            {opcoes.length ? (
-              <div className="trilho -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-                {opcoes.map((o) => (
-                  <button
-                    key={o.valor}
-                    type="button"
-                    onClick={() => mandar(o.valor)}
-                    /* Borda em amarelo: no celular estes botões são a forma
-                       principal de responder, e sem destaque eles somem no
-                       meio do fundo escuro. */
-                    className="inline-flex min-h-toque shrink-0 items-center rounded-pill border border-acao/60 bg-superficie-ativa px-4 font-titulo text-sm font-semibold text-texto transition-colors hover:border-acao hover:bg-acao hover:text-acao-sobre"
-                  >
-                    {o.rotulo}
-                  </button>
-                ))}
               </div>
             ) : null}
 
