@@ -58,15 +58,31 @@ begin
     end loop;
   end loop;
 
+  -- Tabela de preços da casa. O preço é do Johny; a duração e o abate do
+  -- clube são estimativa, e as duas mexem no sistema: a duração decide
+  -- quantos horários cabem no dia, o abate decide quanto o clube custa.
+  -- Ambas são editáveis pela aba Serviços.
+  --
+  -- O clube é R$ 99 por 4 cortes, ou R$ 24,75 por corte. Cobrir um corte de
+  -- R$ 50 inteiro daria prejuízo, então ele abate até R$ 35 e o cliente paga
+  -- a diferença nos cortes mais caros.
   insert into services (
     barbershop_id, nome, categoria, duracao_min, preco_centavos,
-    coberto_pelo_clube, abate_centavos, tag, ordem
+    coberto_pelo_clube, abate_centavos, ordem
   ) values
-    (casa, 'Corte social',     'Cortes',     30,  3500, true,  3500, null,                    0),
-    (casa, 'Corte degradê',    'Cortes',     40,  4000, true,  4000, 'mais pedido',           1),
-    (casa, 'Corte + barba',    'Cortes',     60,  6000, true,  4000, 'clube cobre o corte',   2),
-    (casa, 'Barba na navalha', 'Barba',      30,  3000, false,    0, null,                    3),
-    (casa, 'Pezinho',          'Acabamento', 15,  1500, false,    0, null,                    4),
-    (casa, 'Sobrancelha',      'Acabamento', 10,  1200, false,    0, null,                    5),
-    (casa, 'Platinado',        'Química',   120, 15000, false,    0, null,                    6);
+    (casa, 'Linha',               'Acabamento',  10, 1500, false,    0,  0),
+    (casa, 'Acréscimo navalhado', 'Acabamento',  10, 1500, false,    0,  1),
+    (casa, 'Sobrancelhas',        'Acabamento',  15, 2000, false,    0,  2),
+    (casa, 'Base do cabelo',      'Acabamento',  15, 2500, false,    0,  3),
+    (casa, 'Corte máquina',       'Cortes',      30, 3000, true,  3000,  4),
+    (casa, 'Degradê lateral',     'Cortes',      40, 3500, true,  3500,  5),
+    (casa, 'Máquina & tesoura',   'Cortes',      45, 4500, true,  3500,  6),
+    (casa, 'Corte só na tesoura', 'Cortes',      50, 5000, true,  3500,  7),
+    (casa, 'Criança',             'Cortes',      40, 5500, false,    0,  8),
+    (casa, 'Barba',               'Barba',       30, 3500, false,    0,  9),
+    (casa, 'Barba pigmentada',    'Barba',       40, 4500, false,    0, 10),
+    (casa, 'Barbaterapia',        'Barba',       45, 5000, false,    0, 11),
+    (casa, 'Hidratação',          'Química',     45, 5000, false,    0, 12),
+    (casa, 'Alisante',            'Química',     90, 8000, false,    0, 13),
+    (casa, 'Progressiva',         'Química',    120, 9000, false,    0, 14);
 end $$;
