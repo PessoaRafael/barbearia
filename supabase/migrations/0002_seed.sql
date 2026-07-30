@@ -58,31 +58,32 @@ begin
     end loop;
   end loop;
 
-  -- Tabela de preços da casa. O preço é do Johny; a duração e o abate do
-  -- clube são estimativa, e as duas mexem no sistema: a duração decide
-  -- quantos horários cabem no dia, o abate decide quanto o clube custa.
-  -- Ambas são editáveis pela aba Serviços.
+  -- Tabela de preços da casa.
   --
-  -- O clube é R$ 99 por 4 cortes, ou R$ 24,75 por corte. Cobrir um corte de
-  -- R$ 50 inteiro daria prejuízo, então ele abate até R$ 35 e o cliente paga
-  -- a diferença nos cortes mais caros.
+  -- Todo serviço ocupa 30 minutos na agenda, por decisão do Johny: cravar o
+  -- tempo de cada um seria chute, porque varia demais de cabelo para cabelo.
+  -- O bloco é fixo e o que estourar fica por conta do barbeiro, como já é na
+  -- prática.
+  --
+  -- O clube cobre o corte inteiro, sem limite de quantidade. Barba,
+  -- acabamento e química ficam de fora.
   insert into services (
     barbershop_id, nome, categoria, duracao_min, preco_centavos,
     coberto_pelo_clube, abate_centavos, ordem
   ) values
-    (casa, 'Linha',               'Acabamento',  10, 1500, false,    0,  0),
-    (casa, 'Acréscimo navalhado', 'Acabamento',  10, 1500, false,    0,  1),
-    (casa, 'Sobrancelhas',        'Acabamento',  15, 2000, false,    0,  2),
-    (casa, 'Base do cabelo',      'Acabamento',  15, 2500, false,    0,  3),
-    (casa, 'Corte máquina',       'Cortes',      30, 3000, true,  3000,  4),
-    (casa, 'Degradê lateral',     'Cortes',      40, 3500, true,  3500,  5),
-    (casa, 'Máquina & tesoura',   'Cortes',      45, 4500, true,  3500,  6),
-    (casa, 'Corte só na tesoura', 'Cortes',      50, 5000, true,  3500,  7),
-    (casa, 'Criança',             'Cortes',      40, 5500, false,    0,  8),
-    (casa, 'Barba',               'Barba',       30, 3500, false,    0,  9),
-    (casa, 'Barba pigmentada',    'Barba',       40, 4500, false,    0, 10),
-    (casa, 'Barbaterapia',        'Barba',       45, 5000, false,    0, 11),
-    (casa, 'Hidratação',          'Química',     45, 5000, false,    0, 12),
-    (casa, 'Alisante',            'Química',     90, 8000, false,    0, 13),
-    (casa, 'Progressiva',         'Química',    120, 9000, false,    0, 14);
+    (casa, 'Linha',               'Acabamento',  30, 1500, false,    0,  0),
+    (casa, 'Acréscimo navalhado', 'Acabamento',  30, 1500, false,    0,  1),
+    (casa, 'Sobrancelhas',        'Acabamento',  30, 2000, false,    0,  2),
+    (casa, 'Base do cabelo',      'Acabamento',  30, 2500, false,    0,  3),
+    (casa, 'Corte máquina',       'Cortes',  30, 3000, true,  3000,  4),
+    (casa, 'Degradê lateral',     'Cortes',  30, 3500, true,  3500,  5),
+    (casa, 'Máquina & tesoura',   'Cortes',  30, 4500, true,  3500,  6),
+    (casa, 'Corte só na tesoura', 'Cortes',  30, 5000, true,  3500,  7),
+    (casa, 'Criança',             'Cortes',  30, 5500, false,    0,  8),
+    (casa, 'Barba',               'Barba',  30, 3500, false,    0,  9),
+    (casa, 'Barba pigmentada',    'Barba',  30, 4500, false,    0, 10),
+    (casa, 'Barbaterapia',        'Barba',  30, 5000, false,    0, 11),
+    (casa, 'Hidratação',          'Química',  30, 5000, false,    0, 12),
+    (casa, 'Alisante',            'Química',  30, 8000, false,    0, 13),
+    (casa, 'Progressiva',         'Química',  30, 9000, false,    0, 14);
 end $$;
