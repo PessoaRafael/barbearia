@@ -9,32 +9,50 @@ import {
   Scissors,
 } from "lucide-react";
 
-import { BARBEIROS } from "@/agenda";
-import { CLUBE, METRICAS } from "@/painel";
-import { CATEGORIAS, SERVICOS } from "@/servicos";
 import { Etiqueta, Logo, Retrato, Secao } from "@/componentes/base";
 import { ModalClube } from "@/componentes/site/ModalClube";
+import { barbeirosAtivos, casa, servicosAtivos } from "@/lib/dados/casa";
 import { CASA } from "@/lib/casa";
-import { duracaoCurta, moeda } from "@/lib/formato";
+import { moedaCentavos } from "@/lib/formato";
 
-const NUMEROS = [
-  { valor: METRICAS.base.clientes, rotulo: "clientes na cadeira" },
-  { valor: CLUBE.assinantes, rotulo: "assinantes do clube" },
-  { valor: BARBEIROS.length, rotulo: "barbeiros na casa" },
-];
+/**
+ * A vitrine sai do banco: preço editado no painel muda aqui sem deploy.
+ * Dez minutos de cache porque serviço e equipe mudam raramente, e o painel
+ * derruba esse cache na hora que salva.
+ */
+export const revalidate = 600;
 
-export default function Landing() {
+export default async function Landing() {
+  const [barbearia, servicos, barbeiros] = await Promise.all([
+    casa(),
+    servicosAtivos(),
+    barbeirosAtivos(),
+  ]);
+
+  const numeros = [
+    { valor: barbeiros.length, rotulo: "barbeiros na casa" },
+    { valor: servicos.length, rotulo: "serviços na régua" },
+    {
+      valor: barbearia.clube_cortes_mes === 0 ? "∞" : barbearia.clube_cortes_mes,
+      rotulo: "cortes no clube",
+    },
+  ];
+
   return (
     <div className="flex min-h-screen flex-col">
-      <Cabecalho />
+      <Cabecalho nome={barbearia.nome} cidade={barbearia.cidade} />
 
       <main className="flex flex-1 flex-col gap-16 px-5 pb-20 pt-8 sm:gap-20 sm:px-8 sm:pt-12 lg:px-10">
-        <Hero />
+        <Hero numeros={numeros} />
 
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-16 sm:gap-20">
-          <Servicos />
-          <Clube />
-          <Time />
+          <Servicos servicos={servicos} />
+          <Clube
+            precoCentavos={barbearia.clube_preco_centavos}
+            ilimitado={barbearia.clube_cortes_mes === 0}
+            cortes={barbearia.clube_cortes_mes}
+          />
+          <Time barbeiros={barbeiros} />
         </div>
       </main>
 
@@ -43,16 +61,16 @@ export default function Landing() {
   );
 }
 
-function Cabecalho() {
+function Cabecalho({ nome, cidade }: { nome: string; cidade: string }) {
   return (
     <header className="sticky top-0 z-30 border-b border-borda bg-fundo/95 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-5 py-3 sm:px-8 lg:px-10">
         <Logo tamanho={40} />
         <div className="flex min-w-0 flex-col">
           <span className="truncate font-titulo text-base font-bold leading-tight">
-            {CASA.nome}
+            {nome}
           </span>
-          <span className="truncate text-xs text-texto-suave">{CASA.cidade}</span>
+          <span className="truncate text-xs text-texto-suave">{cidade}</span>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <Link
@@ -75,7 +93,11 @@ function Cabecalho() {
   );
 }
 
-function Hero() {
+function Hero({
+  numeros,
+}: {
+  numeros: { valor: string | number; rotulo: string }[];
+}) {
   return (
     <section className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-12">
       <div className="flex flex-col gap-6">
@@ -109,7 +131,7 @@ function Hero() {
         </div>
 
         <dl className="grid grid-cols-3 gap-3 border-t border-borda pt-6">
-          {NUMEROS.map((n) => (
+          {numeros.map((n) => (
             <div key={n.rotulo} className="flex flex-col-reverse gap-1">
               <dt className="text-xs text-texto-suave">{n.rotulo}</dt>
               <dd className="num font-titulo text-3xl font-bold text-texto">
@@ -133,16 +155,20 @@ function Hero() {
   );
 }
 
-function Servicos() {
+type ServicoDb = Awaited<ReturnType<typeof servicosAtivos>>[number];
+
+function Servicos({ servicos }: { servicos: ServicoDb[] }) {
+  const categorias = [...new Set(servicos.map((s) => s.categoria))];
+
   return (
     <Secao
       id="servicos"
       titulo="O que a gente faz"
-      apoio="Preço fechado, duração real na agenda. Nada de surpresa na hora de pagar."
+      apoio="Preço fechado, sem surpresa na hora de pagar."
     >
       <div className="flex flex-col gap-6">
-        {CATEGORIAS.map((categoria) => {
-          const lista = SERVICOS.filter((s) => s.categoria === categoria);
+        {categorias.map((categoria) => {
+          const lista = servicos.filter((s) => s.categoria === categoria);
           return (
             <div key={categoria} className="flex flex-col gap-3">
               <h3 className="text-sm font-semibold uppercase tracking-wide text-texto-apagado">
@@ -159,20 +185,19 @@ function Servicos() {
                         <span className="font-titulo text-base font-semibold">
                           {servico.nome}
                         </span>
+                        {servico.coberto_pelo_clube ? (
+                          <Etiqueta tom="clube">no clube</Etiqueta>
+                        ) : null}
                         {servico.tag ? (
-                          <Etiqueta
-                            tom={servico.tag.includes("clube") ? "clube" : "neutro"}
-                          >
-                            {servico.tag}
-                          </Etiqueta>
+                          <Etiqueta tom="neutro">{servico.tag}</Etiqueta>
                         ) : null}
                       </div>
                       <span className="num text-xs text-texto-suave">
-                        {servico.duracaoLabel}
+                        {servico.duracao_min} min
                       </span>
                     </div>
                     <span className="num font-titulo text-lg font-bold text-acao">
-                      {moeda(servico.preco)}
+                      {moedaCentavos(servico.preco_centavos)}
                     </span>
                   </li>
                 ))}
@@ -185,29 +210,49 @@ function Servicos() {
   );
 }
 
-function Clube() {
+function Clube({
+  precoCentavos,
+  ilimitado,
+  cortes,
+}: {
+  precoCentavos: number;
+  ilimitado: boolean;
+  cortes: number;
+}) {
+  const beneficios = ilimitado
+    ? [
+        "Corte quantas vezes quiser, sem limite no mês",
+        "Escolhe o horário e o barbeiro, como qualquer cliente",
+        "Cancela quando quiser, sem multa",
+      ]
+    : [
+        `${cortes} cortes por mês, na hora que der`,
+        "Escolhe o horário e o barbeiro, como qualquer cliente",
+        "Cancela quando quiser, sem multa",
+      ];
+
   return (
     <Secao
       id="clube"
-      titulo={CLUBE.nome}
+      titulo="Clube Johny"
       apoio="Para quem corta sempre e não quer pensar em pagamento toda semana."
     >
       <div className="grid gap-4 rounded-grande border border-borda bg-superficie p-5 sm:p-7 lg:grid-cols-[auto_1fr] lg:gap-10">
         <div className="flex flex-col gap-1">
           <div className="flex items-end gap-1">
             <span className="num font-titulo text-5xl font-bold text-acao">
-              {moeda(CLUBE.mensalidade)}
+              {moedaCentavos(precoCentavos)}
             </span>
             <span className="pb-2 text-sm text-texto-suave">/mês</span>
           </div>
           <span className="num text-sm text-clube">
-            {CLUBE.cortesPorMes} cortes por mês
+            {ilimitado ? "corte à vontade" : `${cortes} cortes por mês`}
           </span>
         </div>
 
         <div className="flex flex-col gap-4">
           <ul className="flex flex-col gap-3">
-            {CLUBE.beneficios.map((beneficio) => (
+            {beneficios.map((beneficio) => (
               <li key={beneficio} className="flex items-start gap-3">
                 <Check
                   className="mt-0.5 h-4 w-4 shrink-0 text-clube"
@@ -218,9 +263,9 @@ function Clube() {
             ))}
           </ul>
           <ModalClube
-            preco={moeda(CLUBE.mensalidade)}
-            cortes={CLUBE.cortesPorMes}
-            beneficios={CLUBE.beneficios}
+            preco={moedaCentavos(precoCentavos)}
+            cortes={cortes}
+            beneficios={beneficios}
           />
         </div>
       </div>
@@ -228,7 +273,11 @@ function Clube() {
   );
 }
 
-function Time() {
+function Time({
+  barbeiros,
+}: {
+  barbeiros: Awaited<ReturnType<typeof barbeirosAtivos>>;
+}) {
   return (
     <Secao
       id="time"
@@ -236,18 +285,21 @@ function Time() {
       apoio="Cada um com a mão em uma coisa. Dá para escolher ou deixar com o primeiro que liberar."
     >
       <ul className="grid gap-4 sm:grid-cols-3">
-        {BARBEIROS.map((barbeiro) => (
+        {barbeiros.map((barbeiro) => (
           <li
             key={barbeiro.id}
             className="flex flex-col gap-3 rounded-card border border-borda bg-superficie p-4"
           >
             <Retrato
-              iniciais={barbeiro.nome.slice(0, 2).toUpperCase()}
+              src={barbeiro.foto_url ?? undefined}
+              alt={barbeiro.nome}
+              iniciais={barbeiro.apelido.slice(0, 2).toUpperCase()}
+              tamanhos="(min-width: 640px) 320px, 100vw"
               proporcao="4 / 3"
             />
             <div className="flex flex-col gap-1">
               <span className="font-titulo text-lg font-semibold">
-                {barbeiro.nomeCompleto}
+                {barbeiro.nome}
               </span>
               <span className="flex items-center gap-2 text-sm text-texto-suave">
                 <Scissors className="h-4 w-4 shrink-0" strokeWidth={1.75} />
