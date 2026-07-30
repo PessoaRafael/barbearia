@@ -134,6 +134,23 @@ function apelidosDe(servicos: { id: string; nome: string }[]) {
   return mapa;
 }
 
+/**
+ * O que oferecer primeiro quando o cliente ainda não disse o serviço.
+ *
+ * A ordem do painel começa pelo acabamento, então a lista crua mostrava
+ * "Linha" e "Acréscimo navalhado" para quem só disse "quero marcar um
+ * horário". Corte na frente, porque é o que a barbearia mais vende.
+ */
+function maisPedidos<T extends { nome: string; categoria: string }>(
+  servicos: T[],
+  quantos = 5,
+) {
+  const peso = (s: T) =>
+    s.categoria === "Cortes" ? 0 : s.categoria === "Barba" ? 1 : 2;
+
+  return [...servicos].sort((a, b) => peso(a) - peso(b)).slice(0, quantos);
+}
+
 /** "amanhã" no começo da frase vira "Amanhã". */
 const maiuscula = (texto: string) =>
   texto.charAt(0).toUpperCase() + texto.slice(1);
@@ -220,7 +237,7 @@ export async function conversar(
     return {
       estado: {},
       falas: ["Beleza, do zero. O que você quer fazer?"],
-      opcoes: servicos.slice(0, 4).map((s) => ({
+      opcoes: maisPedidos(servicos, 4).map((s) => ({
         rotulo: `${s.nome} · ${moedaCentavos(s.preco_centavos)}`,
         valor: s.nome,
       })),
@@ -321,7 +338,7 @@ export async function conversar(
     return {
       estado,
       falas,
-      opcoes: servicos.slice(0, 4).map((s) => ({ rotulo: s.nome, valor: s.nome })),
+      opcoes: maisPedidos(servicos, 4).map((s) => ({ rotulo: s.nome, valor: s.nome })),
     };
   }
 
@@ -337,7 +354,7 @@ export async function conversar(
     return {
       estado,
       falas,
-      opcoes: servicos.slice(0, 4).map((s) => ({ rotulo: s.nome, valor: s.nome })),
+      opcoes: maisPedidos(servicos, 4).map((s) => ({ rotulo: s.nome, valor: s.nome })),
     };
   }
 
@@ -381,7 +398,7 @@ export async function conversar(
     return {
       estado,
       falas,
-      opcoes: servicos.slice(0, 5).map((s) => ({
+      opcoes: maisPedidos(servicos, 5).map((s) => ({
         rotulo: `${s.nome} · ${moedaCentavos(s.preco_centavos)}`,
         valor: s.nome,
       })),
@@ -707,7 +724,7 @@ export async function abertura(): Promise<Resposta> {
       `Fala! Aqui é a ${barbearia.nome}.`,
       "Me diz o que você quer que eu marco na hora. Pode escrever do seu jeito, quanto mais coisa na mesma frase, menos eu pergunto.",
     ],
-    opcoes: servicos.slice(0, 4).map((s) => ({
+    opcoes: maisPedidos(servicos, 4).map((s) => ({
       rotulo: `${s.nome} · ${moedaCentavos(s.preco_centavos)}`,
       valor: s.nome,
     })),

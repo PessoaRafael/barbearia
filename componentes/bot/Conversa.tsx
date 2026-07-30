@@ -58,6 +58,9 @@ export function Conversa({
     setFalas((atual) => [...atual, { de: "eu", texto: limpo }]);
     setTexto("");
     setOpcoes([]);
+    // Quem já escreveu não precisa mais aprender a escrever, e no celular o
+    // painel de dicas empurra a resposta do bot para fora da tela.
+    setMostrarDicas(false);
 
     comecar(async () => {
       const r = await conversar(estadoRef.current, limpo);
@@ -226,13 +229,16 @@ export function Conversa({
             ) : null}
 
             {opcoes.length ? (
-              <div className="trilho flex gap-2 overflow-x-auto">
+              <div className="trilho -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
                 {opcoes.map((o) => (
                   <button
                     key={o.valor}
                     type="button"
                     onClick={() => mandar(o.valor)}
-                    className="inline-flex min-h-toque shrink-0 items-center rounded-pill border border-borda-forte bg-superficie-ativa px-4 font-titulo text-sm font-semibold text-texto transition-colors hover:border-acao"
+                    /* Borda em amarelo: no celular estes botões são a forma
+                       principal de responder, e sem destaque eles somem no
+                       meio do fundo escuro. */
+                    className="inline-flex min-h-toque shrink-0 items-center rounded-pill border border-acao/60 bg-superficie-ativa px-4 font-titulo text-sm font-semibold text-texto transition-colors hover:border-acao hover:bg-acao hover:text-acao-sobre"
                   >
                     {o.rotulo}
                   </button>
