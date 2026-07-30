@@ -132,12 +132,19 @@ export function acharData(
   const limpo = normalizar(texto);
   const abertos = dias.filter((d) => !d.fechado);
 
+  // Data crua, do jeito que os botões de dia mandam. Vem primeiro porque é
+  // exata: depender de ler "qua 30/jul" de volta era o que fazia o bot repetir
+  // a mesma pergunta a cada toque.
+  const direto = dias.find((d) => texto.trim().startsWith(d.data));
+  if (direto) return direto.data;
+
   if (/\bhoje\b/.test(limpo)) return dias[0]?.data;
   if (/\b(amanha|amanhã)\b/.test(limpo)) return dias[1]?.data;
   if (/depois de amanha/.test(limpo)) return dias[2]?.data;
 
   for (const [nome, numero] of Object.entries(DIAS_SEMANA)) {
-    if (!limpo.includes(nome)) continue;
+    // Aceita a abreviação também: os chips escrevem "qua", "sáb".
+    if (!limpo.includes(nome) && !limpo.includes(nome.slice(0, 3))) continue;
     const achado = dias.find(
       (d) => new Date(`${d.data}T12:00:00-03:00`).getUTCDay() === numero,
     );

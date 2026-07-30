@@ -84,6 +84,8 @@ begin
     (casa, 'Barba pigmentada',    'Barba',       30, 4500, false,    0, 10),
     (casa, 'Barbaterapia',        'Barba',       30, 5000, false,    0, 11),
     (casa, 'Hidratação',          'Química',     30, 5000, false,    0, 12),
-    (casa, 'Alisante',            'Química',     30, 8000, false,    0, 13),
-    (casa, 'Progressiva',         'Química',     30, 9000, false,    0, 14);
+    -- Química foge do bloco de 30 min: alisante e progressiva ocupam 1h30, e
+    -- sem isso a agenda liberaria o horário seguinte com a cadeira ocupada.
+    (casa, 'Alisante',            'Química',     90, 8000, false,    0, 13),
+    (casa, 'Progressiva',         'Química',     90, 9000, false,    0, 14);
 end $$;

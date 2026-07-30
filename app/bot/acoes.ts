@@ -385,7 +385,8 @@ export async function conversar(
       opcoes: dias
         .filter((d) => !d.fechado)
         .slice(0, 5)
-        .map((d) => ({ rotulo: rotuloDe(d), valor: rotuloDe(d) })),
+        // O valor vai como data crua para o bot não ter que reler o rótulo.
+        .map((d) => ({ rotulo: rotuloDe(d), valor: d.data })),
     };
   }
 
@@ -415,7 +416,8 @@ export async function conversar(
       opcoes: dias
         .filter((d) => !d.fechado && d.data !== dia?.data)
         .slice(0, 4)
-        .map((d) => ({ rotulo: rotuloDe(d), valor: rotuloDe(d) })),
+        // O valor vai como data crua para o bot não ter que reler o rótulo.
+        .map((d) => ({ rotulo: rotuloDe(d), valor: d.data })),
     };
   }
 
