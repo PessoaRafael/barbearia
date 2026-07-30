@@ -3,276 +3,228 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Johny Barbearia — Guia de uso</title>
+<title>Johny Barbearia — Guia rápido</title>
 <style>
   @page { size: A4; margin: 0; }
 
   :root {
-    --tinta:   #17140e;
-    --suave:   #6f6858;
-    --fraco:   #9a927e;
-    --linha:   #e6dfcd;
-    --papel:   #fffefa;
-    --creme:   #faf6ea;
-    --amarelo: #F5CE0A;
-    --laranja: #C9622F;
-    --verde:   #6f7d3c;
-    --escuro:  #14120B;
+    --tinta:#17140e; --suave:#6f6858; --fraco:#9a927e;
+    --linha:#e6dfcd; --papel:#fffefa; --creme:#faf6ea;
+    --amarelo:#F5CE0A; --laranja:#C9622F; --verde:#6f7d3c; --escuro:#14120B;
   }
-
   * { box-sizing: border-box; }
   html { background: #cfcabb; }
-
   body {
     margin: 0; color: var(--tinta);
-    font: 14.5px/1.62 "Segoe UI", -apple-system, system-ui, sans-serif;
+    font: 13.5px/1.5 "Segoe UI", -apple-system, system-ui, sans-serif;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
 
   .folha {
     width: 210mm; min-height: 297mm; margin: 0 auto;
-    padding: 16mm 18mm 20mm; background: var(--papel); position: relative;
+    padding: 14mm 16mm 16mm; background: var(--papel); position: relative;
   }
   .folha + .folha { margin-top: 8mm; }
-
   @media print {
     html { background: none; }
     .folha { box-shadow: none; }
-    /* O seletor de irmão tem especificidade maior que `.folha`, então a
-       margem da tela sobreviveria aqui e jogaria cada seção para uma página
-       a mais. Por isso os dois aparecem juntos. */
+    /* O seletor de irmão vence `.folha`, então a margem da tela sobreviveria
+       aqui e jogaria cada seção para uma página a mais. */
     .folha, .folha + .folha { margin: 0; }
     .folha { break-after: page; }
     .folha:last-child { break-after: auto; }
   }
   @media screen { .folha { box-shadow: 0 3px 18px rgba(0,0,0,.2); } }
 
-  h1 { font-size: 26px; margin: 0 0 3px; letter-spacing: -.022em; }
-  h2 { font-size: 19px; margin: 0; letter-spacing: -.015em; }
+  h1 { font-size: 23px; margin: 0 0 2px; letter-spacing: -.02em; }
+  h2 { font-size: 17px; margin: 0; letter-spacing: -.015em; }
   h3 {
-    font-size: 14px; margin: 22px 0 7px;
-    text-transform: uppercase; letter-spacing: .07em; color: var(--suave);
+    font-size: 12px; margin: 15px 0 5px; text-transform: uppercase;
+    letter-spacing: .07em; color: var(--suave);
   }
-  p { margin: 0 0 10px; }
-  .apoio { color: var(--suave); }
-  .mini  { font-size: 12.5px; color: var(--fraco); }
-  strong { font-weight: 650; }
+  p { margin: 0 0 8px; }
+  .mini { font-size: 11.5px; color: var(--fraco); }
 
-  .cabecalho {
-    display: flex; align-items: center; gap: 13px;
-    padding-bottom: 13px; margin-bottom: 22px;
-    border-bottom: 2px solid var(--linha);
+  .cab {
+    display: flex; align-items: center; gap: 11px;
+    padding-bottom: 10px; margin-bottom: 16px; border-bottom: 2px solid var(--linha);
   }
-  .cabecalho .num {
-    width: 36px; height: 36px; flex: none;
-    background: var(--amarelo); color: #111; border-radius: 11px;
-    display: grid; place-items: center; font-size: 17px; font-weight: 800;
+  .cab .n {
+    width: 30px; height: 30px; flex: none; background: var(--amarelo);
+    color: #111; border-radius: 9px; display: grid; place-items: center;
+    font-size: 15px; font-weight: 800;
   }
-  .cabecalho .sub { font-size: 13px; color: var(--fraco); margin-top: 1px; }
+  .cab .sub { font-size: 11.5px; color: var(--fraco); }
 
-  /* ─── capa ─── */
   .capa { display: flex; flex-direction: column; justify-content: center; text-align: center; }
-  .capa img.marca { width: 104px; height: 104px; border-radius: 28px; margin: 0 auto 22px; display: block; }
-  .capa h1 { font-size: 42px; }
-  .capa .sub { font-size: 16px; color: var(--suave); margin-bottom: 36px; }
+  .capa img { width: 96px; height: 96px; border-radius: 26px; margin: 0 auto 18px; display: block; }
+  .capa h1 { font-size: 38px; }
+  .capa .sub { font-size: 15px; color: var(--suave); margin-bottom: 30px; }
+  .capa .ind { max-width: 330px; margin: 0 auto; text-align: left; }
+  .capa .ind div {
+    display: flex; gap: 11px; padding: 7px 2px;
+    border-bottom: 1px solid var(--linha); font-size: 14px;
+  }
+  .capa .ind b { width: 16px; color: #a8890a; font-size: 12px; }
+  .capa .ind span { margin-left: auto; font-size: 11px; color: var(--fraco); }
 
-  .indice { max-width: 380px; margin: 0 auto; text-align: left; }
-  .indice a, .indice div {
-    display: flex; align-items: baseline; gap: 12px;
-    padding: 9px 2px; border-bottom: 1px solid var(--linha);
-    color: inherit; text-decoration: none; font-size: 15px;
-  }
-  .indice b {
-    width: 22px; flex: none; text-align: center;
-    color: #a8890a; font-size: 13px;
-  }
-  .indice span.para { margin-left: auto; font-size: 11.5px; color: var(--fraco); }
-
-  /* ─── celular ─── */
-  .duas {
-    display: flex; gap: 22px; align-items: flex-start; margin: 14px 0 4px;
-  }
-  .duas .texto { flex: 1; padding-top: 2px; }
-  .duas .texto p:last-child { margin-bottom: 0; }
+  .duas { display: flex; gap: 18px; align-items: flex-start; }
+  .duas .txt { flex: 1; }
+  .duas .txt > :last-child { margin-bottom: 0; }
 
   .fone {
-    width: 208px; flex: none;
-    background: var(--escuro);
-    border: 6px solid #2a2620;
-    border-radius: 26px;
-    padding: 9px 9px 12px;
-    color: #F5F0E4; font-size: 11.5px; line-height: 1.4;
-    position: relative;
+    width: 176px; flex: none; background: var(--escuro);
+    border: 5px solid #2a2620; border-radius: 22px; padding: 8px 8px 10px;
+    color: #F5F0E4; font-size: 10.5px; line-height: 1.35; position: relative;
   }
   .fone::before {
-    content: ""; position: absolute; top: 5px; left: 50%;
-    transform: translateX(-50%);
-    width: 46px; height: 4px; border-radius: 3px; background: #3a352b;
+    content: ""; position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
+    width: 40px; height: 3px; border-radius: 3px; background: #3a352b;
   }
-  .fone .conteudo { margin-top: 7px; }
-  .fone .barra {
-    display: flex; align-items: center; gap: 6px;
-    padding-bottom: 7px; margin-bottom: 8px; border-bottom: 1px solid #2E2A1C;
+  .fone .ct { margin-top: 6px; }
+  .fone .br {
+    display: flex; align-items: center; gap: 5px;
+    padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid #2E2A1C;
   }
-  .fone .barra img { width: 19px; height: 19px; border-radius: 6px; }
-  .fone .barra strong { font-size: 11.5px; }
+  .fone .br img { width: 16px; height: 16px; border-radius: 5px; }
 
-  .cx {
-    border: 1px solid #2E2A1C; background: #221F14;
-    border-radius: 8px; padding: 7px 9px; margin: 5px 0;
-  }
+  .cx { border: 1px solid #2E2A1C; background: #221F14; border-radius: 7px; padding: 6px 8px; margin: 4px 0; }
   .cx.on { border-color: var(--amarelo); }
-  .cx.feito { border-color: #2E2A1C; opacity: .78; }
-  .rot { color: #B3AC94; font-size: 10.5px; }
+  .rot { color: #B3AC94; font-size: 9.5px; }
   .vlr { color: var(--amarelo); font-weight: 700; }
-  .lin { display: flex; gap: 5px; }
+  .lin { display: flex; gap: 4px; }
   .lin > * { flex: 1; }
 
   .bt {
-    display: inline-block; padding: 5px 12px; border-radius: 999px;
-    background: var(--amarelo); color: #111; font-weight: 700; font-size: 10.5px;
+    display: inline-block; padding: 4px 10px; border-radius: 999px;
+    background: var(--amarelo); color: #111; font-weight: 700; font-size: 9.5px;
   }
   .bt.vz { background: none; color: #F5F0E4; border: 1px solid #4A422A; font-weight: 600; }
   .bt.pg { background: none; color: var(--laranja); border: 1px solid var(--laranja); }
-  .bt.ch { display: block; text-align: center; padding: 8px; font-size: 11px; }
+  .bt.ch { display: block; text-align: center; padding: 6px; }
 
-  .passo-n {
-    display: inline-grid; place-items: center;
-    width: 16px; height: 16px; border-radius: 50%;
-    background: var(--amarelo); color: #111;
-    font-size: 9.5px; font-weight: 800; margin-right: 5px;
+  .pn {
+    display: inline-grid; place-items: center; width: 14px; height: 14px;
+    border-radius: 50%; background: var(--amarelo); color: #111;
+    font-size: 8.5px; font-weight: 800; margin-right: 4px;
   }
-  .passo-n.off { background: #2E2A1C; color: #B3AC94; }
+  .pn.off { background: #2E2A1C; color: #B3AC94; }
 
-  .grade { display: grid; grid-template-columns: repeat(4,1fr); gap: 4px; margin-top: 5px; }
+  .grade { display: grid; grid-template-columns: repeat(4,1fr); gap: 3px; margin-top: 4px; }
   .hr {
     border: 1px solid #2E2A1C; border-top: 2px solid var(--amarelo);
-    border-radius: 6px; padding: 5px 0; text-align: center;
-    font-weight: 700; font-size: 10.5px;
+    border-radius: 5px; padding: 4px 0; text-align: center;
+    font-weight: 700; font-size: 9.5px;
   }
-  .hr.on { background: var(--amarelo); color: #111; border-color: var(--amarelo); }
+  .hr.on { background: var(--amarelo); color: #111; }
 
-  /* ─── anotações ─── */
-  .nota {
-    position: absolute; width: 20px; height: 20px;
-    background: var(--amarelo); color: #111;
-    border: 2px solid var(--papel); border-radius: 50%;
-    display: grid; place-items: center; font-size: 10.5px; font-weight: 800; z-index: 3;
-  }
-  ol.notas { margin: 10px 0 0; padding: 0; list-style: none; counter-reset: n; }
+  ol.notas { margin: 8px 0 0; padding: 0; list-style: none; counter-reset: n; }
   ol.notas li {
-    counter-increment: n; position: relative;
-    padding-left: 27px; margin: 7px 0; font-size: 13.5px; line-height: 1.5;
+    counter-increment: n; position: relative; padding-left: 25px;
+    margin: 6px 0; font-size: 12.5px; line-height: 1.45;
   }
   ol.notas li::before {
-    content: counter(n); position: absolute; left: 0; top: 2px;
-    width: 19px; height: 19px; background: var(--amarelo); color: #111;
+    content: counter(n); position: absolute; left: 0; top: 1px;
+    width: 18px; height: 18px; background: var(--amarelo); color: #111;
     border-radius: 50%; display: grid; place-items: center;
-    font-size: 10.5px; font-weight: 800;
+    font-size: 10px; font-weight: 800;
   }
 
   .aviso {
     border-left: 3px solid var(--amarelo); background: #fdf7de;
-    padding: 10px 14px; margin: 14px 0; border-radius: 0 8px 8px 0;
-    font-size: 13.5px;
+    padding: 8px 12px; margin: 11px 0; border-radius: 0 7px 7px 0; font-size: 12.5px;
   }
   .aviso.perigo { border-color: var(--laranja); background: #fbeee8; }
-  .aviso.bom    { border-color: var(--verde);   background: #f2f4e6; }
-  .aviso strong { display: block; margin-bottom: 2px; }
+  .aviso.bom { border-color: var(--verde); background: #f2f4e6; }
+  .aviso strong { display: block; }
 
-  ol.passos { margin: 0 0 12px; padding-left: 19px; }
-  ol.passos li { margin: 0 0 7px; }
+  ol.passos { margin: 0 0 9px; padding-left: 17px; }
+  ol.passos li { margin: 0 0 5px; }
 
-  table { width: 100%; border-collapse: collapse; margin: 10px 0 14px; font-size: 13.5px; }
-  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--linha); vertical-align: top; }
-  th { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--fraco); }
+  table { width: 100%; border-collapse: collapse; margin: 7px 0 11px; font-size: 12.5px; }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--linha); vertical-align: top; }
+  th { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--fraco); }
   tr:nth-child(even) td { background: var(--creme); }
-  td:first-child { font-weight: 600; width: 38%; }
+  td:first-child { font-weight: 600; }
+
+  .colunas { display: flex; gap: 16px; }
+  .colunas > * { flex: 1; }
 
   .rodape {
-    position: absolute; left: 18mm; right: 18mm; bottom: 10mm;
-    display: flex; justify-content: space-between; align-items: center;
-    padding-top: 7px; border-top: 1px solid var(--linha);
-    font-size: 10.5px; color: var(--fraco);
+    position: absolute; left: 16mm; right: 16mm; bottom: 9mm;
+    display: flex; justify-content: space-between;
+    padding-top: 6px; border-top: 1px solid var(--linha);
+    font-size: 10px; color: var(--fraco);
   }
 </style>
 </head>
 <body>
 
-<!-- ═══════════════════════════ CAPA ═══════════════════════════ -->
+<!-- ════════════════ 1 · CAPA + PREÇOS ════════════════ -->
 <section class="folha capa">
-  <img class="marca" src="__LOGO__" alt="Johny Barbearia">
+  <img src="__LOGO__" alt="Johny Barbearia">
   <h1>Johny Barbearia</h1>
-  <p class="sub">Guia de uso do sistema de agendamento</p>
+  <p class="sub">Guia rápido do sistema de agendamento</p>
 
-  <div class="indice">
-    <div><b>·</b> Tabela de preços <span class="para">consulta</span></div>
-    <div><b>1</b> Como o cliente marca pelo site <span class="para">cliente</span></div>
-    <div><b>2</b> Como o cliente marca pelo chat <span class="para">cliente</span></div>
-    <div><b>3</b> Entrar no sistema <span class="para">todos</span></div>
-    <div><b>4</b> O dia a dia no painel <span class="para">Johny</span></div>
-    <div><b>5</b> Conferir o pix <span class="para">Johny</span></div>
-    <div><b>6</b> Clube <span class="para">Johny</span></div>
-    <div><b>7</b> Equipe e chaves <span class="para">Johny</span></div>
-    <div><b>8</b> A sua agenda <span class="para">barbeiros</span></div>
-    <div><b>9</b> Se der problema <span class="para">todos</span></div>
+  <div class="ind">
+    <div><b>1</b> Tabela de preços <span>consulta</span></div>
+    <div><b>2</b> Como o cliente marca <span>cliente</span></div>
+    <div><b>3</b> Seu dia no painel <span>Johny</span></div>
+    <div><b>4</b> Clube e equipe <span>Johny</span></div>
+    <div><b>5</b> A sua agenda <span>barbeiros</span></div>
+    <div><b>6</b> Se der problema <span>todos</span></div>
   </div>
 
-  <p class="mini" style="margin:34px 0 0">
+  <p class="mini" style="margin:28px 0 0">
     Guarde a sua chave de acesso. É ela que abre tudo.
   </p>
 </section>
 
-<!-- ═══════════════════ TABELA DE PREÇOS ═══════════════════════ -->
+<!-- ════════════════ 2 · PREÇOS ════════════════ -->
 <section class="folha">
-  <div class="cabecalho">
-    <img src="__LOGO__" alt="" style="width:36px;height:36px;border-radius:11px;flex:none">
+  <div class="cab">
+    <span class="n">1</span>
     <div><h2>Tabela de preços</h2>
       <div class="sub">É isso que aparece no site e no chat</div></div>
   </div>
 
-  <p>Preço e duração saem daqui para tudo: a grade de horários usa a duração
-  para saber o que cabe no dia. Você muda qualquer linha na aba
-  <strong>Serviços</strong>, e vale na hora.</p>
+  <div class="colunas">
+    <div>
+      <h3 style="margin-top:0">Cortes · o clube cobre todos</h3>
+      <table>
+        <tr><th>Serviço</th><th style="width:26%">Tempo</th><th style="width:26%">Preço</th></tr>
+        <tr><td>Corte máquina</td><td>30 min</td><td>R$ 30</td></tr>
+        <tr><td>Degradê lateral</td><td>40 min</td><td>R$ 35</td></tr>
+        <tr><td>Máquina &amp; tesoura</td><td>45 min</td><td>R$ 45</td></tr>
+        <tr><td>Corte só na tesoura</td><td>50 min</td><td>R$ 50</td></tr>
+        <tr><td>Criança</td><td>40 min</td><td>R$ 55</td></tr>
+      </table>
 
-  <h3>Cortes · o clube cobre todos</h3>
-  <table>
-    <tr><th>Serviço</th><th style="width:22%">Duração</th><th style="width:22%">Preço</th></tr>
-    <tr><td>Corte máquina</td><td>30 min</td><td>R$ 30,00</td></tr>
-    <tr><td>Degradê lateral</td><td>40 min</td><td>R$ 35,00</td></tr>
-    <tr><td>Máquina &amp; tesoura</td><td>45 min</td><td>R$ 45,00</td></tr>
-    <tr><td>Corte só na tesoura</td><td>50 min</td><td>R$ 50,00</td></tr>
-    <tr><td>Criança</td><td>40 min</td><td>R$ 55,00</td></tr>
-  </table>
+      <h3>Barba</h3>
+      <table>
+        <tr><td>Barba</td><td style="width:26%">30 min</td><td style="width:26%">R$ 35</td></tr>
+        <tr><td>Barba pigmentada</td><td>40 min</td><td>R$ 45</td></tr>
+        <tr><td>Barbaterapia</td><td>45 min</td><td>R$ 50</td></tr>
+      </table>
+    </div>
 
-  <h3>Barba</h3>
-  <table>
-    <tr><td>Barba</td><td style="width:22%">30 min</td><td style="width:22%">R$ 35,00</td></tr>
-    <tr><td>Barba pigmentada</td><td>40 min</td><td>R$ 45,00</td></tr>
-    <tr><td>Barbaterapia</td><td>45 min</td><td>R$ 50,00</td></tr>
-  </table>
+    <div>
+      <h3 style="margin-top:0">Acabamento</h3>
+      <table>
+        <tr><th>Serviço</th><th style="width:26%">Tempo</th><th style="width:26%">Preço</th></tr>
+        <tr><td>Linha</td><td>10 min</td><td>R$ 15</td></tr>
+        <tr><td>Acréscimo navalhado</td><td>10 min</td><td>R$ 15</td></tr>
+        <tr><td>Sobrancelhas</td><td>15 min</td><td>R$ 20</td></tr>
+        <tr><td>Base do cabelo</td><td>15 min</td><td>R$ 25</td></tr>
+      </table>
 
-  <h3>Acabamento</h3>
-  <table>
-    <tr><td>Linha</td><td style="width:22%">10 min</td><td style="width:22%">R$ 15,00</td></tr>
-    <tr><td>Acréscimo navalhado</td><td>10 min</td><td>R$ 15,00</td></tr>
-    <tr><td>Sobrancelhas</td><td>15 min</td><td>R$ 20,00</td></tr>
-    <tr><td>Base do cabelo</td><td>15 min</td><td>R$ 25,00</td></tr>
-  </table>
-
-  <h3>Química</h3>
-  <table>
-    <tr><td>Hidratação</td><td style="width:22%">45 min</td><td style="width:22%">R$ 50,00</td></tr>
-    <tr><td>Alisante</td><td>90 min</td><td>R$ 80,00</td></tr>
-    <tr><td>Progressiva</td><td>120 min</td><td>R$ 90,00</td></tr>
-  </table>
-
-  <div class="aviso perigo">
-    <strong>Confira as durações antes de abrir para o público</strong>
-    Os preços são os que o Johny passou. As <strong>durações</strong> foram
-    estimadas e mudam quantos clientes cabem no dia: curta demais, ele fica sem
-    tempo entre um e outro; longa demais, perde horário à toa. Ajuste na aba
-    Serviços.
+      <h3>Química</h3>
+      <table>
+        <tr><td>Hidratação</td><td style="width:26%">45 min</td><td style="width:26%">R$ 50</td></tr>
+        <tr><td>Alisante</td><td>90 min</td><td>R$ 80</td></tr>
+        <tr><td>Progressiva</td><td>120 min</td><td>R$ 90</td></tr>
+      </table>
+    </div>
   </div>
 
   <div class="aviso bom">
@@ -282,192 +234,76 @@
     ficam de fora e são cobrados normal.
   </div>
 
-  <div class="rodape"><span>Johny Barbearia</span><span>2</span></div>
-</section>
-
-<!-- ═══════════════════ 1. AGENDAR PELO SITE ═══════════════════ -->
-<section class="folha">
-  <div class="cabecalho">
-    <span class="num">1</span>
-    <div><h2>Como o cliente marca pelo site</h2>
-      <div class="sub">Seis passos, um de cada vez. Sem aplicativo e sem senha.</div></div>
+  <div class="aviso perigo">
+    <strong>Confira os tempos antes de abrir para o público</strong>
+    Os preços são os que o Johny passou, mas os <strong>tempos</strong> foram
+    estimados, e é o tempo que decide quantos clientes cabem no dia. Ajuste na
+    aba <strong>Serviços</strong>: muda na hora, no site e no chat.
   </div>
 
-  <p>O site abre um passo por vez. Assim que ele escolhe, o passo fecha
-  sozinho e o de baixo abre. Dá para voltar em qualquer um tocando em
-  <strong>trocar</strong>.</p>
+  <div class="rodape"><span>Johny Barbearia</span><span>1</span></div>
+</section>
+
+<!-- ════════════════ 3 · O CLIENTE ════════════════ -->
+<section class="folha">
+  <div class="cab">
+    <span class="n">2</span>
+    <div><h2>Como o cliente marca</h2>
+      <div class="sub">Sem aplicativo, sem cadastro, sem senha</div></div>
+  </div>
 
   <div class="duas">
     <div class="fone">
-      <div class="conteudo">
-        <div class="barra"><img src="__LOGO__" alt=""><strong>Agendar horário</strong></div>
-
+      <div class="ct">
+        <div class="br"><img src="__LOGO__" alt=""><strong>Agendar horário</strong></div>
         <div class="cx on">
-          <div><span class="passo-n">1</span><strong>Serviço</strong></div>
-          <div class="lin" style="margin-top:6px">
-            <span class="bt vz" style="text-align:center">Cortes</span>
-            <span class="bt vz" style="text-align:center">Barba</span>
-          </div>
-          <div class="cx" style="margin-top:6px">
-            <div style="display:flex;justify-content:space-between">
-              <strong>Corte máquina</strong><span class="vlr">R$ 30</span>
-            </div>
-            <div class="rot">30 min</div>
-          </div>
-          <div class="cx">
+          <div><span class="pn">1</span><strong>Serviço</strong></div>
+          <div class="cx" style="margin-top:5px">
             <div style="display:flex;justify-content:space-between">
               <strong>Degradê lateral</strong><span class="vlr">R$ 35</span>
             </div>
             <div class="rot">40 min</div>
           </div>
         </div>
-
-        <div class="cx"><span class="passo-n off">2</span>Quem corta</div>
-        <div class="cx"><span class="passo-n off">3</span>Quando</div>
-      </div>
-    </div>
-
-    <div class="texto">
-      <h3 style="margin-top:0">Passo 1 · Serviço</h3>
-      <p>Ele toca na categoria (Cortes, Barba, Acabamento, Química) e a lista
-      muda. Isso evita jogar os sete serviços na cara dele de uma vez.</p>
-      <p class="mini">O preço e a duração aparecem já aqui, então ninguém
-      descobre o valor só no fim.</p>
-
-      <h3>Passo 2 · Quem corta</h3>
-      <p>Ele escolhe <strong>Johny</strong>, <strong>Anderson</strong> ou
-      <strong>Davi</strong>, e vê quantos horários cada um tem livre naquele
-      dia.</p>
-      <p>Ou toca em <strong>“Tanto faz, primeiro que liberar”</strong>. Nesse
-      caso o sistema dá o horário para quem estiver com menos corte no dia,
-      equilibrando a carga entre vocês.</p>
-    </div>
-  </div>
-
-  <div class="aviso bom">
-    <strong>Por que os passos ficam travados</strong>
-    O passo 3 só abre depois do 2, porque a lista de horários depende de qual
-    barbeiro e qual serviço ele escolheu. Uma progressiva de 2 horas tem muito
-    menos horário livre que uma linha de 10 minutos.
-  </div>
-
-  <div class="rodape"><span>Johny Barbearia</span><span>1</span></div>
-</section>
-
-<!-- ═══════════════ 1b. AGENDAR PELO SITE (parte 2) ════════════ -->
-<section class="folha">
-  <div class="cabecalho">
-    <span class="num">1</span>
-    <div><h2>Como o cliente marca pelo site</h2>
-      <div class="sub">Continuação: escolher o horário, se identificar e pagar</div></div>
-  </div>
-
-  <div class="duas">
-    <div class="fone">
-      <div class="conteudo">
-        <div class="cx feito"><span class="passo-n">1</span>Degradê lateral · 40 min</div>
-        <div class="cx feito"><span class="passo-n">2</span>Anderson</div>
-
+        <div class="cx"><span class="pn off">2</span>Quem corta</div>
         <div class="cx on">
-          <div><span class="passo-n">3</span><strong>Quando</strong></div>
-          <div class="rot" style="margin-top:6px">29 de julho a 4 de agosto</div>
-          <div class="grade" style="grid-template-columns:repeat(7,1fr);margin-top:5px">
-            <div class="hr on" style="border-top-width:1px">29</div>
-            <div class="hr" style="border-top-width:1px">30</div>
-            <div class="hr" style="border-top-width:1px">31</div>
-            <div class="hr" style="border-top-width:1px">01</div>
-            <div class="hr" style="border-top-width:1px">02</div>
-            <div class="hr" style="border-top-width:1px">03</div>
-            <div class="hr" style="border-top-width:1px;opacity:.4">04</div>
-          </div>
-          <div class="rot" style="margin-top:8px">manhã · 5 livres</div>
-          <div class="grade">
-            <div class="hr">08:30</div><div class="hr">09:00</div>
-            <div class="hr">09:30</div><div class="hr">10:00</div>
-          </div>
-          <div class="rot" style="text-align:center;margin:6px 0 3px">almoço 13h às 14h</div>
-          <div class="rot">tarde · 6 livres</div>
+          <div><span class="pn">3</span><strong>Quando</strong></div>
+          <div class="rot" style="margin-top:5px">tarde · 6 livres</div>
           <div class="grade">
             <div class="hr">14:00</div><div class="hr on">14:30</div>
             <div class="hr">15:00</div><div class="hr">15:30</div>
           </div>
         </div>
+        <div class="cx"><span class="pn off">4</span>Seus dados</div>
+        <div class="cx"><span class="pn off">5</span>Pagamento</div>
       </div>
     </div>
 
-    <div class="texto">
-      <h3 style="margin-top:0">Passo 3 · Quando</h3>
-      <p>Aparecem os <strong>7 dias</strong> na régua de cima e os horários
-      logo abaixo, separados em manhã e tarde.</p>
-      <p><strong>Só aparece o que está livre de verdade.</strong> Horário que
-      já tem alguém, que cai no almoço ou que não cabe na duração do serviço
-      simplesmente não é mostrado. Ele não consegue escolher errado.</p>
-      <p class="mini">Domingo aparece apagado, porque a casa fecha.</p>
+    <div class="txt">
+      <h3 style="margin-top:0">Pelo site · seis passos</h3>
+      <p>Um passo abre por vez. Ele escolhe e o próximo abre sozinho.</p>
+      <ol class="passos">
+        <li><strong>Serviço</strong> — por categoria, com preço e tempo à vista</li>
+        <li><strong>Quem corta</strong> — Johny, Anderson, Davi, ou “tanto faz”</li>
+        <li><strong>Quando</strong> — 7 dias e os horários livres</li>
+        <li><strong>Seus dados</strong> — nome e WhatsApp, só</li>
+        <li><strong>Pagamento</strong> — pix, ou o clube</li>
+        <li><strong>Confirmar</strong> — aí aparece o QR</li>
+      </ol>
 
-      <h3>Passo 4 · Seus dados</h3>
-      <p>Nome e WhatsApp. Só isso, sem senha e sem confirmar e-mail.</p>
-      <p>É o <strong>número</strong> que identifica o cliente. Se ele já é do
-      clube, o sistema reconhece na hora e mostra quantos cortes ainda sobram
-      no mês dele.</p>
-    </div>
-  </div>
-
-  <div class="duas" style="margin-top:20px">
-    <div class="fone">
-      <div class="conteudo">
-        <div class="cx on">
-          <div><span class="passo-n">5</span><strong>Pagamento</strong></div>
-          <div class="cx" style="margin-top:6px;border-color:#F5CE0A">
-            <div style="display:flex;justify-content:space-between">
-              <strong>Pagar no pix</strong><span class="vlr">R$ 35</span>
-            </div>
-            <div class="rot">Garante o horário</div>
-          </div>
-        </div>
-        <div class="cx on" style="margin-top:7px">
-          <div><span class="passo-n">6</span><strong>Confirmar</strong></div>
-          <div class="rot" style="margin:5px 0">Degradê lateral · Anderson · 29/07 às 14:30</div>
-          <span class="bt ch">Confirmar horário · R$ 35</span>
-        </div>
+      <div class="aviso bom" style="margin-top:10px">
+        <strong>Ele não consegue escolher errado</strong>
+        Só aparece horário que está de fato livre e que cabe na duração do
+        serviço. Horário ocupado, almoço e domingo nem são mostrados.
       </div>
     </div>
-
-    <div class="texto">
-      <h3 style="margin-top:0">Passo 5 · Pagamento</h3>
-      <p>A barbearia só marca com <strong>pagamento antecipado</strong>, então
-      o pix é o caminho. Não existe opção de pagar na cadeira.</p>
-      <p>Quem é do clube vê também <strong>“Usar 1 corte do clube”</strong>, e
-      aí o corte sai <strong>R$ 0</strong>. Aí sim há escolha.</p>
-
-      <h3>Passo 6 · Confirmar</h3>
-      <p>Um resumo em uma linha e o botão com o valor dentro. Depois de tocar,
-      aparece o <strong>QR do pix</strong> e o código copia e cola.</p>
-      <p class="mini">O horário fica reservado por 1 hora enquanto o pix não
-      é confirmado por você.</p>
-    </div>
   </div>
 
-  <div class="rodape"><span>Johny Barbearia</span><span>2</span></div>
-</section>
-
-<!-- ═══════════════════ 2. AGENDAR PELO CHAT ═══════════════════ -->
-<section class="folha">
-  <div class="cabecalho">
-    <span class="num">2</span>
-    <div><h2>Como o cliente marca pelo chat</h2>
-      <div class="sub">Para quem prefere escrever a preencher</div></div>
-  </div>
-
-  <p>No site tem o botão <strong>“Marcar pelo chat”</strong>. Ali o cliente
-  escreve do jeito dele, e o sistema entende vários dados na mesma frase.</p>
-
-  <div class="duas">
+  <div class="duas" style="margin-top:16px">
     <div class="fone">
-      <div class="conteudo">
-        <div class="barra"><img src="__LOGO__" alt=""><strong>Marcar pelo chat</strong></div>
-
-        <div class="cx">Fala! Aqui é a Johny Barbearia.</div>
-        <div class="cx" style="background:#F5CE0A;color:#111;margin-left:22%;border-color:#F5CE0A">
+      <div class="ct">
+        <div class="br"><img src="__LOGO__" alt=""><strong>Marcar pelo chat</strong></div>
+        <div class="cx" style="background:#F5CE0A;color:#111;margin-left:16%;border-color:#F5CE0A">
           <strong>Degradê lateral amanhã de tarde com o Anderson</strong>
         </div>
         <div class="cx">Amanhã tenho 8 horários de tarde:</div>
@@ -476,445 +312,248 @@
           <div class="hr" style="border-top-width:1px">14:30</div>
           <div class="hr" style="border-top-width:1px">15:00</div>
         </div>
-        <div class="cx" style="margin-top:7px;background:#221F14">
-          <div class="rot">Pode escrever solto:</div>
-          <div style="margin-top:4px">“quanto custa a barba?”</div>
-        </div>
       </div>
     </div>
 
-    <div class="texto">
-      <h3 style="margin-top:0">Uma frase resolve quatro perguntas</h3>
-      <p>Naquela frase o sistema entendeu <strong>o serviço</strong>,
-      <strong>o dia</strong>, <strong>o turno</strong> e
-      <strong>o barbeiro</strong>. Então ele já pula direto para os horários,
-      em vez de perguntar quatro vezes.</p>
-
-      <h3>O que ele entende</h3>
-      <table style="margin-top:6px">
-        <tr><td>Dia</td><td>hoje · amanhã · sexta · dia 7 · 05/08</td></tr>
-        <tr><td>Hora</td><td>15h · 14:30 · 3 da tarde · meio dia</td></tr>
-        <tr><td>Turno</td><td>de manhã · cedo · de tarde</td></tr>
-        <tr><td>Barbeiro</td><td>o nome, ou “tanto faz”</td></tr>
-      </table>
-      <p class="mini">Erro de digitação ele perdoa: “degrado” acha o degradê lateral.</p>
+    <div class="txt">
+      <h3 style="margin-top:0">Pelo chat · escrevendo</h3>
+      <p>Aquela frase resolve <strong>quatro perguntas de uma vez</strong>:
+      serviço, dia, turno e barbeiro. Aí ele já vai direto para os horários.</p>
+      <p>Entende <strong>hoje, amanhã, sexta, dia 7, 15h, 3 da tarde, de manhã,
+      tanto faz</strong>, e perdoa erro de digitação.</p>
+      <p class="mini">Também responde preço, endereço e horário da casa. Se o
+      barbeiro pedido estiver cheio, oferece quem está livre.</p>
     </div>
   </div>
 
-  <div class="aviso">
-    <strong>Ele também responde pergunta solta</strong>
-    Preço, endereço, horário de funcionamento e clube. E se o cliente pedir um
-    barbeiro sem vaga, ele oferece quem está livre: <em>“Já o Davi tem 7
-    horários, começando 14:00. Quer com ele?”</em>
-  </div>
+  <p class="mini" style="margin-top:12px">Depois de marcar, o cliente recebe um
+  link só dele, onde vê o horário e cancela sozinho até 2 horas antes.</p>
 
-  <p class="mini">Não é inteligência artificial. É um conjunto de regras, e por
-  isso nunca inventa horário nem preço: tudo vem da mesma agenda do site.</p>
-
-  <div class="rodape"><span>Johny Barbearia</span><span>3</span></div>
+  <div class="rodape"><span>Johny Barbearia</span><span>2</span></div>
 </section>
 
-<!-- ═══════════════════ 3. ENTRAR ══════════════════════════════ -->
+<!-- ════════════════ 4 · PAINEL + PIX ════════════════ -->
 <section class="folha">
-  <div class="cabecalho">
-    <span class="num">3</span>
-    <div><h2>Entrar no sistema</h2>
-      <div class="sub">Para o Johny e para os barbeiros</div></div>
-  </div>
-
-  <p>Não existe e-mail nem senha. Você entra com uma <strong>chave</strong>:</p>
-
-  <p style="font-size:31px;font-weight:800;letter-spacing:4px;margin:16px 0;
-            text-align:center;background:var(--creme);border:1px solid var(--linha);
-            border-radius:14px;padding:20px">JHNY-K7M2-P9XR</p>
-
-  <div class="duas">
-    <div class="fone">
-      <div class="conteudo" style="text-align:center;padding:14px 4px">
-        <img src="__LOGO__" alt="" style="width:46px;height:46px;border-radius:14px;margin-bottom:9px">
-        <div><strong>Entrar na barbearia</strong></div>
-        <div class="rot" style="margin:3px 0 12px">Use a chave que o Johny te mandou.</div>
-        <div class="cx" style="letter-spacing:3px;font-weight:700;text-align:center">JHNY-XXXX-XXXX</div>
-        <div style="margin-top:10px"><span class="bt ch">Entrar</span></div>
-      </div>
-    </div>
-
-    <div class="texto">
-      <h3 style="margin-top:0">Passo a passo</h3>
-      <ol class="passos">
-        <li>Abra <strong>johnybarbearia.com.br/entrar</strong></li>
-        <li>Digite a chave. Ela vira maiúscula sozinha e os hífens aparecem
-          automaticamente</li>
-        <li>Toque em <strong>Entrar</strong></li>
-      </ol>
-      <p>O sistema lembra de você por <strong>30 dias</strong>. Depois pede a
-      chave de novo.</p>
-      <p class="mini">O Johny cai no painel completo. Os barbeiros caem direto
-      na própria agenda.</p>
-    </div>
-  </div>
-
-  <div class="aviso perigo">
-    <strong>A chave é pessoal, como a chave da loja</strong>
-    Quem tem a chave entra na agenda. Não repasse para ninguém. Se alguém sair
-    da equipe ou perder o celular, o Johny revoga em um toque e a pessoa cai na
-    hora, mesmo já estando logada.
-  </div>
-
-  <p class="mini">Se aparecer “chave inválida ou revogada”, confira letra por
-  letra: a chave nunca tem as letras <strong>O</strong> e <strong>I</strong>,
-  nem os números <strong>0</strong> e <strong>1</strong>, justamente para
-  ninguém confundir.</p>
-
-  <div class="rodape"><span>Johny Barbearia</span><span>4</span></div>
-</section>
-
-<!-- ═══════════════════ 4. PAINEL ══════════════════════════════ -->
-<section class="folha">
-  <div class="cabecalho">
-    <span class="num">4</span>
-    <div><h2>O dia a dia no painel</h2>
+  <div class="cab">
+    <span class="n">3</span>
+    <div><h2>Seu dia no painel</h2>
       <div class="sub">Para o Johny</div></div>
   </div>
 
-  <div class="duas">
+  <p><strong>Entrar:</strong> em <strong>johnybarbearia.com.br/entrar</strong>,
+  digite sua chave <strong>JHNY-XXXX-XXXX</strong>. Sem e-mail e sem senha. O
+  sistema lembra de você por 30 dias.</p>
+
+  <div class="duas" style="margin-top:12px">
     <div class="fone">
-      <div class="conteudo">
-        <div class="barra"><img src="__LOGO__" alt=""><strong>Painel</strong></div>
+      <div class="ct">
+        <div class="br"><img src="__LOGO__" alt=""><strong>Painel</strong></div>
         <div class="lin">
-          <div class="cx"><div class="rot">Marcados</div><strong style="font-size:16px">12</strong></div>
-          <div class="cx"><div class="rot">A receber</div><strong style="font-size:16px">R$ 430</strong></div>
+          <div class="cx"><div class="rot">Marcados</div><strong>12</strong></div>
+          <div class="cx"><div class="rot">A receber</div><strong>R$ 430</strong></div>
           <div class="cx" style="border-color:#C9622F">
             <div class="rot">Pix pendente</div>
-            <strong style="font-size:16px;color:#C9622F">2</strong>
-          </div>
+            <strong style="color:#C9622F">2</strong></div>
         </div>
         <div class="cx"><strong>09:00</strong> · Degradê lateral
-          <div class="rot">Wesley · (84) 99999-0000</div>
-          <div style="margin-top:5px"><span class="bt vz">Concluir</span></div>
+          <div class="rot">Wesley</div>
+          <div style="margin-top:4px"><span class="bt vz">Concluir</span></div>
         </div>
-        <div class="cx"><strong>10:00</strong> · Barbaterapia
-          <div class="rot">Marcos · (84) 99999-1111</div>
-        </div>
-      </div>
-      <span class="nota" style="top:52px;right:-10px">1</span>
-      <span class="nota" style="bottom:52px;right:-10px">2</span>
-    </div>
-
-    <div class="texto">
-      <ol class="notas" style="margin-top:0">
-        <li><strong>Olhe esse número o dia todo.</strong> Pix pendente em
-          laranja é dinheiro esperando você conferir. Zero é o normal.</li>
-        <li><strong>Toque em Concluir ao terminar o corte.</strong> Isso lança
-          o valor no caixa e conta o atendimento no histórico do cliente. Se
-          ele não veio, toque em <strong>Faltou</strong>.</li>
-      </ol>
-
-      <div class="aviso" style="margin-top:16px">
-        <strong>Três faltas mudam a regra</strong>
-        Quem falta três vezes passa a ter que pagar antecipado sempre, mesmo
-        que você afrouxe a regra geral depois.
-      </div>
-    </div>
-  </div>
-
-  <h3>As abas do painel</h3>
-  <table>
-    <tr><th>Aba</th><th>Para quê</th></tr>
-    <tr><td>Agenda</td><td>O dia, separado por barbeiro</td></tr>
-    <tr><td>Pix</td><td>Confirmar quem pagou</td></tr>
-    <tr><td>Clube</td><td>Assinantes, mensalidade e cobrança</td></tr>
-    <tr><td>Clientes</td><td>Histórico, quanto gastou, quantas faltas</td></tr>
-    <tr><td>Serviços</td><td>Criar, editar preço e duração, esconder</td></tr>
-    <tr><td>Caixa</td><td>O que entrou hoje</td></tr>
-    <tr><td>Fila</td><td>Quem quis um dia que estava cheio</td></tr>
-    <tr><td>Equipe</td><td>Chaves de acesso dos barbeiros</td></tr>
-    <tr><td>Ajustes</td><td>Chave pix, clube e tempo de reserva</td></tr>
-  </table>
-
-  <div class="rodape"><span>Johny Barbearia</span><span>5</span></div>
-</section>
-
-<!-- ═══════════════════ 5. PIX ═════════════════════════════════ -->
-<section class="folha">
-  <div class="cabecalho">
-    <span class="num">5</span>
-    <div><h2>Conferir o pix</h2>
-      <div class="sub">A parte mais importante do seu dia</div></div>
-  </div>
-
-  <p><strong>O sistema não sabe quando o dinheiro cai.</strong> Ele gera o
-  código do pix, mas o banco não avisa ninguém. Quem sabe é você, olhando o
-  extrato.</p>
-
-  <div class="duas">
-    <div class="fone">
-      <div class="conteudo">
-        <div class="barra"><img src="__LOGO__" alt=""><strong>Pix para conferir</strong></div>
-        <div class="cx on">
+        <div class="cx on" style="margin-top:8px">
           <div style="display:flex;justify-content:space-between">
-            <strong>Wesley Costa</strong><span class="vlr">R$ 35</span>
-          </div>
-          <div class="rot">Degradê lateral · Anderson · 16:00</div>
-          <div class="rot" style="color:#C9622F;margin-top:4px">expira às 17:00</div>
-          <div style="margin-top:8px;display:flex;gap:5px">
+            <strong>Wesley Costa</strong><span class="vlr">R$ 35</span></div>
+          <div class="rot">pix · expira às 17:00</div>
+          <div style="margin-top:6px;display:flex;gap:4px">
             <span class="bt">Recebi</span><span class="bt pg">Não caiu</span>
           </div>
         </div>
       </div>
-      <span class="nota" style="top:44px;right:-10px">1</span>
-      <span class="nota" style="top:74px;right:-10px">2</span>
-      <span class="nota" style="bottom:24px;right:-10px">3</span>
     </div>
 
-    <div class="texto">
+    <div class="txt">
       <ol class="notas" style="margin-top:0">
-        <li><strong>Quanto e de quem.</strong> É esse valor exato que você
-          procura no extrato do banco.</li>
-        <li><strong>O prazo.</strong> Passou dessa hora sem você confirmar, o
-          horário volta sozinho para a agenda e o cliente é avisado.</li>
-        <li><strong>A decisão.</strong> Só toque depois de ver o dinheiro na
-          conta.</li>
+        <li><strong>Pix pendente em laranja é dinheiro esperando você.</strong>
+          Olhe esse número o dia todo. Zero é o normal.</li>
+        <li><strong>Concluir</strong> ao terminar o corte. Isso lança no caixa
+          e conta no histórico do cliente. Não veio? <strong>Faltou</strong>.</li>
+        <li><strong>Recebi</strong> só depois de ver o dinheiro na sua conta.
+          Ele confirma o horário, lança no caixa e abre o botão de avisar o
+          cliente no WhatsApp — <strong>toque nesse botão</strong>, é assim que
+          ele fica sabendo.</li>
       </ol>
     </div>
   </div>
-
-  <h3>Depois de tocar em Recebi</h3>
-  <p>O horário fica confirmado, o valor entra no caixa e aparece um botão
-  <strong>“Avisar no WhatsApp”</strong>, com a mensagem já escrita.
-  <strong>Toque nele.</strong> É assim que o cliente descobre que está
-  confirmado, porque o sistema não manda nada sozinho.</p>
 
   <div class="aviso perigo">
     <strong>Nunca confirme só pelo comprovante</strong>
     Print de pix é fácil de falsificar, e tem gente que vende print falso.
-    Confirme sempre olhando o seu extrato. O comprovante que o cliente manda
-    serve só para você olhar mais rápido, nunca como prova.
+    Confirme sempre olhando o seu extrato. O horário fica reservado por 1 hora;
+    passou disso sem confirmação, ele volta sozinho para a agenda.
   </div>
 
-  <p><strong>Não caiu</strong> cancela o agendamento e devolve o horário para
-  a agenda na hora.</p>
+  <h3>As abas</h3>
+  <div class="colunas">
+    <table>
+      <tr><td>Agenda</td><td>o dia, por barbeiro</td></tr>
+      <tr><td>Pix</td><td>confirmar quem pagou</td></tr>
+      <tr><td>Clube</td><td>assinantes e mensalidade</td></tr>
+      <tr><td>Clientes</td><td>histórico e faltas</td></tr>
+      <tr><td>Serviços</td><td>preço e duração</td></tr>
+    </table>
+    <table>
+      <tr><td>Caixa</td><td>o que entrou hoje</td></tr>
+      <tr><td>Fila</td><td>quem quis dia cheio</td></tr>
+      <tr><td>Equipe</td><td>chaves dos barbeiros</td></tr>
+      <tr><td>Ajustes</td><td>pix, clube e reserva</td></tr>
+    </table>
+  </div>
 
-  <div class="rodape"><span>Johny Barbearia</span><span>6</span></div>
+  <div class="rodape"><span>Johny Barbearia</span><span>3</span></div>
 </section>
 
-<!-- ═══════════════════ 6. CLUBE ═══════════════════════════════ -->
+<!-- ════════════════ 5 · CLUBE E EQUIPE ════════════════ -->
 <section class="folha">
-  <div class="cabecalho">
-    <span class="num">6</span>
-    <div><h2>Clube</h2>
-      <div class="sub">Assinantes e mensalidade</div></div>
+  <div class="cab">
+    <span class="n">4</span>
+    <div><h2>Clube e equipe</h2>
+      <div class="sub">Para o Johny</div></div>
   </div>
 
-  <h3>Colocar alguém no clube</h3>
-  <ol class="passos">
-    <li>Aba <strong>Clube</strong></li>
-    <li>Toque em <strong>Colocar no clube</strong></li>
-    <li>Escreva o nome e o WhatsApp</li>
-  </ol>
+  <h3 style="margin-top:0">Colocar alguém no clube</h3>
+  <p>Aba <strong>Clube</strong> → <strong>Colocar no clube</strong> → nome e
+  WhatsApp.</p>
 
   <div class="aviso bom">
     <strong>O WhatsApp é o que liga tudo</strong>
-    Quando essa pessoa for agendar e digitar o mesmo número, o sistema
-    reconhece na hora e o corte já sai <strong>R$ 0</strong>. Se ela já cortou
-    aí antes, a assinatura cola no cadastro que existe: não duplica.
+    Quando essa pessoa agendar e digitar o mesmo número, o sistema reconhece na
+    hora e o corte sai <strong>R$ 0</strong>. Se ela já cortou aí antes, a
+    assinatura cola no cadastro que existe: não duplica.
   </div>
 
-  <h3>O que o clube cobre</h3>
-  <p><strong>Todos os cortes, sem limite de quantidade.</strong> O assinante
-  corta quantas vezes quiser no mês, escolhendo horário e barbeiro como
-  qualquer cliente, e não paga nada na hora.</p>
-  <p><strong>Barba e química ficam de fora</strong> e continuam sendo cobradas
-  no valor normal, mesmo para quem é do clube.</p>
+  <p>Quando ele pagar a mensalidade, toque em <strong>Recebi o mês</strong>:
+  renova por mais 30 dias. Vencida, a linha fica <strong>laranja</strong> e o
+  corte volta a sair no valor cheio.</p>
 
-  <h3>Quando ele pagar a mensalidade</h3>
-  <p>Toque em <strong>Recebi o mês</strong> na linha dele. Isso renova por
-  mais 30 dias.</p>
-  <p>Vencida, a linha fica <strong>laranja</strong> e o corte dele volta a sair
-  no valor cheio, até você registrar o pagamento.</p>
-
-  <table>
-    <tr><th>Botão</th><th>O que faz</th></tr>
-    <tr><td>Colocar no clube</td><td>Cadastra e ativa por 30 dias</td></tr>
-    <tr><td>Recebi o mês</td><td>Renova por mais 30 dias</td></tr>
-    <tr><td>Mandar</td><td>Abre o WhatsApp cobrando quem está vencido</td></tr>
-    <tr><td>Tirar</td><td>Cancela a assinatura</td></tr>
-  </table>
-
-  <h3>Na landing do site</h3>
-  <p>Quem entra pelo site também consegue assinar sozinho: o botão do Clube
-  abre uma janela com os benefícios e <strong>gera o pix da mensalidade na
-  hora</strong>.</p>
-  <p class="mini">Mesmo assim, quem ativa é você. O pedido aparece para você
-  conferir e colocar no clube, igual ao pix de agendamento.</p>
-
-  <div class="rodape"><span>Johny Barbearia</span><span>7</span></div>
-</section>
-
-<!-- ═══════════════════ 7. EQUIPE ══════════════════════════════ -->
-<section class="folha">
-  <div class="cabecalho">
-    <span class="num">7</span>
-    <div><h2>Equipe e chaves</h2>
-      <div class="sub">Dar e tirar acesso dos barbeiros</div></div>
-  </div>
+  <h3>Dar acesso a um barbeiro</h3>
 
   <div class="duas">
     <div class="fone">
-      <div class="conteudo">
-        <div class="barra"><img src="__LOGO__" alt=""><strong>Equipe</strong></div>
+      <div class="ct">
+        <div class="br"><img src="__LOGO__" alt=""><strong>Equipe</strong></div>
         <div class="cx on">
           <div class="rot">Chave do Anderson</div>
-          <div style="font-size:17px;font-weight:800;letter-spacing:2px;color:#F5CE0A;margin:3px 0">
+          <div style="font-size:15px;font-weight:800;letter-spacing:1px;color:#F5CE0A;margin:2px 0">
             JHNY-K7M2-P9XR</div>
-          <div class="rot" style="color:#C9622F">Essa chave não aparece de novo.</div>
-          <div style="margin-top:8px;display:flex;gap:5px">
-            <span class="bt">Copiar</span>
-            <span class="bt vz">Mandar no WhatsApp</span>
+          <div class="rot" style="color:#C9622F">Não aparece de novo.</div>
+          <div style="margin-top:6px;display:flex;gap:4px">
+            <span class="bt">Copiar</span><span class="bt vz">Mandar</span>
           </div>
         </div>
-        <div class="cx">
-          <strong>Davi</strong>
+        <div class="cx"><strong>Davi</strong>
           <div class="rot">JHNY-P4T9-•••• · entrou há 2 dias</div>
-          <div style="margin-top:5px"><span class="bt vz">Revogar</span></div>
+          <div style="margin-top:4px"><span class="bt vz">Revogar</span></div>
         </div>
       </div>
-      <span class="nota" style="top:60px;right:-10px">1</span>
-      <span class="nota" style="top:104px;right:-10px">2</span>
-      <span class="nota" style="bottom:26px;right:-10px">3</span>
     </div>
 
-    <div class="texto">
-      <ol class="notas" style="margin-top:0">
-        <li><strong>Anote ou mande agora.</strong> Depois de fechar essa tela,
-          nem você consegue ver a chave outra vez. Se perder, é só gerar
-          outra: a antiga para de funcionar na hora.</li>
-        <li><strong>Mandar no WhatsApp</strong> abre a conversa com o texto
-          pronto. É o caminho mais rápido.</li>
-        <li><strong>Você vê quando cada um entrou.</strong> Chave que nunca foi
-          usada, ou parada há muito tempo, é sinal de que vale revogar.</li>
+    <div class="txt">
+      <ol class="passos" style="margin-top:0">
+        <li>Aba <strong>Equipe</strong></li>
+        <li><strong>Gerar chave</strong> no nome dele</li>
+        <li><strong>Mandar no WhatsApp</strong>, que já vai com o texto pronto</li>
       </ol>
+
+      <div class="aviso">
+        <strong>A chave aparece uma vez só</strong>
+        Depois de fechar, nem você consegue vê-la. Se perder, gere outra: a
+        antiga para de funcionar na hora.
+      </div>
+
+      <div class="aviso perigo">
+        <strong>Revogar derruba na hora</strong>
+        A pessoa perde o acesso no próximo toque, mesmo já estando dentro. Use
+        quando alguém sair da equipe ou perder o celular.
+      </div>
+
+      <p class="mini">Na lista você vê quando cada um entrou pela última vez.</p>
     </div>
   </div>
 
-  <h3>Para dar acesso a alguém</h3>
-  <ol class="passos">
-    <li>Aba <strong>Equipe</strong></li>
-    <li>Toque em <strong>Gerar chave</strong> no nome da pessoa</li>
-    <li>Toque em <strong>Mandar no WhatsApp</strong></li>
-  </ol>
-
-  <div class="aviso perigo">
-    <strong>Revogar derruba na hora</strong>
-    A pessoa perde o acesso no próximo toque que der, mesmo já estando dentro
-    do sistema. Use isso quando alguém sair da equipe ou perder o celular.
-  </div>
-
-  <div class="rodape"><span>Johny Barbearia</span><span>8</span></div>
+  <div class="rodape"><span>Johny Barbearia</span><span>4</span></div>
 </section>
 
-<!-- ═══════════════════ 8. BARBEIROS ═══════════════════════════ -->
+<!-- ════════════════ 6 · BARBEIROS + PROBLEMAS ════════════════ -->
 <section class="folha">
-  <div class="cabecalho">
-    <span class="num">8</span>
+  <div class="cab">
+    <span class="n">5</span>
     <div><h2>A sua agenda</h2>
       <div class="sub">Para o Anderson e o Davi</div></div>
   </div>
 
-  <p>Você entra com a chave que o Johny mandou e cai direto na
-  <strong>sua agenda</strong>. A dos outros você não vê.</p>
-
   <div class="duas">
     <div class="fone">
-      <div class="conteudo">
-        <div class="barra"><img src="__LOGO__" alt=""><strong>Anderson</strong>
-          <span class="rot">sua agenda</span></div>
+      <div class="ct">
+        <div class="br"><img src="__LOGO__" alt=""><strong>Anderson</strong></div>
         <div class="lin">
-          <div class="cx"><div class="rot">Atendimentos</div><strong style="font-size:16px">6</strong></div>
+          <div class="cx"><div class="rot">Atendimentos</div><strong>6</strong></div>
           <div class="cx"><div class="rot">Você gerou</div>
-            <strong style="font-size:16px;color:#F5CE0A">R$ 240</strong></div>
+            <strong style="color:#F5CE0A">R$ 240</strong></div>
         </div>
-        <div style="margin:7px 0"><span class="bt vz">Fechar um horário</span></div>
+        <div style="margin:6px 0"><span class="bt vz">Fechar um horário</span></div>
         <div class="cx"><strong>14:00</strong> · Degradê lateral
-          <div class="rot">Bruno · (84) 99999-2222</div>
-          <div style="margin-top:6px;display:flex;gap:5px">
+          <div class="rot">Bruno</div>
+          <div style="margin-top:5px;display:flex;gap:4px">
             <span class="bt vz">Concluir</span><span class="bt vz">Faltou</span>
           </div>
         </div>
       </div>
-      <span class="nota" style="top:76px;right:-10px">1</span>
-      <span class="nota" style="bottom:26px;right:-10px">2</span>
     </div>
 
-    <div class="texto">
-      <ol class="notas" style="margin-top:0">
-        <li><strong>Fechar um horário</strong> tira aquele pedaço do dia da
-          agenda, e ninguém consegue marcar ali. Serve para almoço maior,
-          médico, banco. Para reabrir, toque em <strong>Liberar</strong>.</li>
-        <li><strong>Toque em Concluir assim que terminar o corte.</strong> É
-          isso que lança o valor no caixa e conta o atendimento como seu.</li>
-      </ol>
+    <div class="txt">
+      <p style="margin-top:0">Você entra com a chave que o Johny mandou e cai
+      direto na <strong>sua</strong> agenda.</p>
+      <table>
+        <tr><td>Concluir</td><td>terminou o corte</td></tr>
+        <tr><td>Faltou</td><td>o cliente não apareceu</td></tr>
+        <tr><td>Fechar um horário</td><td>almoço maior, médico, banco</td></tr>
+        <tr><td>Trocar o dia</td><td>ver amanhã ou a semana</td></tr>
+      </table>
+      <div class="aviso">
+        <strong>Você só vê a sua agenda</strong>
+        A dos outros, o faturamento da casa, preço, clube e chaves ficam com o
+        Johny. Não é a tela que esconde: o sistema não entrega esses dados para
+        a sua chave.
+      </div>
     </div>
   </div>
 
-  <table>
-    <tr><th>Ação</th><th>Quando usar</th></tr>
-    <tr><td>Concluir</td><td>Terminou o corte</td></tr>
-    <tr><td>Faltou</td><td>O cliente não apareceu</td></tr>
-    <tr><td>Fechar um horário</td><td>Vai sair, almoço maior, compromisso</td></tr>
-    <tr><td>Trocar o dia</td><td>Ver amanhã ou o resto da semana</td></tr>
-  </table>
-
-  <div class="aviso">
-    <strong>O que você não vê, e por quê</strong>
-    Agenda dos outros barbeiros, faturamento da casa, preço dos serviços,
-    clube e chaves de acesso ficam com o Johny. Não é a tela que esconde: o
-    sistema não entrega esses dados para a sua chave, mesmo se alguém tentar.
-  </div>
-
-  <div class="rodape"><span>Johny Barbearia</span><span>9</span></div>
-</section>
-
-<!-- ═══════════════════ 9. PROBLEMAS ═══════════════════════════ -->
-<section class="folha">
-  <div class="cabecalho">
-    <span class="num">9</span>
+  <div class="cab" style="margin-top:24px">
+    <span class="n">6</span>
     <div><h2>Se der problema</h2>
       <div class="sub">Aconteceu isso, faça aquilo</div></div>
   </div>
 
   <table>
-    <tr><th>Aconteceu</th><th>O que fazer</th></tr>
-    <tr><td>Perdi minha chave</td><td>Barbeiro: peça outra ao Johny, na aba Equipe. A antiga para de valer sozinha.</td></tr>
-    <tr><td>Diz “chave inválida ou revogada”</td><td>Confira letra por letra. Não existe O, I, 0 nem 1 na chave.</td></tr>
-    <tr><td>Confirmei um pix por engano</td><td>Cancele o horário na agenda. Ele volta para a grade na hora.</td></tr>
-    <tr><td>Cliente pagou mas o horário sumiu</td><td>Passou de 1 hora sem confirmação. Marque de novo pelo painel, em Encaixar.</td></tr>
-    <tr><td>Cliente quer cancelar em cima da hora</td><td>Ele só cancela sozinho até 2 horas antes. Depois disso, cancele você pela agenda.</td></tr>
-    <tr><td>Preciso mudar um preço</td><td>Aba Serviços → Editar. Muda na hora, no site e no chat.</td></tr>
-    <tr><td>Vou fechar a barbearia num dia</td><td>Bloqueie o dia pelo painel, e ninguém consegue marcar.</td></tr>
-    <tr><td>O dia lotou e o cliente insiste</td><td>Ele pode entrar na fila. Se alguém cancelar, é avisado por ordem de chegada.</td></tr>
+    <tr><td style="width:38%">Perdi minha chave</td><td>Peça outra ao Johny, na aba Equipe. A antiga cai sozinha.</td></tr>
+    <tr><td>Diz “chave inválida”</td><td>Confira letra por letra: não existe O, I, 0 nem 1 na chave.</td></tr>
+    <tr><td>Confirmei um pix por engano</td><td>Cancele o horário na agenda.</td></tr>
+    <tr><td>Cliente pagou e o horário sumiu</td><td>Passou de 1 hora sem confirmar. Remarque em Encaixar.</td></tr>
+    <tr><td>Cancelar em cima da hora</td><td>O cliente só cancela sozinho até 2h antes. Depois, cancele você.</td></tr>
+    <tr><td>Mudar um preço</td><td>Aba Serviços → Editar. Vale na hora.</td></tr>
+    <tr><td>Vou fechar num dia</td><td>Bloqueie o dia pelo painel.</td></tr>
   </table>
 
-  <h3>Rotina que vale a pena</h3>
-  <ol class="passos">
-    <li><strong>De manhã:</strong> abra o painel e veja o dia</li>
-    <li><strong>Durante o dia:</strong> olhe o número de pix pendente</li>
-    <li><strong>A cada corte:</strong> toque em Concluir</li>
-    <li><strong>No fim do dia:</strong> confira o Caixa</li>
-  </ol>
-
-  <div style="margin-top:30px;padding:20px;background:var(--creme);
-              border:1px solid var(--linha);border-radius:14px;
-              display:flex;align-items:center;gap:16px">
-    <img src="__LOGO__" alt="" style="width:56px;height:56px;border-radius:16px;flex:none">
+  <div style="margin-top:16px;padding:14px 18px;background:var(--creme);
+              border:1px solid var(--linha);border-radius:12px;
+              display:flex;align-items:center;gap:14px">
+    <img src="__LOGO__" alt="" style="width:48px;height:48px;border-radius:14px;flex:none">
     <div>
-      <strong style="font-size:16px">Johny Barbearia</strong><br>
-      <span class="apoio">R. Djalma Maranhão, 463-2, Nova Descoberta, Natal/RN</span><br>
-      <span class="apoio">(84) 99983-5180</span>
+      <strong>Johny Barbearia</strong><br>
+      <span class="mini">R. Djalma Maranhão, 463-2, Nova Descoberta, Natal/RN · (84) 99983-5180</span>
     </div>
   </div>
 
-  <div class="rodape"><span>Johny Barbearia</span><span>10</span></div>
+  <div class="rodape"><span>Johny Barbearia</span><span>5</span></div>
 </section>
 
 </body>
