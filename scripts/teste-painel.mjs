@@ -76,9 +76,15 @@ for (const aba of ["agenda", "pix", "clube", "clientes", "servicos", "caixa", "e
 const equipe = await (
   await fetch(`${BASE}/painel?aba=equipe`, { headers: { cookie: cookieDono } })
 ).text();
-for (const alvo of ["Johny", "Anderson", "Davi", "Gerar chave"]) {
+for (const alvo of ["Johny", "Anderson", "Davi"]) {
   conferir(`equipe mostra "${alvo}"`, equipe.includes(alvo));
 }
+// O rótulo do botão depende de o barbeiro já ter chave viva ou não. Fixar um
+// dos dois fazia o teste falhar só porque alguém tinha gerado chave antes.
+conferir(
+  "equipe tem o botão de chave",
+  /Gerar (chave|outra)/.test(equipe),
+);
 
 const config = await (
   await fetch(`${BASE}/painel?aba=config`, { headers: { cookie: cookieDono } })

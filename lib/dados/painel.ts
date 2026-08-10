@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import type { Sessao } from "@/lib/auth/sessao";
 import { clienteServico } from "@/lib/supabase/servidor";
 import { hojeNaCasa } from "@/lib/agenda/dias";
@@ -42,17 +44,20 @@ export async function agendaDoDia(
   return (linhas ?? []) as Marcado[];
 }
 
-export async function resumoDoDia(sessao: Sessao, data = hojeNaCasa()) {
-  const { data: resumo } = await clienteServico().rpc("resumo_do_dia", {
-    p_chave: sessao.chaveId,
-    p_data: data,
-  });
-  return (resumo ?? {
-    marcados: 0,
-    receita_centavos: 0,
-    pix_pendentes: 0,
-  }) as { marcados: number; receita_centavos: number; pix_pendentes: number };
-}
+/** cache() para o indicador e o crachá da barra lateral não pedirem duas vezes. */
+export const resumoDoDia = cache(
+  async (sessao: Sessao, data = hojeNaCasa()) => {
+    const { data: resumo } = await clienteServico().rpc("resumo_do_dia", {
+      p_chave: sessao.chaveId,
+      p_data: data,
+    });
+    return (resumo ?? {
+      marcados: 0,
+      receita_centavos: 0,
+      pix_pendentes: 0,
+    }) as { marcados: number; receita_centavos: number; pix_pendentes: number };
+  },
+);
 
 /**
  * Janela em que a casa funciona nesse dia: o mais cedo que alguém abre e o
@@ -105,7 +110,7 @@ export async function bloqueiosDoDia(sessao: Sessao, data = hojeNaCasa()) {
   return linhas ?? [];
 }
 
-export async function pixParaConferir(sessao: Sessao) {
+export const pixParaConferir = cache(async (sessao: Sessao) => {
   const { data } = await clienteServico()
     .from("payments")
     .select(
@@ -144,7 +149,7 @@ export async function pixParaConferir(sessao: Sessao) {
       inicio: ag?.inicio ?? "",
     };
   });
-}
+});
 
 /** Equipe com o estado da chave de cada um. */
 export async function equipe(sessao: Sessao) {

@@ -1,7 +1,9 @@
 import "server-only";
 
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { cache } from "react";
 import { cookies } from "next/headers";
+import { after } from "next/server";
 
 import { clienteServico } from "@/lib/supabase/servidor";
 
@@ -87,29 +89,16 @@ export async function encerrarSessao() {
   jar.delete(COOKIE_PAPEL);
 }
 
-/** Último acesso, no máximo uma escrita por hora por chave. */
-async function carimbar(chaveId: string) {
-  const supabase = clienteServico();
-  const { data: visto } = await supabase
-    .from("access_keys")
-    .select("ultimo_acesso")
-    .eq("id", chaveId)
-    .maybeSingle();
-
-  const quando = visto?.ultimo_acesso
-    ? new Date(visto.ultimo_acesso).getTime()
-    : 0;
-
-  if (Date.now() - quando > 60 * 60 * 1000) {
-    await supabase
-      .from("access_keys")
-      .update({ ultimo_acesso: new Date().toISOString() })
-      .eq("id", chaveId);
-  }
-}
-
-/** Null quando não há cookie, a assinatura não bate ou a chave foi revogada. */
-export async function lerSessao(): Promise<Sessao | null> {
+/**
+ * Null quando não há cookie, a assinatura não bate ou a chave foi revogada.
+ *
+ * Uma consulta só, e é de propósito: isto roda em toda requisição de tela
+ * interna, e cada ida ao Supabase custa uma volta de rede inteira. O join com
+ * barbers precisa da dica `!barber_id` porque access_keys aponta duas vezes
+ * para lá (o dono da chave e quem a criou), e sem a dica o PostgREST recusa
+ * por ambiguidade.
+ */
+export const lerSessao = cache(async (): Promise<Sessao | null> => {
   const jar = await cookies();
   const cookie = jar.get(COOKIE)?.value;
   if (!cookie) return null;
@@ -119,70 +108,55 @@ export async function lerSessao(): Promise<Sessao | null> {
 
   const supabase = clienteServico();
 
-  /**
-   * O assinante do clube é resolvido lendo a linha direto, porque a função
-   * sessao_atual devolve o tipo app.sessao, que só conhece dono e barbeiro.
-   * Trocar aquele tipo cascatearia em todas as funções do painel, e não vale
-   * o risco por um campo.
-   */
   const { data: linha } = await supabase
     .from("access_keys")
-    .select("id, role, barbershop_id, client_id, revogada_em, expira_em")
+    .select(
+      "id, role, barbershop_id, barber_id, client_id, revogada_em, expira_em, ultimo_acesso, barbers!barber_id(apelido), clients(nome)",
+    )
     .eq("id", chaveId)
     .maybeSingle();
 
   if (!linha || linha.revogada_em) return null;
   if (linha.expira_em && new Date(linha.expira_em) < new Date()) return null;
 
-  if (linha.role === "client") {
-    const { data: cliente } = await supabase
-      .from("clients")
-      .select("nome")
-      .eq("id", linha.client_id)
-      .maybeSingle();
+  const um = <T,>(v: T | T[] | null): T | null =>
+    Array.isArray(v) ? (v[0] ?? null) : v;
 
-    await carimbar(chaveId);
-
-    return {
-      chaveId: linha.id,
-      papel: "client",
-      barbeariaId: linha.barbershop_id,
-      barbeiroId: null,
-      clienteId: linha.client_id,
-      nome: cliente?.nome ?? "Cliente",
-    };
-  }
+  const barbeiro = um(linha.barbers as never) as { apelido: string } | null;
+  const cliente = um(linha.clients as never) as { nome: string } | null;
 
   /**
-   * Dono e barbeiro passam pela função: access_keys tem duas chaves
-   * estrangeiras para barbers (barber_id e criada_por), e o join automático
-   * do PostgREST fica ambíguo e falha.
+   * O carimbo de último acesso não segura a resposta. É informação para o
+   * Johny saber se a chave foi usada, não vale meia volta de rede em cada
+   * clique dele.
    */
-  const { data, error } = await supabase.rpc("sessao_atual", {
-    p_chave: chaveId,
-  });
+  const visto = linha.ultimo_acesso
+    ? new Date(linha.ultimo_acesso).getTime()
+    : 0;
 
-  if (error || !data) return null;
+  if (Date.now() - visto > 60 * 60 * 1000) {
+    after(async () => {
+      await supabase
+        .from("access_keys")
+        .update({ ultimo_acesso: new Date().toISOString() })
+        .eq("id", chaveId);
+    });
+  }
 
-  const sessao = data as {
-    chave_id: string;
-    papel: "owner" | "barber";
-    barbearia_id: string;
-    barbeiro_id: string | null;
-    nome: string;
-  };
-
-  await carimbar(chaveId);
+  const papel = linha.role as Papel;
 
   return {
-    chaveId: sessao.chave_id,
-    papel: sessao.papel,
-    barbeariaId: sessao.barbearia_id,
-    barbeiroId: sessao.barbeiro_id,
-    clienteId: null,
-    nome: sessao.nome,
+    chaveId: linha.id,
+    papel,
+    barbeariaId: linha.barbershop_id,
+    barbeiroId: papel === "barber" ? linha.barber_id : null,
+    clienteId: papel === "client" ? linha.client_id : null,
+    nome:
+      papel === "client"
+        ? (cliente?.nome ?? "Cliente")
+        : (barbeiro?.apelido ?? "Johny"),
   };
-}
+});
 
 /** Para rotas que já foram filtradas pelo middleware, mas precisam do dado. */
 export async function exigirSessao(papel?: Papel) {

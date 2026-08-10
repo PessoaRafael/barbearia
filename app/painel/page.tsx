@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
@@ -78,18 +79,17 @@ export default async function Painel({
 }: {
   searchParams: Promise<{ aba?: string; dia?: string }>;
 }) {
+  // A casa não depende de quem entrou: pedir junto poupa uma volta de rede.
+  const casaPromessa = casa();
+
   const sessao = await lerSessao();
   if (!sessao) redirect("/entrar");
   if (sessao.papel === "barber") redirect("/agenda");
+  if (sessao.papel === "client") redirect("/clube");
 
   const { aba = "agenda", dia = hojeNaCasa() } = await searchParams;
-  const barbearia = await casa();
+  const barbearia = await casaPromessa;
   const dias = proximosDias(7);
-
-  const [resumo, pendentes] = await Promise.all([
-    resumoDoDia(sessao, dia),
-    pixParaConferir(sessao),
-  ]);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -121,8 +121,6 @@ export default async function Painel({
             {ABAS.map((item) => {
               const ativo = item.id === aba;
               const Icone = item.icone;
-              const conta =
-                item.id === "pix" && pendentes.length ? pendentes.length : null;
 
               return (
                 <li key={item.id} className="shrink-0 lg:shrink">
@@ -146,10 +144,10 @@ export default async function Painel({
                         {item.sub}
                       </span>
                     </span>
-                    {conta ? (
-                      <span className="num shrink-0 rounded-pill bg-alerta px-2 py-0.5 font-titulo text-xs font-bold text-fundo">
-                        {conta}
-                      </span>
+                    {item.id === "pix" ? (
+                      <Suspense fallback={null}>
+                        <CrachaPix sessao={sessao} />
+                      </Suspense>
                     ) : null}
                   </Link>
                 </li>
@@ -158,51 +156,112 @@ export default async function Painel({
           </ul>
         </nav>
 
+        {/* Cada pedaço lento entra sozinho. A barra lateral e os títulos
+            aparecem no primeiro instante, e trocar de aba deixa de parecer
+            travamento. A chave no Suspense o faz recuar ao esqueleto quando o
+            dia ou a aba muda, em vez de segurar o conteúdo velho na tela. */}
         <main className="flex min-w-0 flex-1 flex-col gap-5">
-          <dl className="grid grid-cols-3 gap-2 sm:gap-3">
-            <Indicador rotulo="Marcados" valor={String(resumo.marcados)} />
-            <Indicador
-              rotulo="A receber"
-              valor={moedaCentavos(resumo.receita_centavos)}
-            />
-            <Indicador
-              rotulo="Pix pendente"
-              valor={String(pendentes.length)}
-              alerta={pendentes.length > 0}
-            />
-          </dl>
+          <Suspense key={`n${dia}`} fallback={<IndicadoresVazios />}>
+            <Indicadores sessao={sessao} dia={dia} />
+          </Suspense>
 
-          {aba === "agenda" ? (
-            <AbaAgenda sessao={sessao} dia={dia} dias={dias} />
-          ) : aba === "pix" ? (
-            <AbaPix pendentes={pendentes} />
-          ) : aba === "clube" ? (
-            <AbaClube sessao={sessao} pix={barbearia.pix_key ?? ""} />
-          ) : aba === "clientes" ? (
-            <AbaClientes sessao={sessao} />
-          ) : aba === "servicos" ? (
-            <AbaServicos sessao={sessao} />
-          ) : aba === "caixa" ? (
-            <AbaCaixa sessao={sessao} dia={dia} />
-          ) : aba === "fila" ? (
-            <AbaFila sessao={sessao} />
-          ) : aba === "equipe" ? (
-            <AbaEquipe sessao={sessao} />
-          ) : (
-            <Configuracoes
-              pixKey={barbearia.pix_key ?? ""}
-              pixTitular={barbearia.pix_titular ?? ""}
-              modalidade={barbearia.pagamento_modalidade}
-              reservaMinutos={barbearia.reserva_minutos}
-              clubePreco={barbearia.clube_preco_centavos / 100}
-              clubeCortes={barbearia.clube_cortes_mes}
-            />
-          )}
+          <Suspense key={`${aba}${dia}`} fallback={<Carregando />}>
+            {aba === "agenda" ? (
+              <AbaAgenda sessao={sessao} dia={dia} dias={dias} />
+            ) : aba === "pix" ? (
+              <AbaPix sessao={sessao} />
+            ) : aba === "clube" ? (
+              <AbaClube sessao={sessao} pix={barbearia.pix_key ?? ""} />
+            ) : aba === "clientes" ? (
+              <AbaClientes sessao={sessao} />
+            ) : aba === "servicos" ? (
+              <AbaServicos sessao={sessao} />
+            ) : aba === "caixa" ? (
+              <AbaCaixa sessao={sessao} dia={dia} />
+            ) : aba === "fila" ? (
+              <AbaFila sessao={sessao} />
+            ) : aba === "equipe" ? (
+              <AbaEquipe sessao={sessao} />
+            ) : (
+              <Configuracoes
+                pixKey={barbearia.pix_key ?? ""}
+                pixTitular={barbearia.pix_titular ?? ""}
+                modalidade={barbearia.pagamento_modalidade}
+                reservaMinutos={barbearia.reserva_minutos}
+                clubePreco={barbearia.clube_preco_centavos / 100}
+                clubeCortes={barbearia.clube_cortes_mes}
+              />
+            )}
+          </Suspense>
 
-          <AvisosNaFila sessao={sessao} />
+          <Suspense fallback={null}>
+            <AvisosNaFila sessao={sessao} />
+          </Suspense>
         </main>
       </div>
     </div>
+  );
+}
+
+type Sessao = NonNullable<Awaited<ReturnType<typeof lerSessao>>>;
+
+async function Indicadores({ sessao, dia }: { sessao: Sessao; dia: string }) {
+  const [resumo, pendentes] = await Promise.all([
+    resumoDoDia(sessao, dia),
+    pixParaConferir(sessao),
+  ]);
+
+  return (
+    <dl className="grid grid-cols-3 gap-2 sm:gap-3">
+      <Indicador rotulo="Marcados" valor={String(resumo.marcados)} />
+      <Indicador
+        rotulo="A receber"
+        valor={moedaCentavos(resumo.receita_centavos)}
+      />
+      <Indicador
+        rotulo="Pix pendente"
+        valor={String(pendentes.length)}
+        alerta={pendentes.length > 0}
+      />
+    </dl>
+  );
+}
+
+/** Mesma altura dos números de verdade, para a tela não pular quando chegam. */
+function IndicadoresVazios() {
+  return (
+    <dl className="grid grid-cols-3 gap-2 sm:gap-3">
+      {["Marcados", "A receber", "Pix pendente"].map((rotulo) => (
+        <div
+          key={rotulo}
+          className="flex flex-col gap-1 rounded-card border border-borda bg-superficie px-3 py-3 sm:px-4"
+        >
+          <dt className="text-xs text-texto-suave">{rotulo}</dt>
+          <dd className="num font-titulo text-xl font-bold text-texto-apagado sm:text-2xl">
+            ·
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+async function CrachaPix({ sessao }: { sessao: Sessao }) {
+  const pendentes = await pixParaConferir(sessao);
+  if (!pendentes.length) return null;
+
+  return (
+    <span className="num shrink-0 rounded-pill bg-alerta px-2 py-0.5 font-titulo text-xs font-bold text-fundo">
+      {pendentes.length}
+    </span>
+  );
+}
+
+function Carregando() {
+  return (
+    <section className="flex min-h-[240px] items-center justify-center rounded-grande border border-borda bg-superficie p-5">
+      <span className="text-sm text-texto-apagado">Carregando...</span>
+    </section>
   );
 }
 
@@ -252,7 +311,6 @@ function Vazio({ texto }: { texto: string }) {
   );
 }
 
-type Sessao = NonNullable<Awaited<ReturnType<typeof lerSessao>>>;
 
 async function AbaAgenda({
   sessao,
@@ -424,11 +482,9 @@ async function AbaAgenda({
   );
 }
 
-function AbaPix({
-  pendentes,
-}: {
-  pendentes: Awaited<ReturnType<typeof pixParaConferir>>;
-}) {
+async function AbaPix({ sessao }: { sessao: Sessao }) {
+  const pendentes = await pixParaConferir(sessao);
+
   return (
     <Cartao titulo="Pix para conferir">
       <p className="text-sm text-texto-suave">

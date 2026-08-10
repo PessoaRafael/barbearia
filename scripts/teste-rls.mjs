@@ -103,7 +103,11 @@ const servicos = await rest("services?select=id,nome,duracao_min&order=ordem");
 
 const anderson = barbeiros.find((b) => b.apelido === "Anderson");
 const davi = barbeiros.find((b) => b.apelido === "Davi");
-const corte = servicos.find((s) => s.nome === "Corte social");
+// Um corte curto qualquer, o primeiro de 30 minutos. Fixar o nome quebrava o
+// teste toda vez que o Johny mexia na tabela de preços.
+const corte =
+  servicos.find((s) => s.duracao_min === 30 && s.ativo !== false) ?? servicos[0];
+conferir("existe serviço para o cenário", Boolean(corte?.id));
 
 const [chaveDono] = await rest(
   "access_keys?select=id&role=eq.owner&revogada_em=is.null",
