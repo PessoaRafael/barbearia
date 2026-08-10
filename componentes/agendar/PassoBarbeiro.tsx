@@ -4,31 +4,34 @@ import { Zap } from "lucide-react";
 
 import { Retrato } from "@/componentes/base";
 import { rotuloDe, type Dia } from "@/lib/agenda/dias";
-import type { Barbeiro, Escolha, Livre } from "./tipos";
+import type { Barbeiro, Escolha } from "./tipos";
 
+/**
+ * Quem corta, depois de o horário já estar escolhido.
+ *
+ * Antes este passo vinha antes do dia e contava vagas do dia inteiro, o que
+ * dava "agenda cheia" sem o cliente ter escolhido dia nenhum. Agora a pergunta
+ * é direta: quem está livre naquele horário.
+ */
 export function PassoBarbeiro({
   barbeiros,
   escolha,
   dia,
-  horarios,
-  carregando,
+  hora,
+  disponiveis,
   onEscolher,
 }: {
   barbeiros: Barbeiro[];
   escolha: Escolha;
   temEscolha: boolean;
   dia: Dia;
-  horarios: Livre[] | null;
-  carregando: boolean;
+  hora: string | null;
+  /** Ids livres exatamente na hora escolhida. */
+  disponiveis: string[];
   onEscolher: (id: Escolha) => void;
 }) {
-  const quando = rotuloDe(dia);
-
-  const livresDe = (id: string) =>
-    horarios?.filter((h) => h.barbeiros.includes(id)).length ?? 0;
-
-  const contagem = (n: number) =>
-    carregando || horarios === null ? "conferindo a agenda" : `${n} livres ${quando}`;
+  const quando = `${rotuloDe(dia)} às ${hora ?? ""}`;
+  const livres = barbeiros.filter((b) => disponiveis.includes(b.id));
 
   return (
     <div className="flex flex-col gap-3">
@@ -49,16 +52,17 @@ export function PassoBarbeiro({
             Tanto faz, primeiro que liberar
           </span>
           <span className="num text-xs text-texto-suave">
-            {contagem(horarios?.length ?? 0)}
+            {livres.length === 1
+              ? `${livres[0].nome} está livre ${quando}`
+              : `${livres.length} livres ${quando}`}
           </span>
         </span>
       </button>
 
       <ul className="grid gap-2 sm:grid-cols-3">
         {barbeiros.map((b) => {
-          const livres = livresDe(b.id);
           const ativo = escolha === b.id;
-          const cheio = !carregando && horarios !== null && livres === 0;
+          const cheio = !disponiveis.includes(b.id);
 
           return (
             <li key={b.id}>
@@ -98,7 +102,7 @@ export function PassoBarbeiro({
                       cheio ? "text-texto-apagado" : "text-clube"
                     }`}
                   >
-                    {cheio ? `agenda cheia ${quando}` : contagem(livres)}
+                    {cheio ? `ocupado ${quando}` : `livre ${quando}`}
                   </span>
                 </span>
               </button>

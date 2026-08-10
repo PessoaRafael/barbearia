@@ -123,8 +123,8 @@ export function Fluxo({
 
   const faltam = [
     servicoId,
-    temBarbeiro ? "ok" : null,
     hora,
+    temBarbeiro ? "ok" : null,
     nome.trim().length >= 2 && telefone.replace(/\D/g, "").length >= 10
       ? "ok"
       : null,
@@ -139,35 +139,42 @@ export function Fluxo({
 
   const quando = hora ? `${rotuloDe(dia)} às ${hora}` : "";
 
+  /** Quem está livre exatamente na hora escolhida, que é o que o passo 3 lista. */
+  const livresNaHora =
+    (hora ? horarios?.find((h) => h.hora === hora)?.barbeiros : null) ?? [];
+
   function limparDepoisDe(passo: number) {
-    if (passo <= 1) {
+    if (passo <= 2) setHora(null);
+    if (passo <= 3) {
       setBarbeiro(null);
       setTemBarbeiro(false);
     }
-    if (passo <= 2) setHora(null);
     if (passo <= 4) setForma(null);
     setErro(null);
   }
 
   function escolherServico(id: string) {
     if (id !== servicoId) {
-      limparDepoisDe(1);
+      limparDepoisDe(2);
       setHorarios(null);
     }
     setServicoId(id);
     setPassoAberto(2);
   }
 
-  function escolherBarbeiro(valor: Escolha) {
-    setBarbeiro(valor);
-    setTemBarbeiro(true);
-    setHora(null);
+  /** Trocar de horário devolve a escolha do barbeiro: quem estava livre às 10h
+   *  pode não estar às 15h. */
+  function escolherHora(valor: string) {
+    setHora(valor);
+    setBarbeiro(null);
+    setTemBarbeiro(false);
     setForma(null);
     setPassoAberto(3);
   }
 
-  function escolherHora(valor: string) {
-    setHora(valor);
+  function escolherBarbeiro(valor: Escolha) {
+    setBarbeiro(valor);
+    setTemBarbeiro(true);
     setForma(null);
     setPassoAberto(4);
   }
@@ -209,7 +216,7 @@ export function Fluxo({
         // O horário pode ter sido tomado: recarrega a grade e volta ao passo 3.
         buscarHorarios({ data, servicoId: servico.id }).then(setHorarios);
         setHora(null);
-        setPassoAberto(3);
+        setPassoAberto(2);
         return;
       }
 
@@ -231,16 +238,16 @@ export function Fluxo({
 
   const concluido = [
     Boolean(servico),
-    temBarbeiro,
     Boolean(hora),
+    temBarbeiro,
     Boolean(reconhecido !== null && nome.trim()),
     Boolean(forma),
   ];
   const travado = [
     false,
     !servico,
-    !temBarbeiro,
     !hora,
+    !temBarbeiro,
     reconhecido === null,
     !forma,
   ];
@@ -285,8 +292,8 @@ export function Fluxo({
                       ? `${servico.nome} · ${duracaoLabel(servico.duracaoMin)}`
                       : null,
                   },
-                  { rotulo: "Quem corta", valor: temBarbeiro ? nomeBarbeiro : null },
                   { rotulo: "Quando", valor: hora ? quando : null },
+                  { rotulo: "Quem corta", valor: temBarbeiro ? nomeBarbeiro : null },
                   { rotulo: "Seus dados", valor: reconhecido ? nome : null },
                   { rotulo: "Pagamento", valor: forma ? resumoPagamento : null },
                 ]}
@@ -334,44 +341,30 @@ export function Fluxo({
                   />
                 </Passo>
 
+                {/* Quando antes de quem corta: com a agenda de um dia fechada,
+                    perguntar o barbeiro primeiro mostrava "agenda cheia" para
+                    os três sem o cliente ter escolhido dia nenhum. */}
                 <Passo
                   numero={2}
-                  titulo="Quem corta"
+                  titulo="Quando"
                   estado={estado(2)}
                   motivo="liberado depois do serviço"
-                  resumo={nomeBarbeiro}
-                  onAbrir={() => setPassoAberto(2)}
-                >
-                  <PassoBarbeiro
-                    barbeiros={barbeiros}
-                    escolha={barbeiro}
-                    temEscolha={temBarbeiro}
-                    dia={dia}
-                    horarios={horarios}
-                    carregando={carregando}
-                    onEscolher={escolherBarbeiro}
-                  />
-                </Passo>
-
-                <Passo
-                  numero={3}
-                  titulo="Quando"
-                  estado={estado(3)}
-                  motivo="liberado depois do barbeiro"
                   resumo={quando}
-                  onAbrir={() => setPassoAberto(3)}
+                  onAbrir={() => setPassoAberto(2)}
                 >
                   <PassoHorario
                     dias={dias}
                     dia={dia}
                     horarios={horarios}
                     carregando={carregando}
-                    escolha={barbeiro}
+                    escolha={null}
                     hora={hora}
                     servicoId={servicoId}
                     onDia={(d) => {
                       setData(d);
                       setHora(null);
+                      setBarbeiro(null);
+                      setTemBarbeiro(false);
                       setHorarios(null);
                     }}
                     onHora={escolherHora}
@@ -379,10 +372,29 @@ export function Fluxo({
                 </Passo>
 
                 <Passo
+                  numero={3}
+                  titulo="Quem corta"
+                  estado={estado(3)}
+                  motivo="liberado depois do horário"
+                  resumo={nomeBarbeiro}
+                  onAbrir={() => setPassoAberto(3)}
+                >
+                  <PassoBarbeiro
+                    barbeiros={barbeiros}
+                    escolha={barbeiro}
+                    temEscolha={temBarbeiro}
+                    dia={dia}
+                    hora={hora}
+                    disponiveis={livresNaHora}
+                    onEscolher={escolherBarbeiro}
+                  />
+                </Passo>
+
+                <Passo
                   numero={4}
                   titulo="Seus dados"
                   estado={estado(4)}
-                  motivo="liberado depois do horário"
+                  motivo="liberado depois do barbeiro"
                   resumo={`${nome} · ${telefoneBonito(telefone)}`}
                   onAbrir={() => setPassoAberto(4)}
                 >
