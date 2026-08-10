@@ -60,6 +60,7 @@ export default async function Agendar() {
           nome: b.apelido,
           nomeCompleto: b.nome,
           especialidade: b.especialidade ?? "",
+          foto: b.foto_url ?? null,
         }))}
         dias={dias}
         clube={{

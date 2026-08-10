@@ -75,7 +75,10 @@ export function PassoBarbeiro({
                 }`}
               >
                 <Retrato
+                  src={b.foto ?? undefined}
+                  alt={b.nomeCompleto}
                   iniciais={b.nome.slice(0, 2).toUpperCase()}
+                  tamanhos="(min-width: 640px) 220px, 64px"
                   className="w-16 shrink-0 sm:w-full"
                   proporcao="1 / 1"
                 />

@@ -47,7 +47,9 @@ export function Retrato({
           alt={alt ?? ""}
           fill
           sizes={tamanhos}
-          className="object-cover"
+          /* Ancorado no topo: quando o box é mais quadrado que a foto, cortar
+             pelo meio comeria a cabeça de quem está posando. */
+          className="object-cover object-top"
           priority
         />
       ) : iniciais ? (

@@ -151,14 +151,15 @@ function Hero({
         </dl>
       </div>
 
-      {/* Nativa em 710x679: o box acompanha o quadrado da foto e nunca passa
-          de 420px, para não esticar pixel que não existe. */}
+      {/* Retrato de estúdio, nativo em 960x1280. A proporção segue a da foto
+          para não cortar a cabeça nem esticar pixel que não existe, e o box
+          para em 380px porque em pé ele ganha altura rápido. */}
       <Retrato
-        src="/salao.jpg"
-        alt="Johny e o sócio na Johny Barbearia"
-        tamanhos="(min-width: 1024px) 420px, 100vw"
-        proporcao="710 / 679"
-        className="w-full max-w-[420px] self-center lg:justify-self-end"
+        src="/Johny.jpg"
+        alt="Johny, da Johny Barbearia"
+        tamanhos="(min-width: 1024px) 380px, 100vw"
+        proporcao="3 / 4"
+        className="w-full max-w-[380px] self-center lg:justify-self-end"
       />
     </section>
   );
@@ -313,12 +314,14 @@ function Time({
             key={barbeiro.id}
             className="flex flex-col gap-3 rounded-card border border-borda bg-superficie p-4"
           >
+            {/* 3/4 e não 4/3: as fotos da equipe são em pé, e no box deitado
+                o corte comia a cabeça de todo mundo. */}
             <Retrato
               src={barbeiro.foto_url ?? undefined}
               alt={barbeiro.nome}
               iniciais={barbeiro.apelido.slice(0, 2).toUpperCase()}
               tamanhos="(min-width: 640px) 320px, 100vw"
-              proporcao="4 / 3"
+              proporcao="3 / 4"
             />
             <div className="flex flex-col gap-1">
               <span className="font-titulo text-lg font-semibold">

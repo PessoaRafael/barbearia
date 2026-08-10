@@ -16,6 +16,7 @@ export type Barbeiro = {
   nome: string;
   nomeCompleto: string;
   especialidade: string;
+  foto: string | null;
 };
 
 /** null = "tanto faz, primeiro que liberar" */
