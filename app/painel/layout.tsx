@@ -4,7 +4,6 @@ import { Logo } from "@/componentes/base";
 import { BarraLateral } from "@/componentes/painel/BarraLateral";
 import { sair } from "@/app/entrar/acoes";
 import { lerSessao } from "@/lib/auth/sessao";
-import { casa } from "@/lib/dados/casa";
 import { pixParaConferir } from "@/lib/dados/painel";
 
 /**
@@ -19,17 +18,13 @@ export default async function LayoutDoPainel({
 }: {
   children: React.ReactNode;
 }) {
-  const casaPromessa = casa();
-
   const sessao = await lerSessao();
   if (!sessao) redirect("/entrar");
   if (sessao.papel === "barber") redirect("/agenda");
   if (sessao.papel === "client") redirect("/clube");
 
-  const [barbearia, pendentes] = await Promise.all([
-    casaPromessa,
-    pixParaConferir(sessao),
-  ]);
+  const barbearia = sessao.casa;
+  const pendentes = await pixParaConferir(sessao);
 
   return (
     <div className="flex min-h-screen flex-col">

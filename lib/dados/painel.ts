@@ -44,6 +44,70 @@ export async function agendaDoDia(
   return (linhas ?? []) as Marcado[];
 }
 
+export type Bloqueio = {
+  id: string;
+  barber_id: string;
+  inicio: string;
+  fim: string;
+  motivo: string | null;
+};
+
+export type Agenda = {
+  marcados: Marcado[];
+  bloqueios: Bloqueio[];
+  barbeiros: { id: string; apelido: string }[];
+  janela: { abre: string; fecha: string } | null;
+};
+
+/**
+ * Tudo que a aba Agenda desenha, numa volta de rede só.
+ *
+ * Antes eram cinco leituras, duas delas em fila porque dependiam da lista de
+ * barbeiros. O recorte por papel continua no Postgres: o barbeiro recebe só a
+ * própria coluna.
+ */
+export async function painelAgenda(
+  sessao: Sessao,
+  data = hojeNaCasa(),
+): Promise<Agenda> {
+  const { data: tudo, error } = await clienteServico().rpc("painel_agenda", {
+    p_chave: sessao.chaveId,
+    p_data: data,
+  });
+
+  if (!error && tudo) return tudo as Agenda;
+
+  /**
+   * Caminho antigo, para o painel não quebrar entre subir o código e rodar a
+   * migration 0012. Some assim que ela estiver aplicada em todo lugar: mostrar
+   * agenda vazia por causa de função ausente seria pior que ser lento, porque
+   * o Johny acharia que o dia está livre.
+   */
+  console.warn(
+    "painel_agenda indisponível, caindo no caminho antigo. Rodou a 0012?",
+    error?.message,
+  );
+
+  const [marcados, bloqueios, janela, barbeiros] = await Promise.all([
+    agendaDoDia(sessao, data),
+    bloqueiosDoDia(sessao, data),
+    janelaDoDia(sessao, data),
+    clienteServico()
+      .from("barbers")
+      .select("id, apelido")
+      .eq("barbershop_id", sessao.barbeariaId)
+      .eq("ativo", true)
+      .order("ordem"),
+  ]);
+
+  return {
+    marcados,
+    bloqueios: bloqueios as Bloqueio[],
+    janela,
+    barbeiros: (barbeiros.data ?? []) as { id: string; apelido: string }[],
+  };
+}
+
 /** cache() para o indicador e o crachá da barra lateral não pedirem duas vezes. */
 export const resumoDoDia = cache(
   async (sessao: Sessao, data = hojeNaCasa()) => {

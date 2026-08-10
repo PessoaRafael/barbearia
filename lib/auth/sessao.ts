@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import { after } from "next/server";
 
 import { clienteServico } from "@/lib/supabase/servidor";
+import type { Casa } from "@/lib/dados/casa";
 
 /**
  * Sessão de 30 dias em cookie httpOnly.
@@ -27,6 +28,9 @@ export type Sessao = {
   chaveId: string;
   papel: Papel;
   barbeariaId: string;
+  /** A barbearia vem junto: toda tela interna precisa dela, e assim não custa
+   *  outra volta de rede só para descobrir o nome e a chave pix. */
+  casa: Casa;
   barbeiroId: string | null;
   clienteId: string | null;
   nome: string;
@@ -111,7 +115,7 @@ export const lerSessao = cache(async (): Promise<Sessao | null> => {
   const { data: linha } = await supabase
     .from("access_keys")
     .select(
-      "id, role, barbershop_id, barber_id, client_id, revogada_em, expira_em, ultimo_acesso, barbers!barber_id(apelido), clients(nome)",
+      "id, role, barbershop_id, barber_id, client_id, revogada_em, expira_em, ultimo_acesso, barbershops(*), barbers!barber_id(apelido), clients(nome)",
     )
     .eq("id", chaveId)
     .maybeSingle();
@@ -124,6 +128,8 @@ export const lerSessao = cache(async (): Promise<Sessao | null> => {
 
   const barbeiro = um(linha.barbers as never) as { apelido: string } | null;
   const cliente = um(linha.clients as never) as { nome: string } | null;
+  const barbearia = um(linha.barbershops as never) as Casa | null;
+  if (!barbearia) return null;
 
   /**
    * O carimbo de último acesso não segura a resposta. É informação para o
@@ -149,6 +155,7 @@ export const lerSessao = cache(async (): Promise<Sessao | null> => {
     chaveId: linha.id,
     papel,
     barbeariaId: linha.barbershop_id,
+    casa: barbearia,
     barbeiroId: papel === "barber" ? linha.barber_id : null,
     clienteId: papel === "client" ? linha.client_id : null,
     nome:

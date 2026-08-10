@@ -12,13 +12,7 @@ import {
   proximosDias,
   rotuloDe,
 } from "@/lib/agenda/dias";
-import { casa } from "@/lib/dados/casa";
-import {
-  agendaDoDia,
-  bloqueiosDoDia,
-  janelaDoDia,
-  resumoDoDia,
-} from "@/lib/dados/painel";
+import { painelAgenda, resumoDoDia } from "@/lib/dados/painel";
 import { comecoDoResto } from "@/lib/agenda/fechar";
 import { moedaCentavos, telefoneBonito } from "@/lib/formato";
 
@@ -50,12 +44,10 @@ export default async function AgendaDoBarbeiro({
   const { dia = hojeNaCasa() } = await searchParams;
   const dias = proximosDias(7);
 
-  const [barbearia, marcados, bloqueios, resumo, janela] = await Promise.all([
-    casa(),
-    agendaDoDia(sessao, dia),
-    bloqueiosDoDia(sessao, dia),
+  const barbearia = sessao.casa;
+  const [{ marcados, bloqueios, janela }, resumo] = await Promise.all([
+    painelAgenda(sessao, dia),
     resumoDoDia(sessao, dia),
-    janelaDoDia(sessao, dia),
   ]);
 
   const pontuais = bloqueios.filter((b) => b.motivo !== "almoço");

@@ -5,7 +5,6 @@ import { CalendarCheck, Clock, Crown, Scissors, TriangleAlert } from "lucide-rea
 import { Logo } from "@/componentes/base";
 import { sair } from "@/app/entrar/acoes";
 import { lerSessao } from "@/lib/auth/sessao";
-import { casa } from "@/lib/dados/casa";
 import { moedaCentavos, telefoneBonito } from "@/lib/formato";
 import { clienteServico } from "@/lib/supabase/servidor";
 
@@ -64,10 +63,10 @@ export default async function AreaDoClube() {
   if (sessao.papel === "owner") redirect("/painel");
   if (sessao.papel === "barber") redirect("/agenda");
 
-  const [barbearia, { data }] = await Promise.all([
-    casa(),
-    clienteServico().rpc("area_do_cliente", { p_chave: sessao.chaveId }),
-  ]);
+  const barbearia = sessao.casa;
+  const { data } = await clienteServico().rpc("area_do_cliente", {
+    p_chave: sessao.chaveId,
+  });
 
   if (!data) redirect("/entrar");
   const area = data as Area;

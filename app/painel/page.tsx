@@ -22,17 +22,14 @@ import {
   rotuloDe,
 } from "@/lib/agenda/dias";
 import { comecoDoResto } from "@/lib/agenda/fechar";
-import { barbeirosAtivos, casa } from "@/lib/dados/casa";
 import {
-  agendaDoDia,
   assinantes,
   avisosPendentes,
-  bloqueiosDoDia,
-  janelaDoDia,
   caixaDoDia,
   clientes,
   equipe,
   filaDeEspera,
+  painelAgenda,
   pixParaConferir,
   resumoDoDia,
   servicos as listarServicos,
@@ -55,17 +52,16 @@ export default async function Painel({
   searchParams: Promise<{ aba?: string; dia?: string }>;
 }) {
   // O cabeçalho e a barra lateral moram no layout: aqui só o miolo da aba.
-  const casaPromessa = casa();
-
-  // O layout já barrou quem não é dono. Repetir aqui é barato (a leitura da
-  // sessão é a mesma da requisição) e cobre a sessão que caiu no meio do
-  // caminho, mandando para /entrar em vez de estourar uma tela de erro.
+  //
+  // O layout já barrou quem não é dono. Repetir aqui não custa outra consulta
+  // (a sessão é lida uma vez por requisição) e cobre a sessão que caiu no meio
+  // do caminho, mandando para /entrar em vez de estourar uma tela de erro.
   const sessao = await lerSessao();
   if (!sessao) redirect("/entrar");
   if (sessao.papel !== "owner") redirect("/entrar");
 
   const { aba = "agenda", dia = hojeNaCasa() } = await searchParams;
-  const barbearia = await casaPromessa;
+  const barbearia = sessao.casa;
   const dias = proximosDias(7);
 
   return (
@@ -218,12 +214,12 @@ async function AbaAgenda({
   dia: string;
   dias: ReturnType<typeof proximosDias>;
 }) {
-  const [marcados, bloqueios, janela, time] = await Promise.all([
-    agendaDoDia(sessao, dia),
-    bloqueiosDoDia(sessao, dia),
-    janelaDoDia(sessao, dia),
-    barbeirosAtivos(),
-  ]);
+  const {
+    marcados,
+    bloqueios,
+    barbeiros: time,
+    janela,
+  } = await painelAgenda(sessao, dia);
 
   const porBarbeiro = new Map<string, typeof marcados>();
   for (const m of marcados) {
