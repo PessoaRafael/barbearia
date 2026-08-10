@@ -6,9 +6,20 @@ import { EncerrarAtendimento, SoltarBloqueio } from "@/componentes/painel/Acoes"
 import { Bloquear } from "@/componentes/painel/Bloquear";
 import { sair } from "@/app/entrar/acoes";
 import { lerSessao } from "@/lib/auth/sessao";
-import { hojeNaCasa, proximosDias, rotuloDe } from "@/lib/agenda/dias";
+import {
+  agoraNaCasa,
+  hojeNaCasa,
+  proximosDias,
+  rotuloDe,
+} from "@/lib/agenda/dias";
 import { casa } from "@/lib/dados/casa";
-import { agendaDoDia, bloqueiosDoDia, resumoDoDia } from "@/lib/dados/painel";
+import {
+  agendaDoDia,
+  bloqueiosDoDia,
+  janelaDoDia,
+  resumoDoDia,
+} from "@/lib/dados/painel";
+import { comecoDoResto } from "@/lib/agenda/fechar";
 import { moedaCentavos, telefoneBonito } from "@/lib/formato";
 
 /**
@@ -34,15 +45,17 @@ export default async function AgendaDoBarbeiro({
   const sessao = await lerSessao();
   if (!sessao) redirect("/entrar");
   if (sessao.papel === "owner") redirect("/painel");
+  if (sessao.papel === "client") redirect("/clube");
 
   const { dia = hojeNaCasa() } = await searchParams;
   const dias = proximosDias(7);
 
-  const [barbearia, marcados, bloqueios, resumo] = await Promise.all([
+  const [barbearia, marcados, bloqueios, resumo, janela] = await Promise.all([
     casa(),
     agendaDoDia(sessao, dia),
     bloqueiosDoDia(sessao, dia),
     resumoDoDia(sessao, dia),
+    janelaDoDia(sessao, dia),
   ]);
 
   const pontuais = bloqueios.filter((b) => b.motivo !== "almoço");
@@ -108,7 +121,11 @@ export default async function AgendaDoBarbeiro({
           })}
         </div>
 
-        <Bloquear data={dia} />
+        <Bloquear
+          data={dia}
+          janela={janela}
+          apartirDe={comecoDoResto(janela, dia, hojeNaCasa(), agoraNaCasa())}
+        />
 
         {pontuais.length ? (
           <ul className="flex flex-col gap-2">

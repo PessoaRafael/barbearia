@@ -21,18 +21,26 @@ import {
   RevogarChave,
   SoltarBloqueio,
 } from "@/componentes/painel/Acoes";
+import { Bloquear } from "@/componentes/painel/Bloquear";
 import { Clube } from "@/componentes/painel/Clube";
 import { Configuracoes } from "@/componentes/painel/Configuracoes";
 import { Servicos } from "@/componentes/painel/Servicos";
 import { sair } from "@/app/entrar/acoes";
 import { lerSessao } from "@/lib/auth/sessao";
-import { hojeNaCasa, proximosDias, rotuloDe } from "@/lib/agenda/dias";
-import { casa } from "@/lib/dados/casa";
+import {
+  agoraNaCasa,
+  hojeNaCasa,
+  proximosDias,
+  rotuloDe,
+} from "@/lib/agenda/dias";
+import { comecoDoResto } from "@/lib/agenda/fechar";
+import { barbeirosAtivos, casa } from "@/lib/dados/casa";
 import {
   agendaDoDia,
   assinantes,
   avisosPendentes,
   bloqueiosDoDia,
+  janelaDoDia,
   caixaDoDia,
   clientes,
   equipe,
@@ -255,15 +263,51 @@ async function AbaAgenda({
   dia: string;
   dias: ReturnType<typeof proximosDias>;
 }) {
-  const [marcados, bloqueios] = await Promise.all([
+  const [marcados, bloqueios, janela, time] = await Promise.all([
     agendaDoDia(sessao, dia),
     bloqueiosDoDia(sessao, dia),
+    janelaDoDia(sessao, dia),
+    barbeirosAtivos(),
   ]);
 
   const porBarbeiro = new Map<string, typeof marcados>();
   for (const m of marcados) {
     porBarbeiro.set(m.barbeiro, [...(porBarbeiro.get(m.barbeiro) ?? []), m]);
   }
+
+  /**
+   * Fechar a casa inteira grava um bloqueio por barbeiro. Mostrar os três
+   * separados faria o Johny clicar em "Liberar" três vezes achando que já
+   * tinha reaberto, então a mesma faixa vira uma linha só.
+   */
+  type Faixa = {
+    inicio: string;
+    fim: string;
+    motivo: string | null;
+    ids: string[];
+    quem: string[];
+  };
+
+  const apelidoDe = new Map(time.map((b) => [b.id, b.apelido]));
+  const faixas = new Map<string, Faixa>();
+
+  for (const b of bloqueios) {
+    const chave = `${b.inicio}|${b.fim}|${b.motivo ?? ""}`;
+    const atual: Faixa = faixas.get(chave) ?? {
+      inicio: b.inicio,
+      fim: b.fim,
+      motivo: b.motivo,
+      ids: [],
+      quem: [],
+    };
+    atual.ids.push(b.id);
+    atual.quem.push(apelidoDe.get(b.barber_id) ?? "");
+    faixas.set(chave, atual);
+  }
+
+  const fechados = [...faixas.values()].sort((a, b) =>
+    a.inicio.localeCompare(b.inicio),
+  );
 
   return (
     <Cartao titulo="Agenda do dia">
@@ -288,20 +332,30 @@ async function AbaAgenda({
         })}
       </div>
 
-      {bloqueios.length ? (
+      <Bloquear
+        data={dia}
+        janela={janela}
+        barbeiros={time.map((b) => ({ id: b.id, apelido: b.apelido }))}
+        apartirDe={comecoDoResto(janela, dia, hojeNaCasa(), agoraNaCasa())}
+      />
+
+      {fechados.length ? (
         <ul className="flex flex-col gap-2">
-          {bloqueios.map((b) => (
+          {fechados.map((f) => (
             <li
-              key={b.id}
+              key={f.ids.join()}
               className="flex flex-wrap items-center gap-3 rounded-card border border-borda-forte bg-superficie-apagada px-4 py-3"
             >
               <span className="num font-titulo text-sm font-bold">
-                {b.inicio.slice(0, 5)}–{b.fim.slice(0, 5)}
+                {f.inicio.slice(0, 5)}–{f.fim.slice(0, 5)}
               </span>
               <span className="flex-1 text-sm text-texto-suave">
-                {b.motivo ?? "bloqueado"}
+                {f.motivo ?? "fechado"} ·{" "}
+                {f.ids.length >= time.length && time.length > 0
+                  ? "a casa toda"
+                  : f.quem.filter(Boolean).join(", ")}
               </span>
-              <SoltarBloqueio bloqueioId={b.id} />
+              <SoltarBloqueio bloqueioId={f.ids} />
             </li>
           ))}
         </ul>

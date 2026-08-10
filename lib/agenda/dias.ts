@@ -36,6 +36,17 @@ export function hojeNaCasa() {
   }).format(new Date());
 }
 
+/** "14:35", a hora que é na barbearia agora. en-GB porque devolve 00:00 à
+ *  meia-noite, e não 24:00 como o pt-BR em algumas versões do ICU. */
+export function agoraNaCasa() {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: FUSO,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date());
+}
+
 export function proximosDias(quantidade = 7): Dia[] {
   const [ano, mes, dia] = hojeNaCasa().split("-").map(Number);
 

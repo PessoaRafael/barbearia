@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { exigirDono, exigirSessao } from "@/lib/auth/sessao";
+import { exigirDono, exigirEquipe } from "@/lib/auth/sessao";
 import { gerarChave, hashChave, prefixoDe } from "@/lib/auth/chaves";
 import { clienteServico } from "@/lib/supabase/servidor";
 
@@ -31,7 +31,7 @@ export async function encerrar(
   agendamentoId: string,
   status: "concluido" | "faltou",
 ) {
-  const sessao = await exigirSessao();
+  const sessao = await exigirEquipe();
   const { error } = await clienteServico().rpc("encerrar_atendimento", {
     p_chave: sessao.chaveId,
     p_agendamento: agendamentoId,
@@ -53,44 +53,108 @@ const bloqueio = z.object({
   barbeiroId: z.string().uuid().nullable().optional(),
 });
 
+/**
+ * Fecha um pedaço do dia. Sem barbeiro escolhido, o dono fecha a casa inteira:
+ * é o caso do Johny olhar a tarde lotada e não querer mais ninguém entrando.
+ *
+ * Fechar não desmarca quem já está na régua, só impede horário novo. Quem já
+ * pagou continua com a cadeira dele.
+ */
 export async function bloquear(entrada: z.input<typeof bloqueio>) {
   const analise = bloqueio.safeParse(entrada);
   if (!analise.success) return { erro: "Horário inválido." };
+  if (analise.data.fim <= analise.data.inicio) {
+    return { erro: "A hora de fim tem que ser depois da de início." };
+  }
 
-  const sessao = await exigirSessao();
-  const { error } = await clienteServico().rpc("bloquear_horario", {
-    p_chave: sessao.chaveId,
-    p_data: analise.data.data,
-    p_inicio: analise.data.inicio,
-    p_fim: analise.data.fim,
-    p_motivo: analise.data.motivo ?? null,
-    p_barbeiro: analise.data.barbeiroId ?? null,
-  });
+  const sessao = await exigirEquipe();
+  const supabase = clienteServico();
 
-  if (error) return { erro: "Não consegui bloquear esse horário." };
+  /**
+   * O barbeiro nunca escolhe: a função no Postgres ignora o que vier aqui e
+   * usa a agenda dele. Só o dono chega a decidir entre um e todos.
+   */
+  let alvos: (string | null)[] = [analise.data.barbeiroId ?? null];
+
+  if (sessao.papel === "owner" && !analise.data.barbeiroId) {
+    const { data: equipe } = await supabase
+      .from("barbers")
+      .select("id")
+      .eq("barbershop_id", sessao.barbeariaId)
+      .eq("ativo", true);
+
+    if (!equipe?.length) return { erro: "Nenhum barbeiro ativo para fechar." };
+    alvos = equipe.map((b) => b.id);
+  }
+
+  const erros = await Promise.all(
+    alvos.map(async (alvo) => {
+      const { error } = await supabase.rpc("bloquear_horario", {
+        p_chave: sessao.chaveId,
+        p_data: analise.data.data,
+        p_inicio: analise.data.inicio,
+        p_fim: analise.data.fim,
+        p_motivo: analise.data.motivo ?? null,
+        p_barbeiro: alvo,
+      });
+      return error;
+    }),
+  );
 
   revalidatePath("/painel");
   revalidatePath("/agenda");
+
+  const falharam = erros.filter(Boolean).length;
+  if (falharam === alvos.length) {
+    return { erro: "Não consegui fechar esse horário." };
+  }
+  if (falharam) {
+    // Melhor dizer que ficou pela metade do que deixar o Johny achar que a
+    // casa está fechada quando um barbeiro ainda aceita horário.
+    return { erro: `Fechei em ${alvos.length - falharam} de ${alvos.length}. Tente de novo.` };
+  }
+
   return { ok: true };
 }
 
-export async function liberarBloqueio(bloqueioId: string) {
-  const sessao = await exigirSessao();
+/**
+ * Reabre horário fechado. Aceita vários ids porque fechar a casa toda cria um
+ * bloqueio por barbeiro, e reabrir tem que ser um clique só.
+ */
+export async function liberarBloqueio(ids: string | string[]) {
+  const sessao = await exigirEquipe();
   const supabase = clienteServico();
+  const lista = Array.isArray(ids) ? ids : [ids];
+  if (!lista.length) return { erro: "Bloqueio não encontrado." };
 
-  // O barbeiro só solta bloqueio da própria agenda.
-  const { data: alvo } = await supabase
+  const { data: alvos } = await supabase
     .from("breaks")
-    .select("id, barber_id, data")
-    .eq("id", bloqueioId)
-    .maybeSingle();
+    .select("id, data, barbers!inner(id, barbershop_id)")
+    .in("id", lista);
 
-  if (!alvo || !alvo.data) return { erro: "Bloqueio não encontrado." };
-  if (sessao.papel === "barber" && alvo.barber_id !== sessao.barbeiroId) {
-    return { erro: "Esse bloqueio não é da sua agenda." };
-  }
+  if (!alvos?.length) return { erro: "Bloqueio não encontrado." };
 
-  await supabase.from("breaks").delete().eq("id", bloqueioId);
+  const permitidos = alvos.filter((alvo) => {
+    // Almoço fixo não tem data e não se solta por aqui.
+    if (!alvo.data) return false;
+
+    const b = Array.isArray(alvo.barbers) ? alvo.barbers[0] : alvo.barbers;
+    const dono = b as { id: string; barbershop_id: string } | null;
+    if (!dono || dono.barbershop_id !== sessao.barbeariaId) return false;
+
+    // O barbeiro só solta bloqueio da própria agenda.
+    return sessao.papel !== "barber" || dono.id === sessao.barbeiroId;
+  });
+
+  if (!permitidos.length) return { erro: "Esse bloqueio não é da sua agenda." };
+
+  await supabase
+    .from("breaks")
+    .delete()
+    .in(
+      "id",
+      permitidos.map((a) => a.id),
+    );
 
   revalidatePath("/painel");
   revalidatePath("/agenda");

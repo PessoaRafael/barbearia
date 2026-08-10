@@ -124,7 +124,12 @@ export function EncerrarAtendimento({ agendamentoId }: { agendamentoId: string }
   );
 }
 
-export function SoltarBloqueio({ bloqueioId }: { bloqueioId: string }) {
+/** Um id, ou vários quando o mesmo horário foi fechado para a casa toda. */
+export function SoltarBloqueio({
+  bloqueioId,
+}: {
+  bloqueioId: string | string[];
+}) {
   const [rodando, comecar] = useTransition();
 
   return (

@@ -195,3 +195,11 @@ export async function exigirSessao(papel?: Papel) {
 export async function exigirDono() {
   return exigirSessao("owner");
 }
+
+/** Dono ou barbeiro. O assinante do clube não mexe em agenda de ninguém. */
+export async function exigirEquipe() {
+  const sessao = await lerSessao();
+  if (!sessao) throw new Error("Sessão expirada.");
+  if (sessao.papel === "client") throw new Error("Acesso negado.");
+  return sessao;
+}

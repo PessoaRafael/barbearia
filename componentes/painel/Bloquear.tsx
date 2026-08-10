@@ -5,24 +5,76 @@ import { Lock, X } from "lucide-react";
 
 import { bloquear } from "@/app/painel/acoes";
 
-/** Fechar um pedaço do dia na correria: almoço estendido, banco, médico. */
+export type Janela = { abre: string; fecha: string } | null;
+
+/**
+ * Fechar um pedaço do dia.
+ *
+ * Dois usos que parecem o mesmo e não são: o barbeiro tapa um buraco na agenda
+ * dele (banco, médico), e o Johny olha a terça lotada e fecha o resto do dia
+ * para a casa toda, antes que entre gente que ninguém vai conseguir atender.
+ *
+ * Fechar não desmarca ninguém. Quem já pagou continua com a cadeira.
+ */
 export function Bloquear({
   data,
   barbeiroId = null,
+  barbeiros = [],
+  janela = null,
+  apartirDe = null,
 }: {
   data: string;
+  /** Fixo quando é a agenda de um barbeiro só; ele não escolhe de quem fechar. */
   barbeiroId?: string | null;
+  /** Só o dono recebe a lista: é ele que decide entre um e a casa toda. */
+  barbeiros?: { id: string; apelido: string }[];
+  janela?: Janela;
+  /** Onde começa "o resto do dia": agora, se for hoje; a abertura, se for depois. */
+  apartirDe?: string | null;
 }) {
   const [aberto, setAberto] = useState(false);
   const [inicio, setInicio] = useState("");
   const [fim, setFim] = useState("");
+  const [quem, setQuem] = useState("todos");
   const [motivo, setMotivo] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [rodando, comecar] = useTransition();
 
   const campo =
     "min-h-toque w-full rounded-bloco border border-borda bg-superficie px-3 text-sm text-texto";
-  const valido = /^\d{2}:\d{2}$/.test(inicio) && /^\d{2}:\d{2}$/.test(fim) && fim > inicio;
+  const valido =
+    /^\d{2}:\d{2}$/.test(inicio) && /^\d{2}:\d{2}$/.test(fim) && fim > inicio;
+
+  const escolhe = barbeiros.length > 0;
+  /** Null quando o expediente do dia já passou: não há resto para fechar. */
+  const podeFecharRestante = Boolean(
+    apartirDe && janela && apartirDe < janela.fecha,
+  );
+
+  const enviar = (de: string, ate: string, texto?: string) =>
+    comecar(async () => {
+      const r = await bloquear({
+        data,
+        inicio: de,
+        fim: ate,
+        motivo: texto || motivo || undefined,
+        barbeiroId: escolhe
+          ? quem === "todos"
+            ? null
+            : quem
+          : barbeiroId,
+      });
+
+      if (r.erro) {
+        setErro(r.erro);
+        return;
+      }
+      setAberto(false);
+      setInicio("");
+      setFim("");
+      setMotivo("");
+      setErro(null);
+    });
 
   if (!aberto) {
     return (
@@ -32,13 +84,13 @@ export function Bloquear({
         className="inline-flex min-h-toque items-center justify-center gap-2 rounded-pill border border-borda-forte px-4 font-titulo text-sm font-semibold text-texto transition-colors hover:border-acao sm:self-start"
       >
         <Lock className="h-4 w-4" strokeWidth={2} />
-        Fechar um horário
+        {escolhe ? "Fechar horários desse dia" : "Fechar um horário"}
       </button>
     );
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-card border border-borda-forte bg-superficie-ativa p-4">
+    <div className="flex flex-col gap-4 rounded-card border border-borda-forte bg-superficie-ativa p-4">
       <div className="flex items-center justify-between gap-3">
         <span className="font-titulo text-sm font-semibold">
           Fechar horário nesse dia
@@ -53,7 +105,43 @@ export function Bloquear({
         </button>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <p className="text-xs text-texto-suave">
+        Isso só impede horário novo. Quem já está marcado continua na régua e
+        precisa ser avisado por você, se for o caso.
+      </p>
+
+      {/* O atalho que resolve o caso do dia: um toque e não entra mais
+          ninguém, sem o Johny ter que somar horas de cabeça. */}
+      {janela ? (
+        <div className="flex flex-wrap gap-2">
+          {podeFecharRestante ? (
+            <button
+              type="button"
+              disabled={rodando}
+              onClick={() => enviar(apartirDe!, janela.fecha, "agenda cheia")}
+              className="inline-flex min-h-toque items-center gap-2 rounded-pill border border-alerta/50 px-4 font-titulo text-sm font-semibold text-alerta transition-colors hover:bg-alerta/10 disabled:opacity-60"
+            >
+              <Lock className="h-4 w-4" strokeWidth={2} />
+              {apartirDe === janela.abre
+                ? "Fechar o dia todo"
+                : "Fechar o resto do dia"}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            disabled={rodando}
+            onClick={() => {
+              setInicio(apartirDe ?? janela.abre);
+              setFim(janela.fecha);
+            }}
+            className="inline-flex min-h-toque items-center rounded-pill border border-borda-forte px-4 font-titulo text-sm font-semibold text-texto transition-colors hover:border-acao disabled:opacity-60"
+          >
+            Escolher a faixa
+          </button>
+        </div>
+      ) : null}
+
+      <div className={`grid gap-3 ${escolhe ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
         <label className="flex flex-col gap-1.5">
           <span className="text-xs text-texto-suave">Das</span>
           <input
@@ -72,6 +160,23 @@ export function Bloquear({
             className={`num ${campo}`}
           />
         </label>
+        {escolhe ? (
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs text-texto-suave">Quem</span>
+            <select
+              value={quem}
+              onChange={(e) => setQuem(e.target.value)}
+              className={campo}
+            >
+              <option value="todos">A barbearia toda</option>
+              {barbeiros.map((b) => (
+                <option key={b.id} value={b.id}>
+                  Só {b.apelido}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <label className="flex flex-col gap-1.5">
           <span className="text-xs text-texto-suave">Motivo</span>
           <input
@@ -88,24 +193,7 @@ export function Bloquear({
       <button
         type="button"
         disabled={!valido || rodando}
-        onClick={() =>
-          comecar(async () => {
-            const r = await bloquear({
-              data,
-              inicio,
-              fim,
-              motivo: motivo || undefined,
-              barbeiroId,
-            });
-            if (r.erro) setErro(r.erro);
-            else {
-              setAberto(false);
-              setInicio("");
-              setFim("");
-              setMotivo("");
-            }
-          })
-        }
+        onClick={() => enviar(inicio, fim)}
         className={`inline-flex min-h-toque items-center justify-center rounded-pill px-5 font-titulo text-sm font-bold transition-colors sm:self-start ${
           valido && !rodando
             ? "bg-acao text-acao-sobre hover:bg-acao-hover"

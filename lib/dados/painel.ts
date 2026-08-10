@@ -3,6 +3,7 @@ import "server-only";
 import type { Sessao } from "@/lib/auth/sessao";
 import { clienteServico } from "@/lib/supabase/servidor";
 import { hojeNaCasa } from "@/lib/agenda/dias";
+import { diaDaSemana } from "@/lib/agenda/disponibilidade";
 
 /**
  * Leituras do painel.
@@ -51,6 +52,37 @@ export async function resumoDoDia(sessao: Sessao, data = hojeNaCasa()) {
     receita_centavos: 0,
     pix_pendentes: 0,
   }) as { marcados: number; receita_centavos: number; pix_pendentes: number };
+}
+
+/**
+ * Janela em que a casa funciona nesse dia: o mais cedo que alguém abre e o
+ * mais tarde que alguém fecha. É o limite do "fechar o resto do dia".
+ */
+export async function janelaDoDia(sessao: Sessao, data = hojeNaCasa()) {
+  const supabase = clienteServico();
+
+  const { data: barbeiros } = await supabase
+    .from("barbers")
+    .select("id")
+    .eq("barbershop_id", sessao.barbeariaId)
+    .eq("ativo", true);
+
+  const ids = (barbeiros ?? []).map((b) => b.id);
+  if (!ids.length) return null;
+
+  const { data: horas } = await supabase
+    .from("working_hours")
+    .select("abre, fecha")
+    .in("barber_id", ids)
+    .eq("dia_semana", diaDaSemana(data))
+    .eq("ativo", true);
+
+  if (!horas?.length) return null;
+
+  const cedo = horas.map((h) => (h.abre as string).slice(0, 5)).sort();
+  const tarde = horas.map((h) => (h.fecha as string).slice(0, 5)).sort();
+
+  return { abre: cedo[0], fecha: tarde[tarde.length - 1] };
 }
 
 /** Bloqueios pontuais do dia, os que dá para soltar com um clique. */
