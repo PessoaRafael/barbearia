@@ -306,7 +306,7 @@ function Time({
     <Secao
       id="time"
       titulo="Quem corta"
-      apoio="Cada um com a mão em uma coisa. Dá para escolher ou deixar com o primeiro que liberar."
+      apoio="Os três fazem tudo, do corte à química. Escolhe quem você prefere ou deixa com o primeiro que liberar."
     >
       <ul className="grid gap-4 sm:grid-cols-3">
         {barbeiros.map((barbeiro) => (
