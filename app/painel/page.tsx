@@ -1,19 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  CalendarDays,
-  Crown,
-  KeyRound,
-  ListChecks,
-  Scissors,
-  Settings,
-  Timer,
-  Users,
-  Wallet,
-} from "lucide-react";
 
-import { Logo } from "@/componentes/base";
 import {
   AvisoWhatsapp,
   DecidirPix,
@@ -26,8 +14,7 @@ import { Bloquear } from "@/componentes/painel/Bloquear";
 import { Clube } from "@/componentes/painel/Clube";
 import { Configuracoes } from "@/componentes/painel/Configuracoes";
 import { Servicos } from "@/componentes/painel/Servicos";
-import { sair } from "@/app/entrar/acoes";
-import { lerSessao } from "@/lib/auth/sessao";
+import { lerSessao, type Sessao } from "@/lib/auth/sessao";
 import {
   agoraNaCasa,
   hojeNaCasa,
@@ -55,18 +42,6 @@ import { textoDe } from "@/lib/notify/textos";
 
 export const dynamic = "force-dynamic";
 
-const ABAS = [
-  { id: "agenda", nome: "Agenda", sub: "hoje e próximos dias", icone: CalendarDays },
-  { id: "pix", nome: "Pix", sub: "conferir e liberar", icone: Timer },
-  { id: "clube", nome: "Clube", sub: "assinantes e cobrança", icone: Crown },
-  { id: "clientes", nome: "Clientes", sub: "histórico e sumidos", icone: Users },
-  { id: "servicos", nome: "Serviços", sub: "preço e duração", icone: Scissors },
-  { id: "caixa", nome: "Caixa", sub: "entradas do dia", icone: Wallet },
-  { id: "fila", nome: "Fila", sub: "quem quer dia cheio", icone: ListChecks },
-  { id: "equipe", nome: "Equipe", sub: "chaves de acesso", icone: KeyRound },
-  { id: "config", nome: "Ajustes", sub: "pix, clube e reserva", icone: Settings },
-];
-
 const hora = (iso: string) =>
   new Date(iso).toLocaleTimeString("pt-BR", {
     timeZone: "America/Fortaleza",
@@ -79,131 +54,64 @@ export default async function Painel({
 }: {
   searchParams: Promise<{ aba?: string; dia?: string }>;
 }) {
-  // A casa não depende de quem entrou: pedir junto poupa uma volta de rede.
+  // O cabeçalho e a barra lateral moram no layout: aqui só o miolo da aba.
   const casaPromessa = casa();
 
+  // O layout já barrou quem não é dono. Repetir aqui é barato (a leitura da
+  // sessão é a mesma da requisição) e cobre a sessão que caiu no meio do
+  // caminho, mandando para /entrar em vez de estourar uma tela de erro.
   const sessao = await lerSessao();
   if (!sessao) redirect("/entrar");
-  if (sessao.papel === "barber") redirect("/agenda");
-  if (sessao.papel === "client") redirect("/clube");
+  if (sessao.papel !== "owner") redirect("/entrar");
 
   const { aba = "agenda", dia = hojeNaCasa() } = await searchParams;
   const barbearia = await casaPromessa;
   const dias = proximosDias(7);
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-30 border-b border-borda bg-fundo/95 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-[1400px] items-center gap-3 px-5 py-3 sm:px-8 lg:px-10">
-          <Logo tamanho={36} />
-          <div className="flex min-w-0 flex-col">
-            <span className="truncate font-titulo text-base font-bold leading-tight">
-              {barbearia.nome}
-            </span>
-            <span className="truncate text-xs text-texto-suave">
-              painel do Johny
-            </span>
-          </div>
-          <form action={sair} className="ml-auto">
-            <button
-              type="submit"
-              className="inline-flex min-h-toque items-center rounded-pill border border-borda-forte px-4 font-titulo text-sm font-semibold text-texto transition-colors hover:border-acao"
-            >
-              Sair
-            </button>
-          </form>
-        </div>
-      </header>
+    <>
+      {/* Cada pedaco lento entra sozinho, em vez de a tela inteira esperar
+          pelo mais devagar. A chave faz o Suspense recuar ao esqueleto quando
+          a aba ou o dia muda, em vez de segurar o conteudo velho. */}
+      <Suspense key={`n${dia}`} fallback={<IndicadoresVazios />}>
+        <Indicadores sessao={sessao} dia={dia} />
+      </Suspense>
 
-      <div className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col gap-5 px-5 py-6 sm:px-8 lg:flex-row lg:items-start lg:gap-6 lg:px-10">
-        <nav className="lg:sticky lg:top-[76px] lg:w-[240px] lg:shrink-0">
-          <ul className="trilho -mx-5 flex gap-2 overflow-x-auto px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0">
-            {ABAS.map((item) => {
-              const ativo = item.id === aba;
-              const Icone = item.icone;
+      <Suspense key={`${aba}${dia}`} fallback={<Carregando />}>
+        {aba === "agenda" ? (
+          <AbaAgenda sessao={sessao} dia={dia} dias={dias} />
+        ) : aba === "pix" ? (
+          <AbaPix sessao={sessao} />
+        ) : aba === "clube" ? (
+          <AbaClube sessao={sessao} pix={barbearia.pix_key ?? ""} />
+        ) : aba === "clientes" ? (
+          <AbaClientes sessao={sessao} />
+        ) : aba === "servicos" ? (
+          <AbaServicos sessao={sessao} />
+        ) : aba === "caixa" ? (
+          <AbaCaixa sessao={sessao} dia={dia} />
+        ) : aba === "fila" ? (
+          <AbaFila sessao={sessao} />
+        ) : aba === "equipe" ? (
+          <AbaEquipe sessao={sessao} />
+        ) : (
+          <Configuracoes
+            pixKey={barbearia.pix_key ?? ""}
+            pixTitular={barbearia.pix_titular ?? ""}
+            modalidade={barbearia.pagamento_modalidade}
+            reservaMinutos={barbearia.reserva_minutos}
+            clubePreco={barbearia.clube_preco_centavos / 100}
+            clubeCortes={barbearia.clube_cortes_mes}
+          />
+        )}
+      </Suspense>
 
-              return (
-                <li key={item.id} className="shrink-0 lg:shrink">
-                  <Link
-                    href={`/painel?aba=${item.id}`}
-                    className={`flex min-h-toque w-[178px] items-center gap-3 rounded-card border px-3 py-2.5 transition-colors lg:w-full ${
-                      ativo
-                        ? "border-acao bg-superficie-ativa"
-                        : "border-borda bg-superficie hover:border-borda-forte"
-                    }`}
-                  >
-                    <Icone
-                      className={`h-4 w-4 shrink-0 ${ativo ? "text-acao" : "text-texto-suave"}`}
-                      strokeWidth={2}
-                    />
-                    <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="font-titulo text-sm font-semibold leading-tight">
-                        {item.nome}
-                      </span>
-                      <span className="truncate text-xs text-texto-suave">
-                        {item.sub}
-                      </span>
-                    </span>
-                    {item.id === "pix" ? (
-                      <Suspense fallback={null}>
-                        <CrachaPix sessao={sessao} />
-                      </Suspense>
-                    ) : null}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-
-        {/* Cada pedaço lento entra sozinho. A barra lateral e os títulos
-            aparecem no primeiro instante, e trocar de aba deixa de parecer
-            travamento. A chave no Suspense o faz recuar ao esqueleto quando o
-            dia ou a aba muda, em vez de segurar o conteúdo velho na tela. */}
-        <main className="flex min-w-0 flex-1 flex-col gap-5">
-          <Suspense key={`n${dia}`} fallback={<IndicadoresVazios />}>
-            <Indicadores sessao={sessao} dia={dia} />
-          </Suspense>
-
-          <Suspense key={`${aba}${dia}`} fallback={<Carregando />}>
-            {aba === "agenda" ? (
-              <AbaAgenda sessao={sessao} dia={dia} dias={dias} />
-            ) : aba === "pix" ? (
-              <AbaPix sessao={sessao} />
-            ) : aba === "clube" ? (
-              <AbaClube sessao={sessao} pix={barbearia.pix_key ?? ""} />
-            ) : aba === "clientes" ? (
-              <AbaClientes sessao={sessao} />
-            ) : aba === "servicos" ? (
-              <AbaServicos sessao={sessao} />
-            ) : aba === "caixa" ? (
-              <AbaCaixa sessao={sessao} dia={dia} />
-            ) : aba === "fila" ? (
-              <AbaFila sessao={sessao} />
-            ) : aba === "equipe" ? (
-              <AbaEquipe sessao={sessao} />
-            ) : (
-              <Configuracoes
-                pixKey={barbearia.pix_key ?? ""}
-                pixTitular={barbearia.pix_titular ?? ""}
-                modalidade={barbearia.pagamento_modalidade}
-                reservaMinutos={barbearia.reserva_minutos}
-                clubePreco={barbearia.clube_preco_centavos / 100}
-                clubeCortes={barbearia.clube_cortes_mes}
-              />
-            )}
-          </Suspense>
-
-          <Suspense fallback={null}>
-            <AvisosNaFila sessao={sessao} />
-          </Suspense>
-        </main>
-      </div>
-    </div>
+      <Suspense fallback={null}>
+        <AvisosNaFila sessao={sessao} />
+      </Suspense>
+    </>
   );
 }
-
-type Sessao = NonNullable<Awaited<ReturnType<typeof lerSessao>>>;
 
 async function Indicadores({ sessao, dia }: { sessao: Sessao; dia: string }) {
   const [resumo, pendentes] = await Promise.all([
@@ -243,17 +151,6 @@ function IndicadoresVazios() {
         </div>
       ))}
     </dl>
-  );
-}
-
-async function CrachaPix({ sessao }: { sessao: Sessao }) {
-  const pendentes = await pixParaConferir(sessao);
-  if (!pendentes.length) return null;
-
-  return (
-    <span className="num shrink-0 rounded-pill bg-alerta px-2 py-0.5 font-titulo text-xs font-bold text-fundo">
-      {pendentes.length}
-    </span>
   );
 }
 
