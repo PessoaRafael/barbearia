@@ -60,19 +60,31 @@ export const resumoDoDia = cache(
 );
 
 /**
+ * Ids dos barbeiros da casa, uma vez por requisição.
+ *
+ * Várias leituras da agenda precisam desta lista antes da própria consulta.
+ * Sem o cache, cada uma pagava a mesma volta de rede e ainda em fila, o que
+ * fazia a aba Agenda ser a mais lenta do painel.
+ */
+const barbeirosDaCasa = cache(async (sessao: Sessao) => {
+  const { data } = await clienteServico()
+    .from("barbers")
+    .select("id, ativo")
+    .eq("barbershop_id", sessao.barbeariaId);
+
+  return data ?? [];
+});
+
+/**
  * Janela em que a casa funciona nesse dia: o mais cedo que alguém abre e o
  * mais tarde que alguém fecha. É o limite do "fechar o resto do dia".
  */
 export async function janelaDoDia(sessao: Sessao, data = hojeNaCasa()) {
   const supabase = clienteServico();
 
-  const { data: barbeiros } = await supabase
-    .from("barbers")
-    .select("id")
-    .eq("barbershop_id", sessao.barbeariaId)
-    .eq("ativo", true);
-
-  const ids = (barbeiros ?? []).map((b) => b.id);
+  const ids = (await barbeirosDaCasa(sessao))
+    .filter((b) => b.ativo)
+    .map((b) => b.id);
   if (!ids.length) return null;
 
   const { data: horas } = await supabase
@@ -93,12 +105,8 @@ export async function janelaDoDia(sessao: Sessao, data = hojeNaCasa()) {
 /** Bloqueios pontuais do dia, os que dá para soltar com um clique. */
 export async function bloqueiosDoDia(sessao: Sessao, data = hojeNaCasa()) {
   const supabase = clienteServico();
-  const { data: barbeiros } = await supabase
-    .from("barbers")
-    .select("id")
-    .eq("barbershop_id", sessao.barbeariaId);
 
-  const ids = (barbeiros ?? []).map((b) => b.id);
+  const ids = (await barbeirosDaCasa(sessao)).map((b) => b.id);
   const alvo = sessao.papel === "barber" ? [sessao.barbeiroId!] : ids;
 
   const { data: linhas } = await supabase
