@@ -7,8 +7,9 @@
 -- Por que chave e não o telefone: o telefone de qualquer cliente é fácil de
 -- adivinhar, e com ele alguém veria o histórico e os horários de outra pessoa.
 -- A chave é aleatória e o Johny revoga em um clique.
-
-alter type app.papel_acesso add value if not exists 'client';
+--
+-- Rode a 0008 antes desta: o papel 'client' precisa estar comitado para poder
+-- ser escrito na constraint aqui embaixo.
 
 alter table access_keys
   add column if not exists client_id uuid references clients(id) on delete cascade;

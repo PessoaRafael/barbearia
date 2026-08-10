@@ -1,7 +1,6 @@
 -- Funções da área do assinante.
 --
--- Ficam num arquivo separado da 0008 porque o Postgres não deixa usar um valor
--- de enum recém-criado na mesma transação em que ele foi adicionado.
+-- Depende da 0009: lê e escreve access_keys.client_id.
 
 /**
  * Gera a chave de um assinante. Uma viva por pessoa: gerar de novo derruba a

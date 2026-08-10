@@ -13,15 +13,25 @@ npm install
 cp .env.example .env.local     # preencha com as chaves do seu projeto Supabase
 ```
 
-Rode as migrations na ordem, pelo SQL Editor do Supabase ou pela CLI:
+Rode as migrations na ordem, um arquivo por vez, pelo SQL Editor do Supabase ou
+pela CLI:
 
 ```
-supabase/migrations/0001_schema.sql    tabelas e a constraint de exclusão
-supabase/migrations/0002_seed.sql      barbearia, barbeiros, serviços, expediente
-supabase/migrations/0003_reserva.sql   reservar, cancelar e os jobs
-supabase/migrations/0004_acesso.sql    RLS e as funções com escopo por papel
-supabase/migrations/0005_grants.sql    usage no schema app (senão nada insere)
+supabase/migrations/0001_schema.sql          tabelas e a constraint de exclusão
+supabase/migrations/0002_seed.sql            barbearia, barbeiros, serviços, expediente
+supabase/migrations/0003_reserva.sql         reservar, cancelar e os jobs
+supabase/migrations/0004_acesso.sql          RLS e as funções com escopo por papel
+supabase/migrations/0005_grants.sql          usage no schema app (senão nada insere)
+supabase/migrations/0006_expediente.sql      horário real da casa
+supabase/migrations/0007_clube_ilimitado.sql clube sem limite de cortes
+supabase/migrations/0008_papel_cliente.sql   papel 'client' no enum
+supabase/migrations/0009_chave_cliente.sql   chave de acesso do assinante
+supabase/migrations/0010_area_cliente.sql    funções da área do clube
 ```
+
+Um arquivo por vez importa da 0008 para a 0009: o Postgres só aceita escrever
+`'client'` depois que o valor do enum estiver comitado, e o SQL Editor roda cada
+arquivo numa transação.
 
 Depois gere o token do Johny e guarde o que aparecer:
 
