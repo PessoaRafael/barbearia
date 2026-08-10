@@ -2,7 +2,10 @@ import "server-only";
 
 import { cache } from "react";
 
-import type { Sessao } from "@/lib/auth/sessao";
+import { lerSessao, type Sessao } from "@/lib/auth/sessao";
+
+/** O mínimo para ler os dados de uma tela: quem pergunta e de que casa. */
+export type Escopo = { chaveId: string; barbeariaId: string };
 import { clienteServico } from "@/lib/supabase/servidor";
 import { hojeNaCasa } from "@/lib/agenda/dias";
 import { diaDaSemana } from "@/lib/agenda/disponibilidade";
@@ -66,12 +69,12 @@ export type Agenda = {
  * barbeiros. O recorte por papel continua no Postgres: o barbeiro recebe só a
  * própria coluna.
  */
-export async function painelAgenda(
-  sessao: Sessao,
+export const painelAgenda = cache(async function painelAgenda(
+  escopo: Escopo,
   data = hojeNaCasa(),
 ): Promise<Agenda> {
   const { data: tudo, error } = await clienteServico().rpc("painel_agenda", {
-    p_chave: sessao.chaveId,
+    p_chave: escopo.chaveId,
     p_data: data,
   });
 
@@ -88,6 +91,17 @@ export async function painelAgenda(
     error?.message,
   );
 
+  // Só o caminho antigo precisa do papel, para recortar a agenda do barbeiro
+  // fora do banco. A leitura da sessão já aconteceu nesta requisição.
+  const sessao = await lerSessao();
+  const vazio: Agenda = {
+    marcados: [],
+    bloqueios: [],
+    barbeiros: [],
+    janela: null,
+  };
+  if (!sessao) return vazio;
+
   const [marcados, bloqueios, janela, barbeiros] = await Promise.all([
     agendaDoDia(sessao, data),
     bloqueiosDoDia(sessao, data),
@@ -95,7 +109,7 @@ export async function painelAgenda(
     clienteServico()
       .from("barbers")
       .select("id, apelido")
-      .eq("barbershop_id", sessao.barbeariaId)
+      .eq("barbershop_id", escopo.barbeariaId)
       .eq("ativo", true)
       .order("ordem"),
   ]);
@@ -106,13 +120,13 @@ export async function painelAgenda(
     janela,
     barbeiros: (barbeiros.data ?? []) as { id: string; apelido: string }[],
   };
-}
+})
 
 /** cache() para o indicador e o crachá da barra lateral não pedirem duas vezes. */
 export const resumoDoDia = cache(
-  async (sessao: Sessao, data = hojeNaCasa()) => {
+  async (escopo: Escopo, data = hojeNaCasa()) => {
     const { data: resumo } = await clienteServico().rpc("resumo_do_dia", {
-      p_chave: sessao.chaveId,
+      p_chave: escopo.chaveId,
       p_data: data,
     });
     return (resumo ?? {
@@ -182,13 +196,13 @@ export async function bloqueiosDoDia(sessao: Sessao, data = hojeNaCasa()) {
   return linhas ?? [];
 }
 
-export const pixParaConferir = cache(async (sessao: Sessao) => {
+export const pixParaConferir = cache(async (escopo: Escopo) => {
   const { data } = await clienteServico()
     .from("payments")
     .select(
       "id, valor_centavos, expira_em, criado_em, appointments(inicio, clients(nome, telefone), services(nome), barbers(apelido))",
     )
-    .eq("barbershop_id", sessao.barbeariaId)
+    .eq("barbershop_id", escopo.barbeariaId)
     .eq("status", "aguardando")
     .order("criado_em", { ascending: true });
 
@@ -224,19 +238,19 @@ export const pixParaConferir = cache(async (sessao: Sessao) => {
 });
 
 /** Equipe com o estado da chave de cada um. */
-export async function equipe(sessao: Sessao) {
+export const equipe = cache(async (escopo: Escopo) => {
   const supabase = clienteServico();
 
   const [{ data: barbeiros }, { data: chaves }] = await Promise.all([
     supabase
       .from("barbers")
       .select("id, nome, apelido, especialidade, ativo")
-      .eq("barbershop_id", sessao.barbeariaId)
+      .eq("barbershop_id", escopo.barbeariaId)
       .order("ordem"),
     supabase
       .from("access_keys")
       .select("id, barber_id, key_prefix, criada_em, ultimo_acesso")
-      .eq("barbershop_id", sessao.barbeariaId)
+      .eq("barbershop_id", escopo.barbeariaId)
       .eq("role", "barber")
       .is("revogada_em", null),
   ]);
@@ -255,9 +269,9 @@ export async function equipe(sessao: Sessao) {
         : null,
     };
   });
-}
+});
 
-export async function assinantes(sessao: Sessao) {
+export const assinantes = cache(async (escopo: Escopo) => {
   const supabase = clienteServico();
 
   const [{ data }, { data: chaves }] = await Promise.all([
@@ -266,12 +280,12 @@ export async function assinantes(sessao: Sessao) {
       .select(
         "id, client_id, status, preco_centavos, cortes_mes, ciclo_inicio, ciclo_fim, proxima_cobranca, clients(nome, telefone)",
       )
-      .eq("barbershop_id", sessao.barbeariaId)
+      .eq("barbershop_id", escopo.barbeariaId)
       .neq("status", "cancelada"),
     supabase
       .from("access_keys")
       .select("id, client_id, key_prefix, ultimo_acesso")
-      .eq("barbershop_id", sessao.barbeariaId)
+      .eq("barbershop_id", escopo.barbeariaId)
       .eq("role", "client")
       .is("revogada_em", null),
   ]);
@@ -299,36 +313,36 @@ export async function assinantes(sessao: Sessao) {
         : null,
     };
   });
-}
+});
 
-export async function clientes(sessao: Sessao) {
+export const clientes = cache(async (escopo: Escopo) => {
   const { data } = await clienteServico()
     .from("clients")
     .select(
       "id, nome, telefone, total_cortes, total_gasto_centavos, faltas, ultimo_corte_em",
     )
-    .eq("barbershop_id", sessao.barbeariaId)
+    .eq("barbershop_id", escopo.barbeariaId)
     .order("ultimo_corte_em", { ascending: false, nullsFirst: false })
     .limit(200);
 
   return data ?? [];
-}
+});
 
-export async function servicos(sessao: Sessao) {
+export const servicos = cache(async (escopo: Escopo) => {
   const { data } = await clienteServico()
     .from("services")
     .select("*")
-    .eq("barbershop_id", sessao.barbeariaId)
+    .eq("barbershop_id", escopo.barbeariaId)
     .order("ordem");
 
   return data ?? [];
-}
+});
 
-export async function caixaDoDia(sessao: Sessao, data = hojeNaCasa()) {
+export const caixaDoDia = cache(async (escopo: Escopo, data = hojeNaCasa()) => {
   const { data: linhas } = await clienteServico()
     .from("cash_entries")
     .select("id, tipo, categoria, descricao, valor_centavos, barbers(apelido)")
-    .eq("barbershop_id", sessao.barbeariaId)
+    .eq("barbershop_id", escopo.barbeariaId)
     .eq("data", data)
     .order("criado_em", { ascending: false });
 
@@ -343,14 +357,14 @@ export async function caixaDoDia(sessao: Sessao, data = hojeNaCasa()) {
       barbeiro: (b as { apelido?: string })?.apelido ?? "",
     };
   });
-}
+});
 
 /** Quem quis um dia que já estava cheio e ainda não foi avisado. */
-export async function filaDeEspera(sessao: Sessao) {
+export const filaDeEspera = cache(async (escopo: Escopo) => {
   const { data } = await clienteServico()
     .from("waitlist")
     .select("id, data, clients(nome, telefone), services(nome), barbers(apelido)")
-    .eq("barbershop_id", sessao.barbeariaId)
+    .eq("barbershop_id", escopo.barbeariaId)
     .is("atendido_em", null)
     .gte("data", hojeNaCasa())
     .order("criado_em");
@@ -374,18 +388,18 @@ export async function filaDeEspera(sessao: Sessao) {
       barbeiro: barbeiro?.apelido ?? null,
     };
   });
-}
+});
 
 /** Fila do WhatsApp esperando o Johny disparar. */
-export async function avisosPendentes(sessao: Sessao) {
+export const avisosPendentes = cache(async (escopo: Escopo) => {
   const { data } = await clienteServico()
     .from("notifications")
     .select("id, template, payload, telefone, criado_em")
-    .eq("barbershop_id", sessao.barbeariaId)
+    .eq("barbershop_id", escopo.barbeariaId)
     .eq("status", "pendente")
     .lte("agendada_para", new Date().toISOString())
     .order("agendada_para")
     .limit(30);
 
   return data ?? [];
-}
+});

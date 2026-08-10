@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
 
 import {
@@ -60,13 +61,8 @@ export async function entrar(
   if (!analise.success) return { erro: ERRO };
 
   const ip = await ipDaRequisicao();
-  if (await passouDoLimite(ip)) {
-    return {
-      erro: `Muita tentativa seguida. Espere ${JANELA_MIN} minutos e tente de novo.`,
-    };
-  }
-
   const chave = normalizarChave(analise.data.chave);
+
   if (!chaveValida(chave)) {
     await registrar(ip, null, false);
     return { erro: ERRO };
@@ -75,12 +71,26 @@ export async function entrar(
   const supabase = clienteServico();
   const prefixo = prefixoDe(chave);
 
-  // O prefixo estreita a busca; quem decide é o hash.
-  const { data: candidatas } = await supabase
-    .from("access_keys")
-    .select("id, key_hash, role, expira_em, revogada_em")
-    .eq("key_prefix", prefixo)
-    .is("revogada_em", null);
+  /**
+   * As duas leituras vão juntas: conferir o limite de tentativas não depende
+   * de achar a chave. Em fila, cada uma custava uma volta de rede inteira, e
+   * era metade da espera do Johny na tela de entrar.
+   */
+  const [passou, { data: candidatas }] = await Promise.all([
+    passouDoLimite(ip),
+    // O prefixo estreita a busca; quem decide é o hash.
+    supabase
+      .from("access_keys")
+      .select("id, key_hash, role, barbershop_id, expira_em, revogada_em")
+      .eq("key_prefix", prefixo)
+      .is("revogada_em", null),
+  ]);
+
+  if (passou) {
+    return {
+      erro: `Muita tentativa seguida. Espere ${JANELA_MIN} minutos e tente de novo.`,
+    };
+  }
 
   const encontrada = (candidatas ?? []).find((linha) =>
     conferirChave(chave, linha.key_hash),
@@ -96,13 +106,26 @@ export async function entrar(
     return { erro: ERRO };
   }
 
-  await supabase
-    .from("access_keys")
-    .update({ ultimo_acesso: new Date().toISOString() })
-    .eq("id", encontrada.id);
+  await criarSessao(
+    encontrada.id,
+    encontrada.role,
+    encontrada.barbershop_id as string,
+  );
 
-  await registrar(ip, prefixo, true);
-  await criarSessao(encontrada.id, encontrada.role);
+  /**
+   * Carimbo e registro de acerto saem do caminho: o Johny não precisa esperar
+   * duas escritas para a tela abrir. Só o registro de erro fica bloqueando, e
+   * de propósito, porque é ele que segura quem fica tentando adivinhar.
+   */
+  after(async () => {
+    await Promise.all([
+      supabase
+        .from("access_keys")
+        .update({ ultimo_acesso: new Date().toISOString() })
+        .eq("id", encontrada.id),
+      registrar(ip, prefixo, true),
+    ]);
+  });
 
   // O destino sai do papel guardado na chave, nunca de parâmetro da URL.
   redirect(

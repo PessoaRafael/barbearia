@@ -336,6 +336,17 @@ export async function reservar(
     };
   }
 
+  // Nome do barbeiro e do serviço antes de escrever a mensagem: eles ficavam
+  // vazios, e o cliente recebia "está marcado: com , 07/08 às 08:30".
+  const [{ data: quem }, { data: oQue }] = await Promise.all([
+    supabase.from("barbers").select("apelido").eq("id", barbeiroId).maybeSingle(),
+    supabase
+      .from("services")
+      .select("nome")
+      .eq("id", dados.servicoId)
+      .maybeSingle(),
+  ]);
+
   await enfileirar({
     barbeariaId: casaAtual.id,
     destino: "cliente",
@@ -344,16 +355,10 @@ export async function reservar(
     dados: {
       cliente: dados.nome.split(" ")[0],
       quando: `${dados.data.split("-").reverse().slice(0, 2).join("/")} às ${dados.hora}`,
-      servico: "",
-      barbeiro: "",
+      servico: oQue?.nome ?? "seu horário",
+      barbeiro: quem?.apelido ?? "a equipe",
     },
   });
-
-  const { data: quem } = await supabase
-    .from("barbers")
-    .select("apelido")
-    .eq("id", barbeiroId)
-    .maybeSingle();
 
   return {
     ok: true,

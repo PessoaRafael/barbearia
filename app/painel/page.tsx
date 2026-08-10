@@ -14,7 +14,7 @@ import { Bloquear } from "@/componentes/painel/Bloquear";
 import { Clube } from "@/componentes/painel/Clube";
 import { Configuracoes } from "@/componentes/painel/Configuracoes";
 import { Servicos } from "@/componentes/painel/Servicos";
-import { lerSessao, type Sessao } from "@/lib/auth/sessao";
+import { crachaDoCookie, lerSessao } from "@/lib/auth/sessao";
 import {
   agoraNaCasa,
   hojeNaCasa,
@@ -22,6 +22,7 @@ import {
   rotuloDe,
 } from "@/lib/agenda/dias";
 import { comecoDoResto } from "@/lib/agenda/fechar";
+import type { Escopo } from "@/lib/dados/painel";
 import {
   assinantes,
   avisosPendentes,
@@ -39,6 +40,29 @@ import { textoDe } from "@/lib/notify/textos";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Dispara a leitura da aba sem esperar por ela.
+ *
+ * As funções são memorizadas por requisição, então o componente da aba, ao
+ * pedir o mesmo dado com o mesmo escopo, recebe esta consulta já em voo em vez
+ * de abrir outra.
+ */
+function aquecer(aba: string, escopo: Escopo, dia: string) {
+  const engolir = (p: Promise<unknown>) => void p.catch(() => {});
+
+  if (aba === "agenda") engolir(painelAgenda(escopo, dia));
+  else if (aba === "pix") engolir(pixParaConferir(escopo));
+  else if (aba === "clube") engolir(assinantes(escopo));
+  else if (aba === "clientes") engolir(clientes(escopo));
+  else if (aba === "servicos") engolir(listarServicos(escopo));
+  else if (aba === "caixa") engolir(caixaDoDia(escopo, dia));
+  else if (aba === "fila") engolir(filaDeEspera(escopo));
+  else if (aba === "equipe") engolir(equipe(escopo));
+
+  engolir(resumoDoDia(escopo, dia));
+  engolir(avisosPendentes(escopo));
+}
+
 const hora = (iso: string) =>
   new Date(iso).toLocaleTimeString("pt-BR", {
     timeZone: "America/Fortaleza",
@@ -52,17 +76,34 @@ export default async function Painel({
   searchParams: Promise<{ aba?: string; dia?: string }>;
 }) {
   // O cabeçalho e a barra lateral moram no layout: aqui só o miolo da aba.
-  //
-  // O layout já barrou quem não é dono. Repetir aqui não custa outra consulta
-  // (a sessão é lida uma vez por requisição) e cobre a sessão que caiu no meio
-  // do caminho, mandando para /entrar em vez de estourar uma tela de erro.
+  const { aba = "agenda", dia = hojeNaCasa() } = await searchParams;
+  const dias = proximosDias(7);
+
+  /**
+   * O crachá sai do cookie assinado, sem falar com o banco, e serve só para
+   * disparar a consulta da aba agora. Antes ela esperava a sessão terminar de
+   * ser conferida, e eram duas viagens de rede em fila para desenhar a tela.
+   *
+   * Isso não afrouxa nada: a conferência continua logo abaixo e, se a chave
+   * tiver sido revogada, o redirect acontece antes de qualquer coisa ir para a
+   * tela. O resultado da consulta é jogado fora.
+   */
+  const cracha = await crachaDoCookie();
+  let escopo = cracha?.barbeariaId
+    ? { chaveId: cracha.chaveId, barbeariaId: cracha.barbeariaId }
+    : null;
+
+  if (escopo) aquecer(aba, escopo, dia);
+
   const sessao = await lerSessao();
   if (!sessao) redirect("/entrar");
   if (sessao.papel !== "owner") redirect("/entrar");
 
-  const { aba = "agenda", dia = hojeNaCasa() } = await searchParams;
+  // Cookie antigo, de antes de a casa entrar nele: segue pelo caminho lento em
+  // vez de derrubar a sessão de quem já estava logado.
+  escopo ??= { chaveId: sessao.chaveId, barbeariaId: sessao.barbeariaId };
+
   const barbearia = sessao.casa;
-  const dias = proximosDias(7);
 
   return (
     <>
@@ -70,26 +111,26 @@ export default async function Painel({
           pelo mais devagar. A chave faz o Suspense recuar ao esqueleto quando
           a aba ou o dia muda, em vez de segurar o conteudo velho. */}
       <Suspense key={`n${dia}`} fallback={<IndicadoresVazios />}>
-        <Indicadores sessao={sessao} dia={dia} />
+        <Indicadores escopo={escopo} dia={dia} />
       </Suspense>
 
       <Suspense key={`${aba}${dia}`} fallback={<Carregando />}>
         {aba === "agenda" ? (
-          <AbaAgenda sessao={sessao} dia={dia} dias={dias} />
+          <AbaAgenda escopo={escopo} dia={dia} dias={dias} />
         ) : aba === "pix" ? (
-          <AbaPix sessao={sessao} />
+          <AbaPix escopo={escopo} />
         ) : aba === "clube" ? (
-          <AbaClube sessao={sessao} pix={barbearia.pix_key ?? ""} />
+          <AbaClube escopo={escopo} pix={barbearia.pix_key ?? ""} />
         ) : aba === "clientes" ? (
-          <AbaClientes sessao={sessao} />
+          <AbaClientes escopo={escopo} />
         ) : aba === "servicos" ? (
-          <AbaServicos sessao={sessao} />
+          <AbaServicos escopo={escopo} />
         ) : aba === "caixa" ? (
-          <AbaCaixa sessao={sessao} dia={dia} />
+          <AbaCaixa escopo={escopo} dia={dia} />
         ) : aba === "fila" ? (
-          <AbaFila sessao={sessao} />
+          <AbaFila escopo={escopo} />
         ) : aba === "equipe" ? (
-          <AbaEquipe sessao={sessao} />
+          <AbaEquipe escopo={escopo} />
         ) : (
           <Configuracoes
             pixKey={barbearia.pix_key ?? ""}
@@ -103,16 +144,16 @@ export default async function Painel({
       </Suspense>
 
       <Suspense fallback={null}>
-        <AvisosNaFila sessao={sessao} />
+        <AvisosNaFila escopo={escopo} />
       </Suspense>
     </>
   );
 }
 
-async function Indicadores({ sessao, dia }: { sessao: Sessao; dia: string }) {
+async function Indicadores({ escopo, dia }: { escopo: Escopo; dia: string }) {
   const [resumo, pendentes] = await Promise.all([
-    resumoDoDia(sessao, dia),
-    pixParaConferir(sessao),
+    resumoDoDia(escopo, dia),
+    pixParaConferir(escopo),
   ]);
 
   return (
@@ -206,11 +247,11 @@ function Vazio({ texto }: { texto: string }) {
 
 
 async function AbaAgenda({
-  sessao,
+  escopo,
   dia,
   dias,
 }: {
-  sessao: Sessao;
+  escopo: Escopo;
   dia: string;
   dias: ReturnType<typeof proximosDias>;
 }) {
@@ -219,7 +260,7 @@ async function AbaAgenda({
     bloqueios,
     barbeiros: time,
     janela,
-  } = await painelAgenda(sessao, dia);
+  } = await painelAgenda(escopo, dia);
 
   const porBarbeiro = new Map<string, typeof marcados>();
   for (const m of marcados) {
@@ -375,8 +416,8 @@ async function AbaAgenda({
   );
 }
 
-async function AbaPix({ sessao }: { sessao: Sessao }) {
-  const pendentes = await pixParaConferir(sessao);
+async function AbaPix({ escopo }: { escopo: Escopo }) {
+  const pendentes = await pixParaConferir(escopo);
 
   return (
     <Cartao titulo="Pix para conferir">
@@ -440,13 +481,13 @@ async function AbaPix({ sessao }: { sessao: Sessao }) {
   );
 }
 
-async function AbaClube({ sessao, pix }: { sessao: Sessao; pix: string }) {
-  const lista = await assinantes(sessao);
+async function AbaClube({ escopo, pix }: { escopo: Escopo; pix: string }) {
+  const lista = await assinantes(escopo);
   return <Clube lista={lista} pixKey={pix} />;
 }
 
-async function AbaClientes({ sessao }: { sessao: Sessao }) {
-  const lista = await clientes(sessao);
+async function AbaClientes({ escopo }: { escopo: Escopo }) {
+  const lista = await clientes(escopo);
 
   return (
     <Cartao titulo={`Clientes · ${lista.length}`}>
@@ -482,13 +523,13 @@ async function AbaClientes({ sessao }: { sessao: Sessao }) {
   );
 }
 
-async function AbaServicos({ sessao }: { sessao: Sessao }) {
-  const lista = await listarServicos(sessao);
+async function AbaServicos({ escopo }: { escopo: Escopo }) {
+  const lista = await listarServicos(escopo);
   return <Servicos lista={lista as never} />;
 }
 
-async function AbaFila({ sessao }: { sessao: Sessao }) {
-  const fila = await filaDeEspera(sessao);
+async function AbaFila({ escopo }: { escopo: Escopo }) {
+  const fila = await filaDeEspera(escopo);
 
   return (
     <Cartao titulo={`Fila de espera · ${fila.length}`}>
@@ -531,8 +572,8 @@ async function AbaFila({ sessao }: { sessao: Sessao }) {
   );
 }
 
-async function AbaCaixa({ sessao, dia }: { sessao: Sessao; dia: string }) {
-  const lista = await caixaDoDia(sessao, dia);
+async function AbaCaixa({ escopo, dia }: { escopo: Escopo; dia: string }) {
+  const lista = await caixaDoDia(escopo, dia);
   const total = lista.reduce(
     (soma, l) => soma + (l.tipo === "entrada" ? l.valorCentavos : -l.valorCentavos),
     0,
@@ -580,8 +621,8 @@ async function AbaCaixa({ sessao, dia }: { sessao: Sessao; dia: string }) {
   );
 }
 
-async function AbaEquipe({ sessao }: { sessao: Sessao }) {
-  const time = await equipe(sessao);
+async function AbaEquipe({ escopo }: { escopo: Escopo }) {
+  const time = await equipe(escopo);
 
   return (
     <Cartao titulo="Equipe e chaves de acesso">
@@ -638,8 +679,8 @@ async function AbaEquipe({ sessao }: { sessao: Sessao }) {
   );
 }
 
-async function AvisosNaFila({ sessao }: { sessao: Sessao }) {
-  const fila = await avisosPendentes(sessao);
+async function AvisosNaFila({ escopo }: { escopo: Escopo }) {
+  const fila = await avisosPendentes(escopo);
   if (!fila.length) return null;
 
   return (

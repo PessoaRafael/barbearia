@@ -26,8 +26,12 @@ const conferir = (nome, ok, detalhe) => {
   if (!ok && detalhe) console.log(`        ${detalhe}`);
 };
 
-function cookieDe(chaveId, papel) {
-  const corpo = Buffer.from(JSON.stringify({ k: chaveId })).toString("base64url");
+// O cookie carrega a casa junto (campo b), como o de produção: é com ele que
+// a tela dispara a consulta em paralelo com a conferência da sessão.
+function cookieDe(chaveId, papel, barbeariaId) {
+  const corpo = Buffer.from(
+    JSON.stringify({ k: chaveId, b: barbeariaId }),
+  ).toString("base64url");
   const assinatura = createHmac("sha256", process.env.SESSION_SECRET)
     .update(corpo)
     .digest("base64url");
@@ -62,11 +66,13 @@ conferir(
 
 console.log("\n2. Como dono");
 
-const chaves = await rest("access_keys?select=id,role,barber_id&revogada_em=is.null");
+const chaves = await rest(
+  "access_keys?select=id,role,barber_id,barbershop_id&revogada_em=is.null",
+);
 const dono = chaves.find((c) => c.role === "owner");
 conferir("chave de dono existe no banco", Boolean(dono));
 
-const cookieDono = cookieDe(dono.id, "owner");
+const cookieDono = cookieDe(dono.id, "owner", dono.barbershop_id);
 
 for (const aba of ["agenda", "pix", "clube", "clientes", "servicos", "caixa", "equipe", "config"]) {
   const r = await fetch(`${BASE}/painel?aba=${aba}`, { headers: { cookie: cookieDono } });
@@ -109,7 +115,11 @@ const chaveBarbeiro = chaves.find((c) => c.role === "barber");
 if (!chaveBarbeiro) {
   console.log("  (pulado) nenhum barbeiro tem chave ainda, gere pela aba Equipe");
 } else {
-  const cookieBarbeiro = cookieDe(chaveBarbeiro.id, "barber");
+  const cookieBarbeiro = cookieDe(
+    chaveBarbeiro.id,
+    "barber",
+    chaveBarbeiro.barbershop_id ?? dono.barbershop_id,
+  );
 
   const propria = await fetch(BASE + "/agenda", { headers: { cookie: cookieBarbeiro } });
   conferir("barbeiro abre a própria agenda", propria.status === 200, `status ${propria.status}`);

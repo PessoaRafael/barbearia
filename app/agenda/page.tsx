@@ -45,9 +45,14 @@ export default async function AgendaDoBarbeiro({
   const dias = proximosDias(7);
 
   const barbearia = sessao.casa;
+  const escopo = {
+    chaveId: sessao.chaveId,
+    barbeariaId: sessao.barbeariaId,
+  };
+
   const [{ marcados, bloqueios, janela }, resumo] = await Promise.all([
-    painelAgenda(sessao, dia),
-    resumoDoDia(sessao, dia),
+    painelAgenda(escopo, dia),
+    resumoDoDia(escopo, dia),
   ]);
 
   const pontuais = bloqueios.filter((b) => b.motivo !== "almoço");

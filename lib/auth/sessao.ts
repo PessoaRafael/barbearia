@@ -46,14 +46,14 @@ function assinar(valor: string) {
   return createHmac("sha256", segredo()).update(valor).digest("base64url");
 }
 
-function selar(chaveId: string) {
-  const corpo = Buffer.from(JSON.stringify({ k: chaveId })).toString(
-    "base64url",
-  );
+function selar(chaveId: string, barbeariaId: string) {
+  const corpo = Buffer.from(
+    JSON.stringify({ k: chaveId, b: barbeariaId }),
+  ).toString("base64url");
   return `${corpo}.${assinar(corpo)}`;
 }
 
-function abrir(cookie: string): string | null {
+function abrir(cookie: string): Cracha | null {
   const [corpo, assinatura] = cookie.split(".");
   if (!corpo || !assinatura) return null;
 
@@ -67,13 +67,35 @@ function abrir(cookie: string): string | null {
   }
 
   try {
-    return JSON.parse(Buffer.from(corpo, "base64url").toString()).k ?? null;
+    const dentro = JSON.parse(Buffer.from(corpo, "base64url").toString());
+    if (!dentro.k) return null;
+    return { chaveId: dentro.k, barbeariaId: dentro.b ?? null };
   } catch {
     return null;
   }
 }
 
-export async function criarSessao(chaveId: string, papel: Papel) {
+/**
+ * O que dá para saber sem falar com o banco, porque está assinado no cookie.
+ *
+ * Serve para disparar a consulta da tela em paralelo com a conferência da
+ * sessão, em vez de uma esperar a outra. Não autoriza nada: se a chave tiver
+ * sido revogada, `lerSessao` devolve null e a tela redireciona antes de
+ * desenhar qualquer coisa, então o resultado da consulta é jogado fora.
+ */
+export type Cracha = { chaveId: string; barbeariaId: string | null };
+
+export async function crachaDoCookie(): Promise<Cracha | null> {
+  const jar = await cookies();
+  const cookie = jar.get(COOKIE)?.value;
+  return cookie ? abrir(cookie) : null;
+}
+
+export async function criarSessao(
+  chaveId: string,
+  papel: Papel,
+  barbeariaId: string,
+) {
   const jar = await cookies();
   const opcoes = {
     httpOnly: true,
@@ -83,7 +105,7 @@ export async function criarSessao(chaveId: string, papel: Papel) {
     maxAge: DIAS * 24 * 60 * 60,
   };
 
-  jar.set(COOKIE, selar(chaveId), opcoes);
+  jar.set(COOKIE, selar(chaveId, barbeariaId), opcoes);
   jar.set(COOKIE_PAPEL, papel, opcoes);
 }
 
@@ -103,13 +125,10 @@ export async function encerrarSessao() {
  * por ambiguidade.
  */
 export const lerSessao = cache(async (): Promise<Sessao | null> => {
-  const jar = await cookies();
-  const cookie = jar.get(COOKIE)?.value;
-  if (!cookie) return null;
+  const cracha = await crachaDoCookie();
+  if (!cracha) return null;
 
-  const chaveId = abrir(cookie);
-  if (!chaveId) return null;
-
+  const chaveId = cracha.chaveId;
   const supabase = clienteServico();
 
   const { data: linha } = await supabase
