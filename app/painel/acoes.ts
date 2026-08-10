@@ -118,6 +118,27 @@ export async function gerarChaveDe(barbeiroId: string) {
   return { ok: true, chave };
 }
 
+/**
+ * Gera a chave de acesso de um assinante. Mesmo desenho da chave do barbeiro:
+ * o texto puro existe só neste retorno, no banco fica o hash.
+ */
+export async function gerarChaveCliente(clienteId: string) {
+  const sessao = await exigirDono();
+  const chave = gerarChave();
+
+  const { error } = await clienteServico().rpc("criar_chave_cliente", {
+    p_chave: sessao.chaveId,
+    p_cliente: clienteId,
+    p_hash: hashChave(chave),
+    p_prefixo: prefixoDe(chave),
+  });
+
+  if (error) return { erro: "Não consegui gerar a chave." };
+
+  revalidatePath("/painel");
+  return { ok: true, chave };
+}
+
 export async function revogarChaveDe(chaveId: string) {
   const sessao = await exigirDono();
   const { error } = await clienteServico().rpc("revogar_chave", {

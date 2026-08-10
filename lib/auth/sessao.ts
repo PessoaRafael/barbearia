@@ -19,11 +19,14 @@ const COOKIE = "johny_sessao";
 const COOKIE_PAPEL = "johny_papel";
 const DIAS = 30;
 
+export type Papel = "owner" | "barber" | "client";
+
 export type Sessao = {
   chaveId: string;
-  papel: "owner" | "barber";
+  papel: Papel;
   barbeariaId: string;
   barbeiroId: string | null;
+  clienteId: string | null;
   nome: string;
 };
 
@@ -64,7 +67,7 @@ function abrir(cookie: string): string | null {
   }
 }
 
-export async function criarSessao(chaveId: string, papel: "owner" | "barber") {
+export async function criarSessao(chaveId: string, papel: Papel) {
   const jar = await cookies();
   const opcoes = {
     httpOnly: true,
@@ -84,38 +87,9 @@ export async function encerrarSessao() {
   jar.delete(COOKIE_PAPEL);
 }
 
-/** Null quando não há cookie, a assinatura não bate ou a chave foi revogada. */
-export async function lerSessao(): Promise<Sessao | null> {
-  const jar = await cookies();
-  const cookie = jar.get(COOKIE)?.value;
-  if (!cookie) return null;
-
-  const chaveId = abrir(cookie);
-  if (!chaveId) return null;
-
+/** Último acesso, no máximo uma escrita por hora por chave. */
+async function carimbar(chaveId: string) {
   const supabase = clienteServico();
-
-  /**
-   * Resolve pela função do banco em vez de ler a tabela: access_keys tem duas
-   * chaves estrangeiras para barbers (barber_id e criada_por), e o join
-   * automático do PostgREST fica ambíguo e falha. A função também já recusa
-   * chave revogada ou vencida.
-   */
-  const { data, error } = await supabase.rpc("sessao_atual", {
-    p_chave: chaveId,
-  });
-
-  if (error || !data) return null;
-
-  const sessao = data as {
-    chave_id: string;
-    papel: "owner" | "barber";
-    barbearia_id: string;
-    barbeiro_id: string | null;
-    nome: string;
-  };
-
-  // Carimba o último acesso no máximo uma vez por hora.
   const { data: visto } = await supabase
     .from("access_keys")
     .select("ultimo_acesso")
@@ -132,18 +106,86 @@ export async function lerSessao(): Promise<Sessao | null> {
       .update({ ultimo_acesso: new Date().toISOString() })
       .eq("id", chaveId);
   }
+}
+
+/** Null quando não há cookie, a assinatura não bate ou a chave foi revogada. */
+export async function lerSessao(): Promise<Sessao | null> {
+  const jar = await cookies();
+  const cookie = jar.get(COOKIE)?.value;
+  if (!cookie) return null;
+
+  const chaveId = abrir(cookie);
+  if (!chaveId) return null;
+
+  const supabase = clienteServico();
+
+  /**
+   * O assinante do clube é resolvido lendo a linha direto, porque a função
+   * sessao_atual devolve o tipo app.sessao, que só conhece dono e barbeiro.
+   * Trocar aquele tipo cascatearia em todas as funções do painel, e não vale
+   * o risco por um campo.
+   */
+  const { data: linha } = await supabase
+    .from("access_keys")
+    .select("id, role, barbershop_id, client_id, revogada_em, expira_em")
+    .eq("id", chaveId)
+    .maybeSingle();
+
+  if (!linha || linha.revogada_em) return null;
+  if (linha.expira_em && new Date(linha.expira_em) < new Date()) return null;
+
+  if (linha.role === "client") {
+    const { data: cliente } = await supabase
+      .from("clients")
+      .select("nome")
+      .eq("id", linha.client_id)
+      .maybeSingle();
+
+    await carimbar(chaveId);
+
+    return {
+      chaveId: linha.id,
+      papel: "client",
+      barbeariaId: linha.barbershop_id,
+      barbeiroId: null,
+      clienteId: linha.client_id,
+      nome: cliente?.nome ?? "Cliente",
+    };
+  }
+
+  /**
+   * Dono e barbeiro passam pela função: access_keys tem duas chaves
+   * estrangeiras para barbers (barber_id e criada_por), e o join automático
+   * do PostgREST fica ambíguo e falha.
+   */
+  const { data, error } = await supabase.rpc("sessao_atual", {
+    p_chave: chaveId,
+  });
+
+  if (error || !data) return null;
+
+  const sessao = data as {
+    chave_id: string;
+    papel: "owner" | "barber";
+    barbearia_id: string;
+    barbeiro_id: string | null;
+    nome: string;
+  };
+
+  await carimbar(chaveId);
 
   return {
     chaveId: sessao.chave_id,
     papel: sessao.papel,
     barbeariaId: sessao.barbearia_id,
     barbeiroId: sessao.barbeiro_id,
+    clienteId: null,
     nome: sessao.nome,
   };
 }
 
 /** Para rotas que já foram filtradas pelo middleware, mas precisam do dado. */
-export async function exigirSessao(papel?: "owner" | "barber") {
+export async function exigirSessao(papel?: Papel) {
   const sessao = await lerSessao();
   if (!sessao) throw new Error("Sessão expirada.");
   if (papel && sessao.papel !== papel) throw new Error("Acesso negado.");

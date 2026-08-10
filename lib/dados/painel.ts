@@ -149,18 +149,31 @@ export async function equipe(sessao: Sessao) {
 }
 
 export async function assinantes(sessao: Sessao) {
-  const { data } = await clienteServico()
-    .from("subscriptions")
-    .select(
-      "id, status, preco_centavos, cortes_mes, ciclo_inicio, ciclo_fim, proxima_cobranca, clients(nome, telefone)",
-    )
-    .eq("barbershop_id", sessao.barbeariaId)
-    .neq("status", "cancelada");
+  const supabase = clienteServico();
+
+  const [{ data }, { data: chaves }] = await Promise.all([
+    supabase
+      .from("subscriptions")
+      .select(
+        "id, client_id, status, preco_centavos, cortes_mes, ciclo_inicio, ciclo_fim, proxima_cobranca, clients(nome, telefone)",
+      )
+      .eq("barbershop_id", sessao.barbeariaId)
+      .neq("status", "cancelada"),
+    supabase
+      .from("access_keys")
+      .select("id, client_id, key_prefix, ultimo_acesso")
+      .eq("barbershop_id", sessao.barbeariaId)
+      .eq("role", "client")
+      .is("revogada_em", null),
+  ]);
 
   return (data ?? []).map((s) => {
     const c = Array.isArray(s.clients) ? s.clients[0] : s.clients;
+    const chave = (chaves ?? []).find((k) => k.client_id === s.client_id);
+
     return {
       id: s.id,
+      clienteId: s.client_id as string,
       status: s.status as string,
       precoCentavos: s.preco_centavos,
       cortesMes: s.cortes_mes,
@@ -168,6 +181,13 @@ export async function assinantes(sessao: Sessao) {
       proximaCobranca: s.proxima_cobranca as string,
       nome: (c as { nome?: string })?.nome ?? "",
       telefone: (c as { telefone?: string })?.telefone ?? "",
+      chave: chave
+        ? {
+            id: chave.id,
+            prefixo: chave.key_prefix as string,
+            ultimoAcesso: chave.ultimo_acesso as string | null,
+          }
+        : null,
     };
   });
 }

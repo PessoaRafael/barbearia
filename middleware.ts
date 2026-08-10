@@ -6,7 +6,7 @@ import { NextResponse, type NextRequest } from "next/server";
  * chave no banco, e o RLS. O middleware roda no edge e não fala com o banco.
  */
 
-const INTERNAS = ["/painel", "/agenda"];
+const INTERNAS = ["/painel", "/agenda", "/clube"];
 
 export function middleware(requisicao: NextRequest) {
   const { pathname } = requisicao.nextUrl;
@@ -28,5 +28,5 @@ export function middleware(requisicao: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/painel/:path*", "/agenda/:path*"],
+  matcher: ["/painel/:path*", "/agenda/:path*", "/clube/:path*"],
 };

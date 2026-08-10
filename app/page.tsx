@@ -3,6 +3,7 @@ import {
   ArrowRight,
   Check,
   Clock,
+  Crown,
   MapPin,
   MessageCircle,
   Phone,
@@ -70,6 +71,17 @@ function Cabecalho({ nome, cidade }: { nome: string; cidade: string }) {
           <span className="truncate text-xs text-texto-suave">{cidade}</span>
         </div>
         <div className="ml-auto flex items-center gap-2">
+          {/* No celular vira só a coroa: três botões com texto não cabem em
+              360px sem espremer o nome da casa. */}
+          <Link
+            href="/entrar"
+            aria-label="Sou do clube"
+            title="Sou do clube"
+            className="inline-flex min-h-toque min-w-toque items-center justify-center gap-2 rounded-pill border border-clube/50 px-3 font-titulo text-sm font-semibold text-clube transition-colors hover:border-clube sm:px-4"
+          >
+            <Crown className="h-4 w-4 shrink-0" strokeWidth={2} />
+            <span className="hidden sm:inline">Sou do clube</span>
+          </Link>
           <Link
             href="/bot"
             className="inline-flex min-h-toque items-center gap-2 rounded-pill border border-borda-forte px-4 font-titulo text-sm font-semibold text-texto transition-colors hover:border-acao"
@@ -260,11 +272,24 @@ function Clube({
               </li>
             ))}
           </ul>
-          <ModalClube
-            preco={moedaCentavos(precoCentavos)}
-            cortes={cortes}
-            beneficios={beneficios}
-          />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <ModalClube
+              preco={moedaCentavos(precoCentavos)}
+              cortes={cortes}
+              beneficios={beneficios}
+            />
+            <Link
+              href="/entrar"
+              className="inline-flex min-h-toque items-center justify-center gap-2 rounded-pill border border-clube/50 px-5 font-titulo text-sm font-semibold text-clube transition-colors hover:border-clube"
+            >
+              <Crown className="h-4 w-4 shrink-0" strokeWidth={2} />
+              Sou do clube
+            </Link>
+          </div>
+          <p className="text-xs text-texto-apagado">
+            Já é do clube? Entre com a chave que o Johny mandou no WhatsApp para
+            ver seus horários e seu histórico.
+          </p>
         </div>
       </div>
     </Secao>

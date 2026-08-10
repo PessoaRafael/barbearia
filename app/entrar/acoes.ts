@@ -105,7 +105,13 @@ export async function entrar(
   await criarSessao(encontrada.id, encontrada.role);
 
   // O destino sai do papel guardado na chave, nunca de parâmetro da URL.
-  redirect(encontrada.role === "owner" ? "/painel" : "/agenda");
+  redirect(
+    encontrada.role === "owner"
+      ? "/painel"
+      : encontrada.role === "client"
+        ? "/clube"
+        : "/agenda",
+  );
 }
 
 export async function sair() {

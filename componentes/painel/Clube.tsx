@@ -1,19 +1,22 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, Crown, Plus, UserPlus, X } from "lucide-react";
+import { Check, Crown, KeyRound, Plus, UserPlus, X } from "lucide-react";
 
 import {
   cancelarAssinatura,
+  gerarChaveCliente,
   inscreverNoClube,
   registrarMensalidade,
 } from "@/app/painel/acoes";
 import { AvisoWhatsapp } from "./Acoes";
+import { BotaoCopiar } from "@/componentes/BotaoCopiar";
 import { moedaCentavos, telefoneBonito } from "@/lib/formato";
 import { textoDe } from "@/lib/notify/textos";
 
 export type Assinante = {
   id: string;
+  clienteId: string;
   status: string;
   precoCentavos: number;
   cortesMes: number;
@@ -21,6 +24,7 @@ export type Assinante = {
   proximaCobranca: string;
   nome: string;
   telefone: string;
+  chave: { id: string; prefixo: string; ultimoAcesso: string | null } | null;
 };
 
 const pill =
@@ -98,6 +102,12 @@ export function Clube({
                 {moedaCentavos(a.precoCentavos)}
               </span>
 
+              <ChaveDoCliente
+                clienteId={a.clienteId}
+                nome={a.nome}
+                chave={a.chave}
+              />
+
               <Recebi assinaturaId={a.id} vencida={a.status === "vencida"} />
 
               {a.status === "vencida" ? (
@@ -127,7 +137,9 @@ export function Clube({
 
       <p className="text-xs text-texto-apagado">
         O WhatsApp é a identidade. Assim que ele digitar esse número no
-        agendamento, o saldo de cortes aparece sozinho para ele.
+        agendamento, o saldo de cortes aparece sozinho para ele. A chave é outra
+        coisa: serve para ele entrar em &ldquo;Sou do clube&rdquo; e ver os
+        próprios horários.
       </p>
     </section>
   );
@@ -193,6 +205,100 @@ function Inscrever({ onPronto }: { onPronto: () => void }) {
         {rodando ? "Cadastrando..." : "Colocar no clube"}
       </button>
     </div>
+  );
+}
+
+/**
+ * Chave do assinante: é com ela que ele abre a área do clube.
+ *
+ * Aparece uma vez só, como a do barbeiro. Gerar de novo derruba a anterior, o
+ * que resolve o caso comum de o cliente ter perdido a mensagem.
+ */
+function ChaveDoCliente({
+  clienteId,
+  nome,
+  chave,
+}: {
+  clienteId: string;
+  nome: string;
+  chave: Assinante["chave"];
+}) {
+  const [rodando, comecar] = useTransition();
+  const [nova, setNova] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+
+  if (nova) {
+    const endereco =
+      typeof window === "undefined" ? "" : `${window.location.origin}/entrar`;
+
+    return (
+      <div className="flex w-full flex-col gap-3 rounded-card border border-acao/50 bg-superficie p-4">
+        <div className="flex flex-col gap-1">
+          <span className="text-xs uppercase tracking-wide text-texto-apagado">
+            Chave de {nome.split(" ")[0]}
+          </span>
+          <span className="num font-titulo text-2xl font-bold tracking-wide text-acao">
+            {nova}
+          </span>
+        </div>
+        <p className="text-xs text-alerta">
+          Mande agora: essa chave não aparece de novo. Se ele perder, gere outra
+          e a antiga para de valer na hora.
+        </p>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <BotaoCopiar valor={nova} rotulo="Copiar chave" destaque />
+          <a
+            href={`https://wa.me/?text=${encodeURIComponent(
+              `Sua chave do Clube Johny: ${nova}\nEntre em ${endereco} e toque em Sou do clube.`,
+            )}`}
+            target="_blank"
+            rel="noreferrer"
+            className={`${pill} border border-borda-forte text-texto hover:border-acao`}
+          >
+            Mandar no WhatsApp
+          </a>
+          <button
+            type="button"
+            onClick={() => setNova(null)}
+            className={`${pill} text-texto-suave hover:text-texto`}
+          >
+            Já mandei
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      disabled={rodando}
+      onClick={() =>
+        comecar(async () => {
+          const r = await gerarChaveCliente(clienteId);
+          if (r.erro) setErro(r.erro);
+          else if (r.chave) {
+            setErro(null);
+            setNova(r.chave);
+          }
+        })
+      }
+      title={
+        chave
+          ? `Chave ${chave.prefixo}···· ${
+              chave.ultimoAcesso ? "já usada por ele" : "ainda não usada"
+            }. Gerar outra derruba essa.`
+          : "Gera a chave para ele entrar na área do clube"
+      }
+      className={`${pill} shrink-0 border text-texto disabled:opacity-60 ${
+        erro
+          ? "border-alerta text-alerta"
+          : "border-borda-forte hover:border-acao"
+      }`}
+    >
+      <KeyRound className="h-4 w-4" strokeWidth={2} />
+      {rodando ? "..." : erro ? "Deu erro" : chave ? "Nova chave" : "Gerar chave"}
+    </button>
   );
 }
 

@@ -32,7 +32,8 @@ export default function Entrar() {
           <div className="flex flex-col gap-1">
             <h1 className="text-2xl">Entrar na barbearia</h1>
             <p className="text-sm text-texto-suave">
-              Use a chave que o Johny te mandou. Não tem e-mail nem senha.
+              Serve para o clube e para a equipe. Use a chave que o Johny te
+              mandou: não tem e-mail nem senha.
             </p>
           </div>
         </div>
