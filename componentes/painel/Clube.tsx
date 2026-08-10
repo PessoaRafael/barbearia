@@ -341,7 +341,7 @@ function Tirar({ assinaturaId }: { assinaturaId: string }) {
         onClick={() => setConfirmando(true)}
         className="inline-flex min-h-toque shrink-0 items-center rounded-pill border border-borda px-3 font-titulo text-sm font-semibold text-texto-suave transition-colors hover:border-alerta hover:text-alerta"
       >
-        Tirar
+        Excluir
       </button>
     );
   }
@@ -354,7 +354,7 @@ function Tirar({ assinaturaId }: { assinaturaId: string }) {
         onClick={() => comecar(() => cancelarAssinatura(assinaturaId).then(() => {}))}
         className={`${pill} border border-alerta/60 text-alerta hover:bg-alerta/10`}
       >
-        Tirar mesmo
+        Excluir mesmo
       </button>
       <button
         type="button"
