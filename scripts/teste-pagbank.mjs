@@ -11,9 +11,13 @@
  *   2. dá para criar um pedido pix e receber um QR Code de volta?
  *   3. o pedido criado pode ser consultado depois?
  *
- * A pergunta 2 também resolve a dúvida que a documentação deixou em aberto:
- * se `customer.tax_id` (CPF) é obrigatório. Se for, o agendamento vai ter que
- * pedir CPF, e isso é decisão de negócio, não detalhe técnico.
+ * A pergunta 2 resolveu a dúvida que a documentação deixou em aberto, e a
+ * resposta foi a pior das possíveis para o nosso fluxo: o PagBank exige
+ * `customer.name`, `customer.email` E `customer.tax_id` (CPF). Testado uma a
+ * uma no sandbox — sem os três, devolve 400.
+ *
+ * Hoje o agendamento pede nome e WhatsApp. Ligar o pix automático custa dois
+ * campos a mais entre o cliente e a cadeira, e isso é decisão de negócio.
  */
 
 import { readFileSync } from "node:fs";
