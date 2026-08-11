@@ -52,6 +52,50 @@ export const servicosAtivos = cache(async () => {
   return data ?? [];
 });
 
+export type PlanoClube = {
+  id: string;
+  slug: string;
+  nome: string;
+  preco_centavos: number;
+  cobre_categorias: string[];
+  dias_semana: number[];
+  duracao_dias: number;
+};
+
+/** Os planos do clube, na ordem em que o Johny quer que apareçam. */
+export const planosDoClube = cache(async (): Promise<PlanoClube[]> => {
+  const supabase = clienteServico();
+  const { id } = await casa();
+  const { data } = await supabase
+    .from("club_plans")
+    .select(
+      "id, slug, nome, preco_centavos, cobre_categorias, dias_semana, duracao_dias",
+    )
+    .eq("barbershop_id", id)
+    .eq("ativo", true)
+    .order("ordem");
+
+  return (data ?? []) as PlanoClube[];
+});
+
+const SEMANA = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+
+/**
+ * "segunda a quinta" quando os dias são seguidos, senão a lista mesmo.
+ * O caso seguido é o único que existe hoje, mas o Johny pode fatiar depois.
+ */
+export function diasEmTexto(dias: number[]) {
+  if (!dias.length) return "";
+  const ordenados = [...dias].sort((a, b) => a - b);
+  const seguidos = ordenados.every((d, i) => i === 0 || d === ordenados[i - 1] + 1);
+
+  if (ordenados.length === 1) return SEMANA[ordenados[0]];
+  if (seguidos) {
+    return `${SEMANA[ordenados[0]]} a ${SEMANA[ordenados[ordenados.length - 1]]}`;
+  }
+  return ordenados.map((d) => SEMANA[d]).join(", ");
+}
+
 export const barbeirosAtivos = cache(async () => {
   const supabase = clienteServico();
   const { id } = await casa();

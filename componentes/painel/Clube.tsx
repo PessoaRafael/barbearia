@@ -14,9 +14,17 @@ import { BotaoCopiar } from "@/componentes/BotaoCopiar";
 import { moedaCentavos, telefoneBonito } from "@/lib/formato";
 import { textoDe } from "@/lib/notify/textos";
 
+export type PlanoDoPainel = {
+  id: string;
+  nome: string;
+  preco_centavos: number;
+  dias_semana: number[];
+};
+
 export type Assinante = {
   id: string;
   clienteId: string;
+  plano: string | null;
   status: string;
   precoCentavos: number;
   cortesMes: number;
@@ -32,9 +40,11 @@ const pill =
 
 export function Clube({
   lista,
+  planos,
   pixKey,
 }: {
   lista: Assinante[];
+  planos: PlanoDoPainel[];
   pixKey: string;
 }) {
   const [abrindo, setAbrindo] = useState(false);
@@ -58,7 +68,9 @@ export function Clube({
         </button>
       </div>
 
-      {abrindo ? <Inscrever onPronto={() => setAbrindo(false)} /> : null}
+      {abrindo ? (
+        <Inscrever planos={planos} onPronto={() => setAbrindo(false)} />
+      ) : null}
 
       {lista.length === 0 ? (
         <p className="rounded-card border border-borda bg-superficie-ativa px-4 py-10 text-center text-sm text-texto-suave">
@@ -91,6 +103,7 @@ export function Clube({
                     a.status === "vencida" ? "text-alerta" : "text-texto-suave"
                   }`}
                 >
+                  {a.plano ? `${a.plano} · ` : ""}
                   {telefoneBonito(a.telefone)} ·{" "}
                   {a.status === "vencida"
                     ? `venceu em ${a.proximaCobranca}`
@@ -145,16 +158,25 @@ export function Clube({
   );
 }
 
-function Inscrever({ onPronto }: { onPronto: () => void }) {
+function Inscrever({
+  planos,
+  onPronto,
+}: {
+  planos: PlanoDoPainel[];
+  onPronto: () => void;
+}) {
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
+  const [planoId, setPlanoId] = useState(planos[0]?.id ?? "");
   const [erro, setErro] = useState<string | null>(null);
   const [rodando, comecar] = useTransition();
 
   const campo =
     "min-h-toque w-full rounded-bloco border border-borda bg-superficie px-3 text-sm text-texto placeholder:text-texto-apagado";
   const valido =
-    nome.trim().length >= 2 && telefone.replace(/\D/g, "").length >= 10;
+    nome.trim().length >= 2 &&
+    telefone.replace(/\D/g, "").length >= 10 &&
+    Boolean(planoId);
 
   return (
     <div className="flex flex-col gap-3 rounded-card border border-borda-forte bg-superficie-ativa p-4">
@@ -163,7 +185,7 @@ function Inscrever({ onPronto }: { onPronto: () => void }) {
         existe, basta o mesmo número.
       </span>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-3">
         <input
           value={nome}
           onChange={(e) => setNome(e.target.value)}
@@ -177,6 +199,20 @@ function Inscrever({ onPronto }: { onPronto: () => void }) {
           inputMode="tel"
           className={`num ${campo}`}
         />
+        {/* O plano decide o preço e o que o corte cobre, então ele é escolha,
+            não detalhe: sem isso o Johny cadastraria todo mundo no mesmo. */}
+        <select
+          value={planoId}
+          onChange={(e) => setPlanoId(e.target.value)}
+          className={campo}
+          aria-label="Plano do clube"
+        >
+          {planos.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.nome} · {moedaCentavos(p.preco_centavos)}
+            </option>
+          ))}
+        </select>
       </div>
 
       {erro ? <span className="text-xs text-alerta">{erro}</span> : null}
@@ -186,7 +222,7 @@ function Inscrever({ onPronto }: { onPronto: () => void }) {
         disabled={!valido || rodando}
         onClick={() =>
           comecar(async () => {
-            const r = await inscreverNoClube({ nome, telefone });
+            const r = await inscreverNoClube({ nome, telefone, planoId });
             if (r.erro) setErro(r.erro);
             else {
               setNome("");

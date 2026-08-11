@@ -13,7 +13,13 @@ import {
   acharTurno,
   normalizar,
 } from "@/lib/bot/interpretar";
-import { barbeirosAtivos, casa, servicosAtivos } from "@/lib/dados/casa";
+import {
+  barbeirosAtivos,
+  casa,
+  diasEmTexto,
+  planosDoClube,
+  servicosAtivos,
+} from "@/lib/dados/casa";
 import { moedaCentavos, telefoneBonito } from "@/lib/formato";
 import { reconhecerCliente, reservar } from "@/app/agendar/acoes";
 
@@ -40,6 +46,10 @@ export type Estado = {
   forma?: "pix" | "cadeira" | "clube";
   assinante?: boolean;
   creditos?: number;
+  /** O plano do assinante: decide o que o clube cobre e em que dias. */
+  planoNome?: string;
+  planoCategorias?: string[];
+  planoDias?: number[];
   token?: string;
 };
 
@@ -371,11 +381,25 @@ export async function conversar(
   }
 
   if (intencao === "clube") {
-    falas.push(
-      barbearia.clube_cortes_mes === 0
-        ? `O Clube Johny é ${moedaCentavos(barbearia.clube_preco_centavos)} por mês e você corta quantas vezes quiser. Se já assina, me passa seu WhatsApp que eu confiro.`
-        : `O Clube Johny é ${moedaCentavos(barbearia.clube_preco_centavos)} por mês com ${barbearia.clube_cortes_mes} cortes. Se você já assina, é só me passar seu WhatsApp que eu vejo seu saldo.`,
-    );
+    const planos = await planosDoClube();
+
+    if (planos.length) {
+      // Uma linha por plano, e o dia junto do preço: perguntar do clube e
+      // receber só o valor faz o cliente descobrir a regra na cadeira.
+      falas.push(
+        `O Clube Johny tem ${planos.length} planos, todos sem limite de vezes e valendo de ${diasEmTexto(planos[0].dias_semana)}:`,
+      );
+      for (const p of planos) {
+        falas.push(`${p.nome}: ${moedaCentavos(p.preco_centavos)} por mês.`);
+      }
+      falas.push(
+        "Sexta e sábado o plano não vale, aí sai o preço da tabela. Se você já assina, me passa seu WhatsApp que eu confiro qual é o seu.",
+      );
+    } else {
+      falas.push(
+        `O Clube Johny é ${moedaCentavos(barbearia.clube_preco_centavos)} por mês. Se já assina, me passa seu WhatsApp que eu confiro.`,
+      );
+    }
   }
 
   if (intencao === "cancelar") {
@@ -567,14 +591,19 @@ export async function conversar(
     const quem = await reconhecerCliente(estado.telefone);
     estado.assinante = quem.assinante;
     estado.creditos = quem.creditosRestantes;
+    estado.planoNome = quem.plano?.nome;
+    estado.planoCategorias = quem.plano?.categorias;
+    estado.planoDias = quem.plano?.diasSemana;
     if (quem.nome && !estado.nome) estado.nome = quem.nome;
 
     if (quem.nome) {
       falas.push(
         quem.assinante
-          ? quem.ilimitado
-            ? `Achei você, ${quem.nome.split(" ")[0]}! Do clube, então o corte não sai nada.`
-            : `Achei você, ${quem.nome.split(" ")[0]}! Do clube, com ${quem.creditosRestantes} cortes sobrando neste ciclo.`
+          ? quem.plano
+            ? `Achei você, ${quem.nome.split(" ")[0]}! Você tem o ${quem.plano.nome}, que vale de segunda a quinta.`
+            : quem.ilimitado
+              ? `Achei você, ${quem.nome.split(" ")[0]}! Do clube, então o corte não sai nada.`
+              : `Achei você, ${quem.nome.split(" ")[0]}! Do clube, com ${quem.creditosRestantes} cortes sobrando neste ciclo.`
           : `Achei você, ${quem.nome.split(" ")[0]}.`,
       );
     }
@@ -596,11 +625,35 @@ export async function conversar(
   }
 
   if (!estado.forma) {
+    /**
+     * Mesmas três condições da tela: assinatura em dia, serviço dentro do
+     * plano e dia da semana dentro do plano. Quem recusa de verdade continua
+     * sendo a função no Postgres; aqui é só para não oferecer o que vai falhar.
+     */
+    const diaDoAgendamento = estado.data
+      ? new Date(`${estado.data}T12:00:00-03:00`).getUTCDay()
+      : -1;
+
     const temClube =
       barbearia.clube_ativo &&
+      Boolean(estado.assinante) &&
       servico.coberto_pelo_clube &&
-      estado.assinante &&
+      Boolean(estado.planoCategorias?.includes(servico.categoria)) &&
+      Boolean(estado.planoDias?.includes(diaDoAgendamento)) &&
       (estado.creditos ?? 0) > 0;
+
+    // Assinante que não pôde usar o plano hoje merece a explicação, senão
+    // acha que o bot esqueceu a assinatura dele.
+    if (
+      !temClube &&
+      estado.assinante &&
+      estado.planoCategorias?.includes(servico.categoria) &&
+      !estado.planoDias?.includes(diaDoAgendamento)
+    ) {
+      falas.push(
+        `Seu ${estado.planoNome ?? "plano"} vale de segunda a quinta, então nesse dia o valor é o da tabela.`,
+      );
+    }
 
     const sobra = Math.max(0, servico.preco_centavos - servico.abate_centavos);
 
@@ -615,7 +668,7 @@ export async function conversar(
     } else {
       falas.push(
         temClube
-          ? `Dá para usar 1 corte do clube${sobra > 0 ? `, aí ficam ${moedaCentavos(sobra)} no pix` : " e você não paga nada"}. Como prefere?`
+          ? `Esse entra no seu ${estado.planoNome ?? "plano do clube"}${sobra > 0 ? `, aí ficam ${moedaCentavos(sobra)} no pix` : " e você não paga nada"}. Como prefere?`
           : `São ${moedaCentavos(servico.preco_centavos)}. Como prefere pagar?`,
       );
 
@@ -623,7 +676,9 @@ export async function conversar(
         estado,
         falas,
         opcoes: [
-          ...(temClube ? [{ rotulo: "Usar 1 corte do clube", valor: "clube" }] : []),
+          ...(temClube
+            ? [{ rotulo: `Usar meu ${estado.planoNome ?? "plano"}`, valor: "clube" }]
+            : []),
           { rotulo: "Pagar no pix", valor: "pix" },
           ...(antecipado
             ? []

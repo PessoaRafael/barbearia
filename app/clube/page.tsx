@@ -5,6 +5,7 @@ import { CalendarCheck, Clock, Crown, Scissors, TriangleAlert } from "lucide-rea
 import { Logo } from "@/componentes/base";
 import { sair } from "@/app/entrar/acoes";
 import { lerSessao } from "@/lib/auth/sessao";
+import { diasEmTexto } from "@/lib/dados/casa";
 import { moedaCentavos, telefoneBonito } from "@/lib/formato";
 import { clienteServico } from "@/lib/supabase/servidor";
 
@@ -37,6 +38,7 @@ type Area = {
   mensalidade: number;
   ilimitado: boolean;
   cortes_mes: number;
+  plano: { nome: string; categorias: string[]; dias_semana: number[] } | null;
   proximos: Marcado[];
   historico: Marcado[];
 };
@@ -118,20 +120,32 @@ export default async function AreaDoClube() {
               }`}
               strokeWidth={2.5}
             />
-            <span className="font-titulo text-lg font-bold">Clube Johny</span>
+            <span className="font-titulo text-lg font-bold">
+              {area.plano?.nome ?? "Clube Johny"}
+            </span>
           </div>
 
           {area.assinante ? (
             <>
               <p className="text-texto-medio">
                 Sua mensalidade está em dia.{" "}
-                {area.ilimitado
-                  ? "Corte quantas vezes quiser: não paga nada pelo corte."
-                  : `Você tem ${area.cortes_mes} cortes neste ciclo.`}
+                {area.plano
+                  ? `${area.plano.categorias.join(" e ")} sem limite de vezes.`
+                  : area.ilimitado
+                    ? "Corte quantas vezes quiser: não paga nada pelo corte."
+                    : `Você tem ${area.cortes_mes} cortes neste ciclo.`}
               </p>
+              {/* O dia é a regra que mais gera discussão na cadeira: fica
+                  escrita aqui, não só na landing. */}
+              {area.plano ? (
+                <p className="text-sm text-texto-suave">
+                  Vale de {diasEmTexto(area.plano.dias_semana)}. Fora desses
+                  dias você marca normal e paga o preço da tabela.
+                </p>
+              ) : null}
               {area.ciclo_fim ? (
                 <p className="num text-sm text-texto-suave">
-                  Vale até {dia(area.ciclo_fim)}.
+                  Sua mensalidade vale até {dia(area.ciclo_fim)}.
                 </p>
               ) : null}
             </>
@@ -153,7 +167,7 @@ export default async function AreaDoClube() {
             </>
           ) : (
             <p className="text-texto-medio">
-              Você ainda não é do clube. Fale com o Johny para entrar:{" "}
+              Você ainda não é do clube. Fale com o Johny: os planos começam em{" "}
               {moedaCentavos(barbearia.clube_preco_centavos)} por mês.
             </p>
           )}

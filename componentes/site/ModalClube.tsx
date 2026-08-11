@@ -13,12 +13,16 @@ import { PainelPix } from "@/componentes/agendar/PainelPix";
  * painel, igual ao pix de agendamento: a palavra do cliente nunca ativa nada.
  */
 export function ModalClube({
+  planoId,
+  plano,
   preco,
-  cortes,
+  dias,
   beneficios,
 }: {
+  planoId: string;
+  plano: string;
   preco: string;
-  cortes: number;
+  dias: string;
   beneficios: string[];
 }) {
   const [aberto, setAberto] = useState(false);
@@ -64,7 +68,7 @@ export function ModalClube({
           className="fixed inset-0 z-50 flex items-end justify-center bg-fundo-profundo/80 p-0 sm:items-center sm:p-6"
           role="dialog"
           aria-modal="true"
-          aria-label="Assinar o Clube Johny"
+          aria-label={`Assinar ${plano}`}
           onClick={(e) => {
             if (e.target === e.currentTarget) setAberto(false);
           }}
@@ -74,15 +78,12 @@ export function ModalClube({
               <div className="flex min-w-0 flex-col gap-1">
                 <h2 className="flex items-center gap-2 text-2xl">
                   <Crown className="h-6 w-6 shrink-0 text-clube" strokeWidth={2.5} />
-                  Clube Johny
+                  {plano}
                 </h2>
                 <p className="text-sm text-texto-medio">
-                  {preco} por mês
-                  {cortes === 0
-                    ? ", cortando quantas vezes quiser"
-                    : `, ${cortes} cortes`}
-                  . Você escolhe o horário e o barbeiro, como qualquer cliente,
-                  só que sem pagar nada na hora.
+                  {preco} por mês, sem limite de vezes, de {dias}. Você escolhe
+                  o horário e o barbeiro como qualquer cliente, só que sem pagar
+                  nada na hora.
                 </p>
               </div>
               <button
@@ -176,7 +177,7 @@ export function ModalClube({
                     disabled={!valido || rodando}
                     onClick={() =>
                       comecar(async () => {
-                        const r = await pedirClube({ nome, telefone });
+                        const r = await pedirClube({ nome, telefone, planoId });
                         if (!r.ok) setErro(r.erro);
                         else setPago(r);
                       })

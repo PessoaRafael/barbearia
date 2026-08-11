@@ -109,10 +109,25 @@ export function Fluxo({
     };
   }, [servico, data]);
 
+  /**
+   * Usar o clube depende de três coisas ao mesmo tempo: a assinatura estar em
+   * dia, o serviço estar no plano e o dia da semana também. Os planos do Johny
+   * valem de segunda a quinta, então sexta e sábado o assinante marca igual e
+   * paga o preço cheio.
+   */
+  const plano = reconhecido?.plano ?? null;
+  const diaEscolhido = new Date(`${data}T12:00:00-03:00`).getUTCDay();
+
+  const planoCobre = Boolean(
+    servico && plano?.categorias.includes(servico.categoria) && servico.cobertoPeloClube,
+  );
+  const diaDoPlano = Boolean(plano?.diasSemana.includes(diaEscolhido));
+
   const podeClube =
     clube.ativo &&
-    Boolean(servico?.cobertoPeloClube) &&
     Boolean(reconhecido?.assinante) &&
+    planoCobre &&
+    diaDoPlano &&
     (reconhecido?.creditosRestantes ?? 0) > 0;
 
   const valorCentavos = !servico
@@ -419,6 +434,9 @@ export function Fluxo({
                     <Pagamento
                       servico={servico}
                       podeClube={podeClube}
+                      planoCobre={planoCobre}
+                      diaDoPlano={diaDoPlano}
+                      quando={rotuloDe(dia)}
                       reconhecido={reconhecido}
                       obrigatorio={pagamentoObrigatorio}
                       forma={forma}
@@ -585,6 +603,9 @@ function Dados({
 function Pagamento({
   servico,
   podeClube,
+  planoCobre,
+  diaDoPlano,
+  quando,
   reconhecido,
   obrigatorio,
   forma,
@@ -592,6 +613,9 @@ function Pagamento({
 }: {
   servico: Servico;
   podeClube: boolean;
+  planoCobre: boolean;
+  diaDoPlano: boolean;
+  quando: string;
   reconhecido: Reconhecido | null;
   obrigatorio: boolean;
   forma: FormaPagamento | null;
@@ -605,7 +629,7 @@ function Pagamento({
       {podeClube ? (
         <Opcao
           icone={<Crown className="h-5 w-5" strokeWidth={2} />}
-          titulo="Usar 1 corte do clube"
+          titulo={`Está no seu ${reconhecido?.plano?.nome ?? "plano do clube"}`}
           apoio={
             sobra > 0
               ? `O clube cobre parte. Sobram ${moedaCentavos(sobra)} para pagar.`
@@ -621,10 +645,22 @@ function Pagamento({
         />
       ) : null}
 
-      {servico.cobertoPeloClube && !podeClube && reconhecido?.vencida ? (
+      {/* Assinante que não pôde usar o clube merece saber por quê, senão a
+          conclusão dele é que o sistema esqueceu a assinatura. */}
+      {!podeClube && reconhecido?.vencida ? (
         <p className="rounded-card border border-alerta/50 bg-superficie-ativa px-4 py-3 text-xs text-alerta">
-          Sua mensalidade está vencida, então o corte sai avulso. Fale com o
-          Johny para voltar a usar os créditos.
+          Sua mensalidade está vencida, então sai no valor normal. Fale com o
+          Johny para voltar a usar o plano.
+        </p>
+      ) : !podeClube && reconhecido?.assinante && planoCobre && !diaDoPlano ? (
+        <p className="rounded-card border border-borda bg-superficie-ativa px-4 py-3 text-xs text-texto-suave">
+          Seu plano {reconhecido.plano?.nome} vale de segunda a quinta. Como
+          você escolheu {quando}, esse sai no valor normal.
+        </p>
+      ) : !podeClube && reconhecido?.assinante && !planoCobre ? (
+        <p className="rounded-card border border-borda bg-superficie-ativa px-4 py-3 text-xs text-texto-suave">
+          Seu plano {reconhecido.plano?.nome} não cobre {servico.nome}. Esse sai
+          no valor normal.
         </p>
       ) : null}
 
@@ -755,6 +791,11 @@ function CardClube({
 
       {reconhecido?.assinante ? (
         <>
+          {reconhecido.plano ? (
+            <span className="font-titulo text-base font-semibold">
+              {reconhecido.plano.nome}
+            </span>
+          ) : null}
           <div className="flex items-baseline gap-2">
             <span className="num font-titulo text-3xl font-bold text-texto">
               {ilimitado ? "Livre" : usados}
@@ -774,9 +815,11 @@ function CardClube({
             </div>
           )}
           <p className="text-xs text-texto-suave">
-            {ilimitado
-              ? "Corte quantas vezes quiser. Enquanto a mensalidade estiver em dia, o corte sai sem pagar nada."
-              : `Sobram ${reconhecido.creditosRestantes} cortes neste ciclo.`}
+            {reconhecido.plano
+              ? `${reconhecido.plano.categorias.join(" e ")} sem limite, de segunda a quinta. Sexta e sábado sai no valor da tabela.`
+              : ilimitado
+                ? "Corte quantas vezes quiser. Enquanto a mensalidade estiver em dia, o corte sai sem pagar nada."
+                : `Sobram ${reconhecido.creditosRestantes} cortes neste ciclo.`}
           </p>
         </>
       ) : (
@@ -788,9 +831,9 @@ function CardClube({
             <span className="pb-1 text-sm text-texto-suave">/mês</span>
           </div>
           <p className="text-xs text-texto-suave">
-            {clube.cortesMes === 0
-              ? "Corte quantas vezes quiser. Informe seu WhatsApp no passo 4 que eu reconheço sua assinatura."
-              : `${clube.cortesMes} cortes por mês. Informe seu WhatsApp no passo 4 que eu reconheço sua assinatura.`}
+            Planos de corte, barba ou os dois, sem limite de vezes, de segunda a
+            quinta. Informe seu WhatsApp no passo 4 que eu reconheço sua
+            assinatura.
           </p>
         </>
       )}

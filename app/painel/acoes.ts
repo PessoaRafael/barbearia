@@ -219,6 +219,7 @@ export async function revogarChaveDe(chaveId: string) {
 const assinante = z.object({
   nome: z.string().trim().min(2).max(80),
   telefone: z.string().trim().min(10).max(20),
+  planoId: z.string().uuid(),
 });
 
 /**
@@ -233,11 +234,14 @@ export async function inscreverNoClube(entrada: z.input<typeof assinante>) {
   const telefone = analise.data.telefone.replace(/\D/g, "");
   const supabase = clienteServico();
 
-  const { data: casa } = await supabase
-    .from("barbershops")
-    .select("clube_preco_centavos, clube_cortes_mes")
-    .eq("id", sessao.barbeariaId)
-    .single();
+  // Preço e duração saem do plano, não do que a tela mandou.
+  const { data: plano } = await supabase
+    .from("club_plans")
+    .select("id, preco_centavos, duracao_dias")
+    .eq("id", analise.data.planoId)
+    .eq("barbershop_id", sessao.barbeariaId)
+    .eq("ativo", true)
+    .maybeSingle();
 
   const { data: cliente } = await supabase
     .from("clients")
@@ -252,7 +256,7 @@ export async function inscreverNoClube(entrada: z.input<typeof assinante>) {
     .select("id")
     .single();
 
-  if (!cliente || !casa) return { erro: "Não consegui cadastrar." };
+  if (!cliente || !plano) return { erro: "Não consegui cadastrar." };
 
   const { data: existente } = await supabase
     .from("subscriptions")
@@ -261,17 +265,22 @@ export async function inscreverNoClube(entrada: z.input<typeof assinante>) {
     .neq("status", "cancelada")
     .maybeSingle();
 
+  // O ciclo é contado em dias, não em "mês": o Johny vendeu 30 dias, e mês
+  // civil daria 28 em fevereiro e 31 em março pelo mesmo dinheiro.
   const hoje = new Date();
   const fim = new Date(hoje);
-  fim.setMonth(fim.getMonth() + 1);
+  fim.setDate(fim.getDate() + plano.duracao_dias);
   const iso = (d: Date) => d.toISOString().slice(0, 10);
 
-  // Já era assinante: isso aqui é a renovação, empurrando o ciclo um mês.
+  // Já era assinante: isso aqui é a renovação, e ela também troca o plano se
+  // o Johny escolheu outro.
   if (existente) {
     await supabase
       .from("subscriptions")
       .update({
         status: "ativa",
+        plan_id: plano.id,
+        preco_centavos: plano.preco_centavos,
         ciclo_inicio: iso(hoje),
         ciclo_fim: iso(fim),
         proxima_cobranca: iso(fim),
@@ -286,8 +295,9 @@ export async function inscreverNoClube(entrada: z.input<typeof assinante>) {
     barbershop_id: sessao.barbeariaId,
     client_id: cliente.id,
     status: "ativa",
-    preco_centavos: casa.clube_preco_centavos,
-    cortes_mes: casa.clube_cortes_mes,
+    plan_id: plano.id,
+    preco_centavos: plano.preco_centavos,
+    cortes_mes: 0,
     ciclo_inicio: iso(hoje),
     ciclo_fim: iso(fim),
     proxima_cobranca: iso(fim),
@@ -304,9 +314,22 @@ export async function registrarMensalidade(assinaturaId: string) {
   const sessao = await exigirDono();
   const supabase = clienteServico();
 
+  // A duração vem do plano: 30 dias, e não "um mês", que dá 28 em fevereiro.
+  const { data: assinatura } = await supabase
+    .from("subscriptions")
+    .select("club_plans(duracao_dias)")
+    .eq("id", assinaturaId)
+    .eq("barbershop_id", sessao.barbeariaId)
+    .maybeSingle();
+
+  const p = Array.isArray(assinatura?.club_plans)
+    ? assinatura?.club_plans[0]
+    : assinatura?.club_plans;
+  const dias = (p as { duracao_dias?: number } | null)?.duracao_dias ?? 30;
+
   const hoje = new Date();
   const fim = new Date(hoje);
-  fim.setMonth(fim.getMonth() + 1);
+  fim.setDate(fim.getDate() + dias);
   const iso = (d: Date) => d.toISOString().slice(0, 10);
 
   const { error } = await supabase

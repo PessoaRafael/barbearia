@@ -22,6 +22,7 @@ import {
   rotuloDe,
 } from "@/lib/agenda/dias";
 import { comecoDoResto } from "@/lib/agenda/fechar";
+import { planosDoClube } from "@/lib/dados/casa";
 import type { Escopo } from "@/lib/dados/painel";
 import {
   assinantes,
@@ -482,8 +483,11 @@ async function AbaPix({ escopo }: { escopo: Escopo }) {
 }
 
 async function AbaClube({ escopo, pix }: { escopo: Escopo; pix: string }) {
-  const lista = await assinantes(escopo);
-  return <Clube lista={lista} pixKey={pix} />;
+  const [lista, planos] = await Promise.all([
+    assinantes(escopo),
+    planosDoClube(),
+  ]);
+  return <Clube lista={lista} planos={planos} pixKey={pix} />;
 }
 
 async function AbaClientes({ escopo }: { escopo: Escopo }) {

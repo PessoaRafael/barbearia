@@ -12,7 +12,14 @@ import {
 
 import { Etiqueta, Logo, Retrato, Secao } from "@/componentes/base";
 import { ModalClube } from "@/componentes/site/ModalClube";
-import { barbeirosAtivos, casa, servicosAtivos } from "@/lib/dados/casa";
+import {
+  barbeirosAtivos,
+  casa,
+  diasEmTexto,
+  planosDoClube,
+  servicosAtivos,
+  type PlanoClube,
+} from "@/lib/dados/casa";
 import { CASA } from "@/lib/casa";
 import { moedaCentavos } from "@/lib/formato";
 
@@ -24,10 +31,11 @@ import { moedaCentavos } from "@/lib/formato";
 export const revalidate = 600;
 
 export default async function Landing() {
-  const [barbearia, servicos, barbeiros] = await Promise.all([
+  const [barbearia, servicos, barbeiros, planos] = await Promise.all([
     casa(),
     servicosAtivos(),
     barbeirosAtivos(),
+    planosDoClube(),
   ]);
 
   const numeros = [
@@ -45,11 +53,7 @@ export default async function Landing() {
 
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-16 sm:gap-20">
           <Servicos servicos={servicos} />
-          <Clube
-            precoCentavos={barbearia.clube_preco_centavos}
-            ilimitado={barbearia.clube_cortes_mes === 0}
-            cortes={barbearia.clube_cortes_mes}
-          />
+          <Clube planos={planos} />
           <Time barbeiros={barbeiros} />
         </div>
       </main>
@@ -174,7 +178,7 @@ function Servicos({ servicos }: { servicos: ServicoDb[] }) {
     <Secao
       id="servicos"
       titulo="O que a gente faz"
-      apoio="Preço fechado, sem surpresa na hora de pagar. Quem é do Clube não paga nada pelo corte."
+      apoio="Preço fechado, sem surpresa na hora de pagar. Quem é do Clube não paga pelo que o plano cobre."
     >
       <div className="flex flex-col gap-6">
         {categorias.map((categoria) => {
@@ -221,79 +225,86 @@ function Servicos({ servicos }: { servicos: ServicoDb[] }) {
   );
 }
 
-function Clube({
-  precoCentavos,
-  ilimitado,
-  cortes,
-}: {
-  precoCentavos: number;
-  ilimitado: boolean;
-  cortes: number;
-}) {
-  const beneficios = ilimitado
-    ? [
-        "Corte quantas vezes quiser, sem limite no mês",
-        "Escolhe o horário e o barbeiro, como qualquer cliente",
-        "Cancela quando quiser, sem multa",
-      ]
-    : [
-        `${cortes} cortes por mês, na hora que der`,
-        "Escolhe o horário e o barbeiro, como qualquer cliente",
-        "Cancela quando quiser, sem multa",
-      ];
+function Clube({ planos }: { planos: PlanoClube[] }) {
+  if (!planos.length) return null;
 
   return (
     <Secao
       id="clube"
       titulo="Clube Johny"
-      apoio="Para quem corta sempre e não quer pensar em pagamento toda semana."
+      apoio="Paga uma vez no mês e vem quantas vezes quiser, sem pensar em pagamento a cada visita."
     >
-      <div className="grid gap-4 rounded-grande border border-borda bg-superficie p-5 sm:p-7 lg:grid-cols-[auto_1fr] lg:gap-10">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-end gap-1">
-            <span className="num font-titulo text-5xl font-bold text-acao">
-              {moedaCentavos(precoCentavos)}
-            </span>
-            <span className="pb-2 text-sm text-texto-suave">/mês</span>
-          </div>
-          <span className="num text-sm text-clube">
-            {ilimitado ? "corte à vontade" : `${cortes} cortes por mês`}
-          </span>
-        </div>
-
-        <div className="flex flex-col gap-4">
-          <ul className="flex flex-col gap-3">
-            {beneficios.map((beneficio) => (
-              <li key={beneficio} className="flex items-start gap-3">
-                <Check
-                  className="mt-0.5 h-4 w-4 shrink-0 text-clube"
-                  strokeWidth={2.5}
-                />
-                <span className="text-texto-medio">{beneficio}</span>
-              </li>
-            ))}
-          </ul>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <ModalClube
-              preco={moedaCentavos(precoCentavos)}
-              cortes={cortes}
-              beneficios={beneficios}
-            />
-            <Link
-              href="/entrar"
-              className="inline-flex min-h-toque items-center justify-center gap-2 rounded-pill border border-clube/50 px-5 font-titulo text-sm font-semibold text-clube transition-colors hover:border-clube"
+      <div className="flex flex-col gap-4">
+        <ul className="grid gap-4 lg:grid-cols-3">
+          {planos.map((plano) => (
+            <li
+              key={plano.id}
+              className="flex flex-col gap-4 rounded-grande border border-borda bg-superficie p-5"
             >
-              <Crown className="h-4 w-4 shrink-0" strokeWidth={2} />
-              Sou do clube
-            </Link>
-          </div>
-          <p className="text-xs text-texto-apagado">
-            Já é do clube? Entre com a chave que o Johny mandou no WhatsApp para
-            ver seus horários e seu histórico.
+              <div className="flex flex-col gap-1">
+                <span className="font-titulo text-lg font-bold">{plano.nome}</span>
+                <div className="flex items-end gap-1">
+                  <span className="num font-titulo text-4xl font-bold text-acao">
+                    {moedaCentavos(plano.preco_centavos)}
+                  </span>
+                  <span className="pb-1.5 text-sm text-texto-suave">/mês</span>
+                </div>
+              </div>
+
+              <ul className="flex flex-col gap-2.5">
+                <Beneficio>
+                  {plano.cobre_categorias.join(" e ").toLowerCase()} sem limite
+                  de vezes
+                </Beneficio>
+                {/* O dia é a regra que mais gera discussão na cadeira, então
+                    ela aparece no cartão, não numa nota de rodapé. */}
+                <Beneficio>
+                  vale de {diasEmTexto(plano.dias_semana)}
+                </Beneficio>
+                <Beneficio>{plano.duracao_dias} dias de plano</Beneficio>
+                <Beneficio>cancela quando quiser, sem multa</Beneficio>
+              </ul>
+
+              <ModalClube
+                planoId={plano.id}
+                plano={plano.nome}
+                preco={moedaCentavos(plano.preco_centavos)}
+                dias={diasEmTexto(plano.dias_semana)}
+                beneficios={[
+                  `${plano.cobre_categorias.join(" e ")} sem limite de vezes`,
+                  `Vale de ${diasEmTexto(plano.dias_semana)}`,
+                  "Escolhe o horário e o barbeiro, como qualquer cliente",
+                  "Cancela quando quiser, sem multa",
+                ]}
+              />
+            </li>
+          ))}
+        </ul>
+
+        <div className="flex flex-col gap-3 rounded-grande border border-borda bg-superficie p-5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-texto-suave">
+            Sexta e sábado o plano não vale: nesses dias você marca normal e
+            paga o preço da tabela. Para entrar, fale com o Johny.
           </p>
+          <Link
+            href="/entrar"
+            className="inline-flex min-h-toque shrink-0 items-center justify-center gap-2 rounded-pill border border-clube/50 px-5 font-titulo text-sm font-semibold text-clube transition-colors hover:border-clube"
+          >
+            <Crown className="h-4 w-4 shrink-0" strokeWidth={2} />
+            Sou do clube
+          </Link>
         </div>
       </div>
     </Secao>
+  );
+}
+
+function Beneficio({ children }: { children: React.ReactNode }) {
+  return (
+    <li className="flex items-start gap-2.5">
+      <Check className="mt-0.5 h-4 w-4 shrink-0 text-clube" strokeWidth={2.5} />
+      <span className="text-sm text-texto-medio">{children}</span>
+    </li>
   );
 }
 

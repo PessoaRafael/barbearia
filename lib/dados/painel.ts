@@ -278,7 +278,7 @@ export const assinantes = cache(async (escopo: Escopo) => {
     supabase
       .from("subscriptions")
       .select(
-        "id, client_id, status, preco_centavos, cortes_mes, ciclo_inicio, ciclo_fim, proxima_cobranca, clients(nome, telefone)",
+        "id, client_id, status, preco_centavos, cortes_mes, ciclo_inicio, ciclo_fim, proxima_cobranca, clients(nome, telefone), club_plans(nome, dias_semana)",
       )
       .eq("barbershop_id", escopo.barbeariaId)
       .neq("status", "cancelada"),
@@ -292,6 +292,7 @@ export const assinantes = cache(async (escopo: Escopo) => {
 
   return (data ?? []).map((s) => {
     const c = Array.isArray(s.clients) ? s.clients[0] : s.clients;
+    const pl = Array.isArray(s.club_plans) ? s.club_plans[0] : s.club_plans;
     const chave = (chaves ?? []).find((k) => k.client_id === s.client_id);
 
     return {
@@ -304,6 +305,7 @@ export const assinantes = cache(async (escopo: Escopo) => {
       proximaCobranca: s.proxima_cobranca as string,
       nome: (c as { nome?: string })?.nome ?? "",
       telefone: (c as { telefone?: string })?.telefone ?? "",
+      plano: (pl as { nome?: string } | null)?.nome ?? null,
       chave: chave
         ? {
             id: chave.id,

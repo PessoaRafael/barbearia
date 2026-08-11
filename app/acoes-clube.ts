@@ -3,6 +3,7 @@
 import { z } from "zod";
 
 import { casa } from "@/lib/dados/casa";
+import { moedaCentavos } from "@/lib/formato";
 import { enfileirar } from "@/lib/notify/whatsapp";
 import { provedorAtual } from "@/lib/payments/provider";
 import { svgDoBrcode } from "@/lib/pix/qr";
@@ -19,6 +20,7 @@ import { clienteServico } from "@/lib/supabase/servidor";
 const entrada = z.object({
   nome: z.string().trim().min(2).max(80),
   telefone: z.string().trim().min(10).max(20),
+  planoId: z.string().uuid(),
 });
 
 export type PedidoClube =
@@ -29,6 +31,7 @@ export type PedidoClube =
       chave: string;
       titular: string;
       valor: string;
+      plano: string;
       jaAssinante: boolean;
     }
   | { ok: false; erro: string };
@@ -46,6 +49,18 @@ export async function pedirClube(
 
   const telefone = analise.data.telefone.replace(/\D/g, "");
   const supabase = clienteServico();
+
+  // O valor sai do plano no banco, nunca do que a tela mandou: preço vindo do
+  // navegador é preço que o cliente escolhe.
+  const { data: plano } = await supabase
+    .from("club_plans")
+    .select("id, nome, preco_centavos")
+    .eq("id", analise.data.planoId)
+    .eq("barbershop_id", barbearia.id)
+    .eq("ativo", true)
+    .maybeSingle();
+
+  if (!plano) return { ok: false, erro: "Esse plano não está disponível." };
 
   const { data: cliente } = await supabase
     .from("clients")
@@ -74,7 +89,7 @@ export async function pedirClube(
     // Sem agendamento, o txid sai do cliente: é o que deixa o Johny saber de
     // quem é o pix quando ele olhar o extrato.
     agendamentoId: cliente.id,
-    valorCentavos: barbearia.clube_preco_centavos,
+    valorCentavos: plano.preco_centavos,
     chavePix: barbearia.pix_key,
     titular: barbearia.pix_titular ?? barbearia.nome,
     cidade: barbearia.cidade,
@@ -89,8 +104,8 @@ export async function pedirClube(
       telefone,
       dados: {
         cliente: analise.data.nome,
-        quando: "quer entrar no clube",
-        valor: `R$ ${barbearia.clube_preco_centavos / 100}`,
+        quando: `quer entrar no clube: ${plano.nome}`,
+        valor: moedaCentavos(plano.preco_centavos),
         pix: barbearia.pix_key,
       },
     });
@@ -102,7 +117,8 @@ export async function pedirClube(
     qrSvg: await svgDoBrcode(cobranca.brcode).catch(() => null),
     chave: barbearia.pix_key,
     titular: barbearia.pix_titular ?? barbearia.nome,
-    valor: `R$ ${barbearia.clube_preco_centavos / 100}`,
+    valor: moedaCentavos(plano.preco_centavos),
+    plano: plano.nome,
     jaAssinante: Boolean(assinatura),
   };
 }

@@ -106,6 +106,14 @@ export async function entrarNaFila(entrada: z.input<typeof fila>) {
   return { ok: true, jaEstava: false };
 }
 
+/** O plano do assinante: o que ele cobre e em que dias vale. */
+export type PlanoDoCliente = {
+  nome: string;
+  precoCentavos: number;
+  categorias: string[];
+  diasSemana: number[];
+};
+
 export type Reconhecido = {
   nome: string | null;
   assinante: boolean;
@@ -115,6 +123,7 @@ export type Reconhecido = {
   creditosRestantes: number;
   cicloAte: string | null;
   vencida: boolean;
+  plano: PlanoDoCliente | null;
 };
 
 /**
@@ -132,6 +141,7 @@ export async function reconhecerCliente(
     creditosRestantes: 0,
     cicloAte: null,
     vencida: false,
+    plano: null,
   };
 
   const telefone = telefoneBruto.replace(/\D/g, "");
@@ -151,7 +161,9 @@ export async function reconhecerCliente(
 
   const { data: assinatura } = await supabase
     .from("subscriptions")
-    .select("id, status, cortes_mes, ciclo_inicio, ciclo_fim")
+    .select(
+      "id, status, cortes_mes, ciclo_inicio, ciclo_fim, club_plans(nome, preco_centavos, cobre_categorias, dias_semana)",
+    )
     .eq("client_id", cliente.id)
     .neq("status", "cancelada")
     .maybeSingle();
@@ -178,6 +190,16 @@ export async function reconhecerCliente(
   // precisar conhecer a convenção: comparar com > 0 continua funcionando.
   const ilimitado = assinatura.cortes_mes === 0;
 
+  const bruto = Array.isArray(assinatura.club_plans)
+    ? assinatura.club_plans[0]
+    : assinatura.club_plans;
+  const p = bruto as {
+    nome: string;
+    preco_centavos: number;
+    cobre_categorias: string[];
+    dias_semana: number[];
+  } | null;
+
   return {
     nome: cliente.nome,
     assinante: !vencida,
@@ -188,6 +210,14 @@ export async function reconhecerCliente(
       : Math.max(0, assinatura.cortes_mes - gastos),
     cicloAte: assinatura.ciclo_fim,
     vencida,
+    plano: p
+      ? {
+          nome: p.nome,
+          precoCentavos: p.preco_centavos,
+          categorias: p.cobre_categorias ?? [],
+          diasSemana: p.dias_semana ?? [],
+        }
+      : null,
   };
 }
 
@@ -213,7 +243,10 @@ const RECADOS: Record<string, string> = {
   casa_fechada: "A barbearia está fechada nesse dia.",
   sem_assinatura_ativa: "Não achei assinatura ativa nesse telefone.",
   assinatura_vencida: "Sua mensalidade está vencida, dá para pagar avulso.",
-  servico_fora_do_clube: "Esse serviço não entra no clube.",
+  servico_fora_do_clube: "Esse serviço não entra no seu plano do clube.",
+  dia_fora_do_clube:
+    "Seu plano vale de segunda a quinta. Nesse dia o corte sai no valor normal.",
+  plano_inexistente: "Não achei o plano da sua assinatura. Fale com o Johny.",
   creditos_esgotados: "Seus cortes do clube acabaram neste ciclo.",
   servico_indisponivel: "Esse serviço não está mais na régua.",
 };
