@@ -68,13 +68,32 @@ const hashChave = (chave) => {
   return `scrypt$16384$8$1$${sal.toString("hex")}$${d.toString("hex")}`;
 };
 
-// Amanhã às 10h, no fuso da casa. Domingo não conta: a casa fecha.
-function proximoDiaUtil() {
+/**
+ * Um dia útil longe o bastante para ninguém ter mexido nele.
+ *
+ * Era "amanhã", e amanhã é exatamente o dia em que o Johny fecha horário para
+ * cliente que marcou por fora. O teste falhava com horario_bloqueado e parecia
+ * defeito de concorrência, quando era só a agenda dele sendo usada de verdade.
+ *
+ * Domingo não conta, e datas com bloqueio ou fechamento também não.
+ */
+async function diaLimpo() {
   const d = new Date();
-  do {
+  d.setUTCDate(d.getUTCDate() + 45);
+
+  for (let i = 0; i < 30; i++) {
+    if (d.getUTCDay() !== 0) {
+      const data = d.toISOString().slice(0, 10);
+      const [pausas, fechado] = await Promise.all([
+        rest(`breaks?data=eq.${data}&select=id`),
+        rest(`closures?data=eq.${data}&select=id`),
+      ]);
+      if (!pausas.length && !fechado.length) return data;
+    }
     d.setUTCDate(d.getUTCDate() + 1);
-  } while (d.getUTCDay() === 0);
-  return d.toISOString().slice(0, 10);
+  }
+
+  throw new Error("não achei dia livre para montar o cenário do teste.");
 }
 
 console.log("");
@@ -145,8 +164,9 @@ conferir(
 );
 const idChaveDavi = criada.corpo;
 
-// Um corte na agenda do Anderson, amanhã às 10h.
-const data = proximoDiaUtil();
+// Um corte na agenda do Anderson, às 10h de um dia sem bloqueio.
+const data = await diaLimpo();
+console.log(`  cenário montado em ${data}`);
 const reserva = await rpc("reservar", {
   p_barbearia: casa.id,
   p_barbeiro: anderson.id,
