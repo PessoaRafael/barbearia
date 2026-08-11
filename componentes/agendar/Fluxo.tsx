@@ -63,6 +63,8 @@ export function Fluxo({
   reservaMinutos: number;
 }) {
   const primeiroAberto = dias.find((d) => !d.fechado) ?? dias[0];
+  // Referência estável para o efeito que corrige o dia do assinante.
+  const diasDisponiveis = dias;
 
   const [servicoId, setServicoId] = useState<string | null>(null);
   const [barbeiro, setBarbeiro] = useState<Escolha>(null);
@@ -110,6 +112,33 @@ export function Fluxo({
       valeu = false;
     };
   }, []);
+
+  /**
+   * O cliente pode ter escolhido sexta antes de a gente saber que ele é do
+   * clube: o telefone só chega no passo 4. Quando a assinatura aparece e o dia
+   * não é do plano, a escolha volta atrás em vez de deixar ele seguir até o
+   * fim e levar um "não" na confirmação.
+   */
+  useEffect(() => {
+    const dias = reconhecido?.assinante ? reconhecido.plano?.diasSemana : null;
+    if (!dias?.length) return;
+
+    const dow = new Date(`${data}T12:00:00-03:00`).getUTCDay();
+    if (dias.includes(dow)) return;
+
+    const primeiroValido = diasDisponiveis.find(
+      (d) => !d.fechado && dias.includes(new Date(`${d.data}T12:00:00-03:00`).getUTCDay()),
+    );
+
+    setErro(
+      `Quem é do clube marca de segunda a quinta. Escolhi ${primeiroValido ? rotuloDe(primeiroValido) : "outro dia"} para você conferir os horários.`,
+    );
+    setHora(null);
+    setBarbeiro(null);
+    setTemBarbeiro(false);
+    if (primeiroValido) setData(primeiroValido.data);
+    setPassoAberto(2);
+  }, [reconhecido, data, diasDisponiveis]);
 
   /**
    * Uma consulta por (serviço, dia) traz o mapa inteiro: quem está livre em
@@ -471,7 +500,6 @@ export function Fluxo({
                       servico={servico}
                       podeClube={podeClube}
                       planoCobre={planoCobre}
-                      diaDoPlano={diaDoPlano}
                       quando={rotuloDe(dia)}
                       reconhecido={reconhecido}
                       obrigatorio={pagamentoObrigatorio}
@@ -640,7 +668,6 @@ function Pagamento({
   servico,
   podeClube,
   planoCobre,
-  diaDoPlano,
   quando,
   reconhecido,
   obrigatorio,
@@ -650,7 +677,6 @@ function Pagamento({
   servico: Servico;
   podeClube: boolean;
   planoCobre: boolean;
-  diaDoPlano: boolean;
   quando: string;
   reconhecido: Reconhecido | null;
   obrigatorio: boolean;
@@ -687,11 +713,6 @@ function Pagamento({
         <p className="rounded-card border border-alerta/50 bg-superficie-ativa px-4 py-3 text-xs text-alerta">
           Sua mensalidade está vencida, então sai no valor normal. Fale com o
           Johny para voltar a usar o plano.
-        </p>
-      ) : !podeClube && reconhecido?.assinante && planoCobre && !diaDoPlano ? (
-        <p className="rounded-card border border-borda bg-superficie-ativa px-4 py-3 text-xs text-texto-suave">
-          Seu plano {reconhecido.plano?.nome} vale de segunda a quinta. Como
-          você escolheu {quando}, esse sai no valor normal.
         </p>
       ) : !podeClube && reconhecido?.assinante && !planoCobre ? (
         <p className="rounded-card border border-borda bg-superficie-ativa px-4 py-3 text-xs text-texto-suave">
@@ -867,9 +888,9 @@ function CardClube({
             <span className="pb-1 text-sm text-texto-suave">/mês</span>
           </div>
           <p className="text-xs text-texto-suave">
-            Planos de corte, barba ou os dois, sem limite de vezes, de segunda a
-            quinta. Informe seu WhatsApp no passo 4 que eu reconheço sua
-            assinatura.
+            Planos de corte, barba ou os dois, sem limite de vezes, com
+            atendimento de segunda a quinta. Informe seu WhatsApp no passo 4 que
+            eu reconheço sua assinatura.
           </p>
         </>
       )}

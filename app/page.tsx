@@ -266,7 +266,7 @@ function Clube({ planos }: { planos: PlanoClube[] }) {
                 {/* O dia é a regra que mais gera discussão na cadeira, então
                     ela aparece no cartão, não numa nota de rodapé. */}
                 <Beneficio>
-                  vale de {diasEmTexto(plano.dias_semana)}
+                  atendimento de {diasEmTexto(plano.dias_semana)}
                 </Beneficio>
                 <Beneficio>{plano.duracao_dias} dias de plano</Beneficio>
                 <Beneficio>cancela quando quiser, sem multa</Beneficio>
@@ -279,7 +279,7 @@ function Clube({ planos }: { planos: PlanoClube[] }) {
                 dias={diasEmTexto(plano.dias_semana)}
                 beneficios={[
                   `${plano.cobre_categorias.join(" e ")} sem limite de vezes`,
-                  `Vale de ${diasEmTexto(plano.dias_semana)}`,
+                  `Atendimento de ${diasEmTexto(plano.dias_semana)}`,
                   "Escolhe o horário e o barbeiro, como qualquer cliente",
                   "Cancela quando quiser, sem multa",
                 ]}
@@ -290,8 +290,8 @@ function Clube({ planos }: { planos: PlanoClube[] }) {
 
         <div className="flex flex-col gap-3 rounded-grande border border-borda bg-superficie p-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-texto-suave">
-            Sexta e sábado o plano não vale: nesses dias você marca normal e
-            paga o preço da tabela. Para entrar, fale com o Johny.
+            O atendimento do clube é de segunda a quinta. Sexta e sábado a
+            agenda fica para quem corta avulso. Para entrar, fale com o Johny.
           </p>
           <Link
             href="/entrar"

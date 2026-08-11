@@ -81,8 +81,8 @@ export function ModalClube({
                   {plano}
                 </h2>
                 <p className="text-sm text-texto-medio">
-                  {preco} por mês, sem limite de vezes, de {dias}. Você escolhe
-                  o horário e o barbeiro como qualquer cliente, só que sem pagar
+                  {preco} por mês, sem limite de vezes, com atendimento de{" "}
+                  {dias}. Você escolhe o horário e o barbeiro, só que sem pagar
                   nada na hora.
                 </p>
               </div>

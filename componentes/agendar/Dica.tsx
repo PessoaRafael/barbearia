@@ -14,10 +14,10 @@ import { Lightbulb, X } from "lucide-react";
  */
 const DICAS: Record<number, string> = {
   1: "Na dúvida, Máquina & tesoura é o mais pedido da casa.",
-  2: "Dia cheio? Entre na fila que eu aviso no WhatsApp se vagar.",
+  2: "É do clube? O atendimento do plano é de segunda a quinta.",
   3: "Sem preferência? Quem liberar primeiro costuma te atender mais cedo.",
   4: "É do clube? Use o mesmo WhatsApp que o Johny cadastrou.",
-  5: "O plano do clube vale de segunda a quinta. Sexta e sábado sai o preço da tabela.",
+  5: "Quem é do clube corta sem pagar nada, dentro do que o plano cobre.",
   6: "O QR do pix aparece aqui mesmo, sem precisar sair da tela.",
 };
 

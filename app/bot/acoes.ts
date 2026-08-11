@@ -387,13 +387,13 @@ export async function conversar(
       // Uma linha por plano, e o dia junto do preço: perguntar do clube e
       // receber só o valor faz o cliente descobrir a regra na cadeira.
       falas.push(
-        `O Clube Johny tem ${planos.length} planos, todos sem limite de vezes e valendo de ${diasEmTexto(planos[0].dias_semana)}:`,
+        `O Clube Johny tem ${planos.length} planos, todos sem limite de vezes e com atendimento de ${diasEmTexto(planos[0].dias_semana)}:`,
       );
       for (const p of planos) {
         falas.push(`${p.nome}: ${moedaCentavos(p.preco_centavos)} por mês.`);
       }
       falas.push(
-        "Sexta e sábado o plano não vale, aí sai o preço da tabela. Se você já assina, me passa seu WhatsApp que eu confiro qual é o seu.",
+        "O atendimento do clube é de segunda a quinta. Se você já assina, me passa seu WhatsApp que eu confiro qual é o seu.",
       );
     } else {
       falas.push(
@@ -600,13 +600,50 @@ export async function conversar(
       falas.push(
         quem.assinante
           ? quem.plano
-            ? `Achei você, ${quem.nome.split(" ")[0]}! Você tem o ${quem.plano.nome}, que vale de segunda a quinta.`
+            ? `Achei você, ${quem.nome.split(" ")[0]}! Você tem o ${quem.plano.nome}, com atendimento de segunda a quinta.`
             : quem.ilimitado
               ? `Achei você, ${quem.nome.split(" ")[0]}! Do clube, então o corte não sai nada.`
               : `Achei você, ${quem.nome.split(" ")[0]}! Do clube, com ${quem.creditosRestantes} cortes sobrando neste ciclo.`
           : `Achei você, ${quem.nome.split(" ")[0]}.`,
       );
     }
+  }
+
+  /**
+   * O telefone só chega depois do dia, então o assinante pode ter pedido sexta
+   * sem a gente saber. Devolver a escolha aqui é melhor do que deixar ele
+   * seguir e levar um "não" na hora de fechar.
+   */
+  if (
+    estado.data &&
+    estado.assinante &&
+    estado.planoDias?.length &&
+    !estado.planoDias.includes(
+      new Date(`${estado.data}T12:00:00-03:00`).getUTCDay(),
+    )
+  ) {
+    estado.data = undefined;
+    estado.hora = undefined;
+    estado.barbeiroId = undefined;
+    estado.temBarbeiro = undefined;
+
+    falas.push(
+      `Seu ${estado.planoNome ?? "plano"} atende de segunda a quinta, e o dia que você pediu está fora. Qual desses fica bom?`,
+    );
+
+    const dias = proximosDias(7).filter(
+      (d) =>
+        !d.fechado &&
+        estado.planoDias?.includes(
+          new Date(`${d.data}T12:00:00-03:00`).getUTCDay(),
+        ),
+    );
+
+    return {
+      estado,
+      falas,
+      opcoes: dias.map((d) => ({ rotulo: rotuloDe(d), valor: d.data })),
+    };
   }
 
   if (!estado.nome) {
@@ -651,7 +688,7 @@ export async function conversar(
       !estado.planoDias?.includes(diaDoAgendamento)
     ) {
       falas.push(
-        `Seu ${estado.planoNome ?? "plano"} vale de segunda a quinta, então nesse dia o valor é o da tabela.`,
+        `Esse dia está fora do seu ${estado.planoNome ?? "plano"}.`,
       );
     }
 

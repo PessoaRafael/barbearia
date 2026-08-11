@@ -139,8 +139,8 @@ export default async function AreaDoClube() {
                   escrita aqui, não só na landing. */}
               {area.plano ? (
                 <p className="text-sm text-texto-suave">
-                  Vale de {diasEmTexto(area.plano.dias_semana)}. Fora desses
-                  dias você marca normal e paga o preço da tabela.
+                  Atendimento de {diasEmTexto(area.plano.dias_semana)}. Fora
+                  desses dias a agenda fica para quem corta avulso.
                 </p>
               ) : null}
               {area.ciclo_fim ? (

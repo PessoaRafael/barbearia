@@ -278,7 +278,7 @@ const RECADOS: Record<string, string> = {
   assinatura_vencida: "Sua mensalidade está vencida, dá para pagar avulso.",
   servico_fora_do_clube: "Esse serviço não entra no seu plano do clube.",
   dia_fora_do_clube:
-    "Seu plano vale de segunda a quinta. Nesse dia o corte sai no valor normal.",
+    "Quem é do clube marca de segunda a quinta. Escolha um desses dias.",
   plano_inexistente: "Não achei o plano da sua assinatura. Fale com o Johny.",
   creditos_esgotados: "Seus cortes do clube acabaram neste ciclo.",
   servico_indisponivel: "Esse serviço não está mais na régua.",

@@ -64,20 +64,20 @@ export function PassoHorario({
               <button
                 key={d.data}
                 type="button"
-                disabled={d.fechado}
+                disabled={d.fechado || (Boolean(diasDoPlano) && !coberto)}
                 onClick={() => onDia(d.data)}
                 aria-pressed={ativo}
                 aria-label={`${d.diaSemana} ${d.numero} de ${d.mes}${d.fechado ? ", fechado" : ""}${
                   diasDoPlano
                     ? coberto
-                      ? ", coberto pelo seu plano"
-                      : ", fora do plano, sai pagando"
+                      ? ", disponível no seu plano"
+                      : ", fora dos dias do seu plano"
                     : ""
                 }`}
                 className={`flex min-h-toque flex-col items-center justify-center gap-1 rounded-bloco border px-0.5 py-2 transition-colors ${
                   ativo
                     ? "border-acao bg-acao text-acao-sobre"
-                    : d.fechado
+                    : d.fechado || (diasDoPlano && !coberto)
                       ? "cursor-not-allowed border-borda bg-superficie-apagada text-texto-apagado"
                       : "border-borda bg-superficie-ativa text-texto hover:border-borda-forte"
                 }`}
@@ -90,15 +90,11 @@ export function PassoHorario({
                 </span>
                 {/* Um ponto, não um texto: em sete colunas no celular não cabe
                     palavra nenhuma embaixo do número. */}
-                {diasDoPlano && !d.fechado ? (
+                {diasDoPlano && !d.fechado && coberto ? (
                   <span
                     aria-hidden
                     className={`h-1.5 w-1.5 rounded-pill ${
-                      coberto
-                        ? ativo
-                          ? "bg-acao-sobre"
-                          : "bg-clube"
-                        : "bg-transparent"
+                      ativo ? "bg-acao-sobre" : "bg-clube"
                     }`}
                   />
                 ) : null}
@@ -112,16 +108,15 @@ export function PassoHorario({
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-texto-suave">
           <span className="inline-flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 shrink-0 rounded-pill bg-clube" />
-            dias que o seu {planoNome ?? "plano"} cobre
+            seu {planoNome ?? "plano"} atende de segunda a quinta
           </span>
           <span className="text-texto-apagado">
-            · nos outros você marca igual, pagando o valor da tabela
+            · sexta e sábado ficam para os avulsos
           </span>
         </p>
       ) : (
         <p className="text-xs text-texto-suave">
-          É do clube? Os planos cobrem de segunda a quinta. Sexta e sábado você
-          marca igual, pagando o valor da tabela.
+          É do clube? O atendimento do plano é de segunda a quinta.
         </p>
       )}
 
