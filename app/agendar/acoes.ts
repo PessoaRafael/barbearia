@@ -7,6 +7,7 @@ import {
   instante,
   menosOcupado,
 } from "@/lib/agenda/disponibilidade";
+import { lerSessao } from "@/lib/auth/sessao";
 import { casa } from "@/lib/dados/casa";
 import { enfileirar } from "@/lib/notify/whatsapp";
 import { provedorAtual } from "@/lib/payments/provider";
@@ -218,6 +219,36 @@ export async function reconhecerCliente(
           diasSemana: p.dias_semana ?? [],
         }
       : null,
+  };
+}
+
+/**
+ * Quem já entrou com a chave do clube não precisa se apresentar de novo.
+ *
+ * Roda depois que a tela carrega, e não no servidor da página, de propósito: o
+ * /agendar é estático e serve para todo mundo. Ler cookie no render tornaria a
+ * página dinâmica para os anônimos também, que são a maioria.
+ */
+export async function sessaoDoCliente(): Promise<{
+  nome: string;
+  telefone: string;
+  reconhecido: Reconhecido;
+} | null> {
+  const sessao = await lerSessao();
+  if (!sessao || sessao.papel !== "client" || !sessao.clienteId) return null;
+
+  const { data: cliente } = await clienteServico()
+    .from("clients")
+    .select("nome, telefone")
+    .eq("id", sessao.clienteId)
+    .maybeSingle();
+
+  if (!cliente) return null;
+
+  return {
+    nome: cliente.nome,
+    telefone: cliente.telefone,
+    reconhecido: await reconhecerCliente(cliente.telefone),
   };
 }
 

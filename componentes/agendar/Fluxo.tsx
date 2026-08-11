@@ -16,6 +16,7 @@ import {
   buscarHorarios,
   reconhecerCliente,
   reservar,
+  sessaoDoCliente,
   type Pix,
   type Reconhecido,
 } from "@/app/agendar/acoes";
@@ -82,6 +83,33 @@ export function Fluxo({
 
   const servico = servicos.find((s) => s.id === servicoId) ?? null;
   const dia = dias.find((d) => d.data === data) ?? primeiroAberto;
+
+  /**
+   * Quem chegou da área do clube já está identificado: o nome e o WhatsApp
+   * vêm preenchidos e o plano é reconhecido antes do primeiro clique, então a
+   * régua de dias já mostra o que o plano cobre.
+   *
+   * Só preenche campo vazio: se a pessoa começou a digitar enquanto isso
+   * respondia, o que ela escreveu manda.
+   */
+  useEffect(() => {
+    let valeu = true;
+
+    sessaoDoCliente()
+      .then((sessao) => {
+        if (!valeu || !sessao) return;
+        setNome((atual) => atual || sessao.nome);
+        setTelefone((atual) => atual || sessao.telefone);
+        setReconhecido((atual) => atual ?? sessao.reconhecido);
+      })
+      .catch(() => {
+        // Anônimo é o caso normal: seguir sem identificação é o esperado.
+      });
+
+    return () => {
+      valeu = false;
+    };
+  }, []);
 
   /**
    * Uma consulta por (serviço, dia) traz o mapa inteiro: quem está livre em
@@ -379,6 +407,10 @@ export function Fluxo({
                     escolha={null}
                     hora={hora}
                     servicoId={servicoId}
+                    diasDoPlano={
+                      reconhecido?.assinante ? (plano?.diasSemana ?? null) : null
+                    }
+                    planoNome={plano?.nome ?? null}
                     onDia={(d) => {
                       setData(d);
                       setHora(null);

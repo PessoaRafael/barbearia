@@ -9,6 +9,10 @@ import type { Escolha, Livre } from "./tipos";
 /** Antes das 13h é manhã; o almoço fica no meio, parando a cadeira. */
 const eManha = (hora: string) => Number(hora.slice(0, 2)) < 13;
 
+/** Dia da semana (0-6) no fuso da casa, para casar com os dias do plano. */
+const diaDaSemana = (data: string) =>
+  new Date(`${data}T12:00:00-03:00`).getUTCDay();
+
 export function PassoHorario({
   dias,
   dia,
@@ -17,6 +21,8 @@ export function PassoHorario({
   escolha,
   hora,
   servicoId,
+  diasDoPlano,
+  planoNome,
   onDia,
   onHora,
 }: {
@@ -27,6 +33,9 @@ export function PassoHorario({
   escolha: Escolha;
   hora: string | null;
   servicoId: string | null;
+  /** Dias que o plano do assinante cobre. null enquanto não sabemos quem é. */
+  diasDoPlano: number[] | null;
+  planoNome: string | null;
   onDia: (data: string) => void;
   onHora: (hora: string) => void;
 }) {
@@ -48,6 +57,9 @@ export function PassoHorario({
         <div className="grid grid-cols-7 gap-1 sm:gap-2">
           {dias.map((d) => {
             const ativo = d.data === dia.data;
+            // Coberto pelo plano: o cliente precisa ver isso ao escolher o
+            // dia, não só lá na frente no passo do pagamento.
+            const coberto = Boolean(diasDoPlano?.includes(diaDaSemana(d.data)));
             return (
               <button
                 key={d.data}
@@ -55,7 +67,13 @@ export function PassoHorario({
                 disabled={d.fechado}
                 onClick={() => onDia(d.data)}
                 aria-pressed={ativo}
-                aria-label={`${d.diaSemana} ${d.numero} de ${d.mes}${d.fechado ? ", fechado" : ""}`}
+                aria-label={`${d.diaSemana} ${d.numero} de ${d.mes}${d.fechado ? ", fechado" : ""}${
+                  diasDoPlano
+                    ? coberto
+                      ? ", coberto pelo seu plano"
+                      : ", fora do plano, sai pagando"
+                    : ""
+                }`}
                 className={`flex min-h-toque flex-col items-center justify-center gap-1 rounded-bloco border px-0.5 py-2 transition-colors ${
                   ativo
                     ? "border-acao bg-acao text-acao-sobre"
@@ -70,11 +88,42 @@ export function PassoHorario({
                 <span className="num font-titulo text-lg font-bold leading-none">
                   {d.numero}
                 </span>
+                {/* Um ponto, não um texto: em sete colunas no celular não cabe
+                    palavra nenhuma embaixo do número. */}
+                {diasDoPlano && !d.fechado ? (
+                  <span
+                    aria-hidden
+                    className={`h-1.5 w-1.5 rounded-pill ${
+                      coberto
+                        ? ativo
+                          ? "bg-acao-sobre"
+                          : "bg-clube"
+                        : "bg-transparent"
+                    }`}
+                  />
+                ) : null}
               </button>
             );
           })}
         </div>
       </div>
+
+      {diasDoPlano ? (
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-texto-suave">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 shrink-0 rounded-pill bg-clube" />
+            dias que o seu {planoNome ?? "plano"} cobre
+          </span>
+          <span className="text-texto-apagado">
+            · nos outros você marca igual, pagando o valor da tabela
+          </span>
+        </p>
+      ) : (
+        <p className="text-xs text-texto-suave">
+          É do clube? Os planos cobrem de segunda a quinta. Sexta e sábado você
+          marca igual, pagando o valor da tabela.
+        </p>
+      )}
 
       {dia.fechado ? (
         <Aviso
