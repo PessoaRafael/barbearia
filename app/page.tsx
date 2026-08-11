@@ -226,14 +226,21 @@ function Servicos({ servicos }: { servicos: ServicoDb[] }) {
 }
 
 function Clube({ planos }: { planos: PlanoClube[] }) {
-  if (!planos.length) return null;
-
   return (
     <Secao
       id="clube"
       titulo="Clube Johny"
       apoio="Paga uma vez no mês e vem quantas vezes quiser, sem pensar em pagamento a cada visita."
     >
+      {/* A seção fica em pé mesmo sem plano nenhum. Sumir com ela levava junto
+          o id="clube", e aí o botão "Conhecer o clube" lá em cima virava um
+          clique que não faz nada: o defeito aparecia longe da causa. */}
+      {planos.length === 0 ? (
+        <p className="rounded-grande border border-borda bg-superficie px-5 py-8 text-center text-sm text-texto-suave">
+          Os planos estão sendo atualizados. Chame o Johny no WhatsApp que ele
+          te passa os valores na hora.
+        </p>
+      ) : (
       <div className="flex flex-col gap-4">
         <ul className="grid gap-4 lg:grid-cols-3">
           {planos.map((plano) => (
@@ -295,6 +302,7 @@ function Clube({ planos }: { planos: PlanoClube[] }) {
           </Link>
         </div>
       </div>
+      )}
     </Secao>
   );
 }
