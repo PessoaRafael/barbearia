@@ -699,6 +699,7 @@ export async function conversar(
     telefone: estado.telefone,
     usarClube: estado.forma === "clube",
     formaPagamento: estado.forma,
+    origem: "chat",
   });
 
   if (!saida.ok) {

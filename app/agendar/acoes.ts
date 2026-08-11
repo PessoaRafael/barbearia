@@ -231,6 +231,8 @@ const reserva = z.object({
   telefone: z.string().trim().min(10).max(20),
   usarClube: z.boolean().default(false),
   formaPagamento: z.enum(["pix", "cadeira", "clube"]).default("cadeira"),
+  /** Por onde a pessoa marcou. O bot passa "chat"; o formulário, "link". */
+  origem: z.enum(["link", "chat"]).default("link"),
 });
 
 /** Mensagens que o cliente entende, no lugar do código de erro do Postgres. */
@@ -301,16 +303,28 @@ export async function reservar(
     );
   }
 
-  const { data: criado, error } = await supabase.rpc("reservar", {
-    p_barbearia: casaAtual.id,
-    p_barbeiro: barbeiroId,
-    p_servico: dados.servicoId,
-    p_nome: dados.nome,
-    p_telefone: dados.telefone.replace(/\D/g, ""),
-    p_inicio: instante(dados.data, dados.hora).toISOString(),
-    p_usar_clube: dados.usarClube,
-    p_origem: "link",
-  });
+  const marcar = (origem: string) =>
+    supabase.rpc("reservar", {
+      p_barbearia: casaAtual.id,
+      p_barbeiro: barbeiroId,
+      p_servico: dados.servicoId,
+      p_nome: dados.nome,
+      p_telefone: dados.telefone.replace(/\D/g, ""),
+      p_inicio: instante(dados.data, dados.hora).toISOString(),
+      p_usar_clube: dados.usarClube,
+      p_origem: origem,
+    });
+
+  let { data: criado, error } = await marcar(dados.origem);
+
+  /**
+   * 'chat' só existe no enum depois da 0018. Entre subir este código e rodar a
+   * migration, insistir derrubaria todo agendamento feito pelo bot. Perder a
+   * etiqueta de origem é bem mais barato que perder o agendamento.
+   */
+  if (error && /invalid input value for enum/i.test(error.message)) {
+    ({ data: criado, error } = await marcar("link"));
+  }
 
   if (error) {
     const chave = Object.keys(RECADOS).find((k) => error.message.includes(k));
