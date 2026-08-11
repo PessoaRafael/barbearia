@@ -13,7 +13,8 @@
     "teste:bot": "node --experimental-strip-types scripts/teste-bot.mjs",
     "zerar:teste": "node scripts/zerar-teste.mjs",
     "guia": "node scripts/gerar-guia.mjs",
-    "atualizar": "node scripts/atualizar.mjs"
+    "atualizar": "node scripts/atualizar.mjs",
+    "teste:pagbank": "node scripts/teste-pagbank.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

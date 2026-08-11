@@ -1,6 +1,7 @@
 import "server-only";
 
 import { gerarBrCode } from "@/lib/pix/brcode";
+import { pagbank } from "./pagbank";
 
 /**
  * Camada isolada de pagamento.
@@ -86,6 +87,16 @@ export const pixManual: ProvedorPagamento = {
   },
 };
 
+/**
+ * Duas chaves para virar o provedor, e é de propósito.
+ *
+ * Só o token existir não basta: PAGBANK_ATIVO precisa ser "true". Assim
+ * colocar a credencial no ambiente para testar não muda, sozinho, por onde o
+ * dinheiro do Johny passa.
+ */
 export function provedorAtual(): ProvedorPagamento {
+  if (process.env.PAGBANK_ATIVO === "true" && process.env.PAGBANK_TOKEN) {
+    return pagbank;
+  }
   return pixManual;
 }
