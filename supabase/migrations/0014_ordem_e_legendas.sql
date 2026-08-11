@@ -33,3 +33,7 @@ update services set ordem = dados.pos
 update barbers
    set especialidade = 'corte, barba e química'
  where apelido in ('Johny', 'Anderson', 'Davi');
+
+-- Etiqueta do mais pedido, que aparece na vitrine e no passo do serviço. Fica
+-- editável na aba Serviços: qual é o carro-chefe muda com o tempo.
+update services set tag = 'mais escolhido' where nome = 'Máquina & tesoura';

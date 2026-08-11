@@ -22,6 +22,7 @@ import {
 import { rotuloDe, type Dia } from "@/lib/agenda/dias";
 import { moedaCentavos, telefoneBonito } from "@/lib/formato";
 import { ComoConfirma } from "./ComoConfirma";
+import { Dica } from "./Dica";
 import { Passo, type EstadoPasso } from "./Passo";
 import { PainelPix } from "./PainelPix";
 import { PassoBarbeiro } from "./PassoBarbeiro";
@@ -287,7 +288,7 @@ export function Fluxo({
 
   return (
     <>
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-5 pb-32 pt-6 sm:px-8 lg:px-10 lg:pb-14">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-5 pb-40 pt-6 sm:px-8 lg:px-10 lg:pb-14">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl">Agendar horário</h1>
           <p className="text-texto-suave">
@@ -298,6 +299,9 @@ export function Fluxo({
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-6">
           <aside className="flex flex-col gap-4 lg:sticky lg:top-[76px] lg:order-2 lg:w-[300px] lg:shrink-0 xl:w-[340px]">
             <CardClube clube={clube} reconhecido={reconhecido} />
+            {/* Depois de fechar o agendamento a tela vira recibo, e dica de
+                como escolher ali só atrapalha. */}
+            {fechado ? null : <Dica passo={passoAberto} />}
             <div className="hidden lg:block">
               <Trilha
                 etapas={[
