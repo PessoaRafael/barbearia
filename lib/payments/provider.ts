@@ -25,6 +25,8 @@ export interface ProvedorPagamento {
   readonly nome: string;
   /** Confirmação chega sozinha por webhook? Hoje, não. */
   readonly confirmaSozinho: boolean;
+  /** Exige CPF e e-mail do cliente? A tela só pede o que for necessário. */
+  readonly pedeCpf: boolean;
 
   criarCobranca(entrada: {
     barbeariaId: string;
@@ -34,6 +36,17 @@ export interface ProvedorPagamento {
     titular: string;
     cidade: string;
     minutos: number;
+    /**
+     * Quem vai pagar. O pix manual não usa nada disso — o BR Code é do Johny,
+     * não do cliente. O PagBank exige nome, e-mail e CPF, e é por isso que o
+     * campo existe na interface: um provedor precisa, o outro ignora.
+     */
+    cliente: {
+      nome: string;
+      telefone: string;
+      email?: string | null;
+      cpf?: string | null;
+    };
   }): Promise<Cobranca>;
 
   consultarStatus(txid: string): Promise<StatusCobranca>;
@@ -52,6 +65,7 @@ function txidDe(agendamentoId: string) {
 export const pixManual: ProvedorPagamento = {
   nome: "pix-manual",
   confirmaSozinho: false,
+  pedeCpf: false,
 
   async criarCobranca({
     agendamentoId,

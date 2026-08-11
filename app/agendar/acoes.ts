@@ -108,6 +108,11 @@ export async function entrarNaFila(entrada: z.input<typeof fila>) {
 }
 
 /** O plano do assinante: o que ele cobre e em que dias vale. */
+/** O provedor de hoje precisa de CPF e e-mail para cobrar? */
+export async function pagamentoPedeCpf() {
+  return provedorAtual().pedeCpf;
+}
+
 export type PlanoDoCliente = {
   nome: string;
   precoCentavos: number;
@@ -125,6 +130,9 @@ export type Reconhecido = {
   cicloAte: string | null;
   vencida: boolean;
   plano: PlanoDoCliente | null;
+  /** Guardados no primeiro pagamento, para o cliente não redigitar. */
+  email: string | null;
+  cpf: string | null;
 };
 
 /**
@@ -143,6 +151,8 @@ export async function reconhecerCliente(
     cicloAte: null,
     vencida: false,
     plano: null,
+    email: null,
+    cpf: null,
   };
 
   const telefone = telefoneBruto.replace(/\D/g, "");
@@ -153,7 +163,7 @@ export async function reconhecerCliente(
 
   const { data: cliente } = await supabase
     .from("clients")
-    .select("id, nome")
+    .select("id, nome, email, cpf")
     .eq("barbershop_id", id)
     .eq("telefone", telefone)
     .maybeSingle();
@@ -169,7 +179,9 @@ export async function reconhecerCliente(
     .neq("status", "cancelada")
     .maybeSingle();
 
-  if (!assinatura) return { ...vazio, nome: cliente.nome };
+  const contato = { email: cliente.email ?? null, cpf: cliente.cpf ?? null };
+
+  if (!assinatura) return { ...vazio, ...contato, nome: cliente.nome };
 
   const vencida =
     assinatura.status === "vencida" ||
@@ -202,6 +214,7 @@ export async function reconhecerCliente(
   } | null;
 
   return {
+    ...contato,
     nome: cliente.nome,
     assinante: !vencida,
     ilimitado,
@@ -264,6 +277,9 @@ const reserva = z.object({
   formaPagamento: z.enum(["pix", "cadeira", "clube"]).default("cadeira"),
   /** Por onde a pessoa marcou. O bot passa "chat"; o formulário, "link". */
   origem: z.enum(["link", "chat"]).default("link"),
+  /** Só quando o provedor de pagamento exige. Ver `provedorAtual().pedeCpf`. */
+  email: z.string().trim().email().max(120).optional(),
+  cpf: z.string().trim().max(20).optional(),
 });
 
 /** Mensagens que o cliente entende, no lugar do código de erro do Postgres. */
@@ -382,6 +398,19 @@ export async function reservar(
     dados.formaPagamento === "pix" || agendamento.status === "pendente_pagamento";
 
   if (querPix && agendamento.valor_centavos > 0 && casaAtual.pix_key) {
+    const cpf = (dados.cpf ?? "").replace(/\D/g, "");
+
+    // Guarda para a próxima vez: quem já pagou uma vez não redigita.
+    if (dados.email || cpf) {
+      await supabase
+        .from("clients")
+        .update({
+          ...(dados.email ? { email: dados.email } : {}),
+          ...(cpf ? { cpf } : {}),
+        })
+        .eq("id", (criado as { client_id: string }).client_id);
+    }
+
     const cobranca = await provedorAtual().criarCobranca({
       barbeariaId: casaAtual.id,
       agendamentoId: agendamento.id,
@@ -390,6 +419,12 @@ export async function reservar(
       titular: casaAtual.pix_titular ?? casaAtual.nome,
       cidade: casaAtual.cidade,
       minutos: casaAtual.reserva_minutos,
+      cliente: {
+        nome: dados.nome,
+        telefone: dados.telefone,
+        email: dados.email ?? null,
+        cpf: cpf || null,
+      },
     });
 
     await supabase.from("payments").insert({

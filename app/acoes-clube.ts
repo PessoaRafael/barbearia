@@ -94,6 +94,7 @@ export async function pedirClube(
     titular: barbearia.pix_titular ?? barbearia.nome,
     cidade: barbearia.cidade,
     minutos: 60 * 24,
+    cliente: { nome: analise.data.nome, telefone },
   });
 
   if (!assinatura) {

@@ -53,6 +53,7 @@ export function Fluxo({
   dias,
   clube,
   pagamentoObrigatorio,
+  pedeCpf,
   reservaMinutos,
 }: {
   servicos: Servico[];
@@ -60,6 +61,8 @@ export function Fluxo({
   dias: Dia[];
   clube: { ativo: boolean; precoCentavos: number; cortesMes: number };
   pagamentoObrigatorio: boolean;
+  /** O provedor de pagamento exige CPF e e-mail? Só então a tela pede. */
+  pedeCpf: boolean;
   reservaMinutos: number;
 }) {
   const primeiroAberto = dias.find((d) => !d.fechado) ?? dias[0];
@@ -73,6 +76,8 @@ export function Fluxo({
   const [hora, setHora] = useState<string | null>(null);
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
+  const [email, setEmail] = useState("");
+  const [cpf, setCpf] = useState("");
   const [forma, setForma] = useState<FormaPagamento | null>(null);
   const [passoAberto, setPassoAberto] = useState(1);
   const [erro, setErro] = useState<string | null>(null);
@@ -102,6 +107,8 @@ export function Fluxo({
         if (!valeu || !sessao) return;
         setNome((atual) => atual || sessao.nome);
         setTelefone((atual) => atual || sessao.telefone);
+        setEmail((atual) => atual || sessao.reconhecido.email || "");
+        setCpf((atual) => atual || sessao.reconhecido.cpf || "");
         setReconhecido((atual) => atual ?? sessao.reconhecido);
       })
       .catch(() => {
@@ -194,9 +201,20 @@ export function Fluxo({
       ? comClube(servico)
       : servico.precoCentavos;
 
+  /**
+   * CPF e e-mail só entram em cena para quem vai pagar no pix, e só quando o
+   * provedor exige. Pedir no cadastro geral colocaria dois campos entre o
+   * cliente e a cadeira até para quem paga na hora.
+   */
+  const precisaDeCpf = pedeCpf && forma === "pix";
+  const cpfLimpo = cpf.replace(/\D/g, "");
+  const contatoOk =
+    !precisaDeCpf || (/^\S+@\S+\.\S+$/.test(email.trim()) && cpfLimpo.length === 11);
+
   const faltam = [
     servicoId,
     hora,
+    contatoOk ? "ok" : null,
     temBarbeiro ? "ok" : null,
     nome.trim().length >= 2 && telefone.replace(/\D/g, "").length >= 10
       ? "ok"
@@ -211,6 +229,7 @@ export function Fluxo({
       : (barbeiros.find((b) => b.id === barbeiro)?.nome ?? ""));
 
   const quando = hora ? `${rotuloDe(dia)} às ${hora}` : "";
+
 
   /** Quem está livre exatamente na hora escolhida, que é o que o passo 3 lista. */
   const livresNaHora =
@@ -259,13 +278,24 @@ export function Fluxo({
 
     const quem = await reconhecerCliente(limpo);
     setReconhecido(quem);
+    // Já pagou aqui antes: não faz o cliente redigitar CPF e e-mail.
+    setEmail((atual) => atual || quem.email || "");
+    setCpf((atual) => atual || quem.cpf || "");
     setForma(null);
     setPassoAberto(5);
   }
 
   function escolherForma(valor: FormaPagamento) {
     setForma(valor);
-    setPassoAberto(6);
+
+    // Escolher pix abre os campos de CPF e e-mail no próprio passo 5. Avançar
+    // agora fecharia o passo justamente em cima do que falta preencher.
+    const faltaContato =
+      pedeCpf &&
+      valor === "pix" &&
+      !(/^\S+@\S+\.\S+$/.test(email.trim()) && cpf.replace(/\D/g, "").length === 11);
+
+    setPassoAberto(faltaContato ? 5 : 6);
   }
 
   function confirmar() {
@@ -282,6 +312,7 @@ export function Fluxo({
         telefone: telefone.replace(/\D/g, ""),
         usarClube: forma === "clube",
         formaPagamento: forma,
+        ...(precisaDeCpf ? { email: email.trim(), cpf } : {}),
       });
 
       if (!saida.ok) {
@@ -505,7 +536,16 @@ export function Fluxo({
                       obrigatorio={pagamentoObrigatorio}
                       forma={forma}
                       onEscolher={escolherForma}
-                    />
+                    >
+                      {precisaDeCpf ? (
+                        <ContatoDoPix
+                          email={email}
+                          cpf={cpf}
+                          onEmail={setEmail}
+                          onCpf={setCpf}
+                        />
+                      ) : null}
+                    </Pagamento>
                   ) : null}
                 </Passo>
 
@@ -538,16 +578,18 @@ export function Fluxo({
                       <button
                         type="button"
                         onClick={confirmar}
-                        disabled={enviando}
+                        disabled={enviando || !contatoOk}
                         className={`num inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-pill px-6 font-titulo text-base font-bold transition-colors ${
-                          enviando
-                            ? "cursor-wait border border-borda bg-superficie-apagada text-texto-apagado"
+                          enviando || !contatoOk
+                            ? "cursor-not-allowed border border-borda bg-superficie-apagada text-texto-apagado"
                             : "bg-acao text-acao-sobre hover:bg-acao-hover"
                         }`}
                       >
                         {enviando
                           ? "Marcando..."
-                          : `Confirmar horário · ${moedaCentavos(valorCentavos)}`}
+                          : !contatoOk
+                            ? "Falta o CPF e o e-mail no passo 5"
+                            : `Confirmar horário · ${moedaCentavos(valorCentavos)}`}
                       </button>
                     </div>
                   ) : null}
@@ -673,6 +715,7 @@ function Pagamento({
   obrigatorio,
   forma,
   onEscolher,
+  children,
 }: {
   servico: Servico;
   podeClube: boolean;
@@ -682,6 +725,7 @@ function Pagamento({
   obrigatorio: boolean;
   forma: FormaPagamento | null;
   onEscolher: (f: FormaPagamento) => void;
+  children?: React.ReactNode;
 }) {
   const cheio = moedaCentavos(servico.precoCentavos);
   const sobra = comClube(servico);
@@ -754,6 +798,76 @@ function Pagamento({
           onClick={() => onEscolher("cadeira")}
         />
       )}
+
+      {children}
+    </div>
+  );
+}
+
+/**
+ * CPF e e-mail, pedidos só de quem vai pagar no pix.
+ *
+ * Não é capricho nosso: o PagBank recusa a cobrança sem os dois. Como é um
+ * pedido estranho para marcar corte, a tela diz por que precisa — sem isso a
+ * pessoa desconfia e desiste, que é pior do que o campo a mais.
+ */
+function ContatoDoPix({
+  email,
+  cpf,
+  onEmail,
+  onCpf,
+}: {
+  email: string;
+  cpf: string;
+  onEmail: (v: string) => void;
+  onCpf: (v: string) => void;
+}) {
+  const campo =
+    "min-h-[52px] w-full rounded-card border border-borda bg-superficie-ativa px-4 text-base text-texto placeholder:text-texto-apagado";
+
+  // 000.000.000-00 enquanto digita, sem brigar com quem cola.
+  const mascarar = (bruto: string) => {
+    const d = bruto.replace(/\D/g, "").slice(0, 11);
+    return d
+      .replace(/^(\d{3})(\d)/, "$1.$2")
+      .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+      .replace(/\.(\d{3})(\d{1,2})$/, ".$1-$2");
+  };
+
+  return (
+    <div className="flex flex-col gap-3 rounded-card border border-borda-forte bg-superficie-ativa p-4">
+      <p className="text-xs text-texto-suave">
+        O banco exige esses dois dados para gerar o pix no seu nome. Ficam
+        guardados para você não digitar de novo na próxima vez.
+      </p>
+
+      <label className="flex flex-col gap-1.5">
+        <span className="text-xs uppercase tracking-wide text-texto-apagado">
+          Seu e-mail
+        </span>
+        <input
+          value={email}
+          onChange={(e) => onEmail(e.target.value)}
+          placeholder="voce@email.com"
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          className={campo}
+        />
+      </label>
+
+      <label className="flex flex-col gap-1.5">
+        <span className="text-xs uppercase tracking-wide text-texto-apagado">
+          Seu CPF
+        </span>
+        <input
+          value={cpf}
+          onChange={(e) => onCpf(mascarar(e.target.value))}
+          placeholder="000.000.000-00"
+          inputMode="numeric"
+          className={`num ${campo}`}
+        />
+      </label>
     </div>
   );
 }

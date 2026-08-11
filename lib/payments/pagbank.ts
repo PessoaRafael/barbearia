@@ -80,10 +80,25 @@ function traduzir(pedido: {
 export const pagbank: ProvedorPagamento = {
   nome: "pagbank",
   confirmaSozinho: true,
+  pedeCpf: true,
 
-  async criarCobranca({ agendamentoId, valorCentavos, minutos }): Promise<Cobranca> {
+  async criarCobranca({
+    agendamentoId,
+    valorCentavos,
+    minutos,
+    cliente,
+  }): Promise<Cobranca> {
     const expiraEm = new Date(Date.now() + minutos * 60 * 1000);
     const site = (process.env.SITE_URL ?? "").replace(/\/$/, "");
+
+    const cpf = (cliente.cpf ?? "").replace(/\D/g, "");
+    if (!cliente.email || cpf.length !== 11) {
+      // Falha cedo e com nome claro: sem isso o PagBank devolve 400 e o
+      // cliente veria "não consegui marcar" sem ninguém saber o porquê.
+      throw new Error("pagbank_faltou_cpf_ou_email");
+    }
+
+    const telefone = cliente.telefone.replace(/\D/g, "").slice(-11);
 
     const pedido = await chamar("/orders", {
       method: "POST",
@@ -91,6 +106,23 @@ export const pagbank: ProvedorPagamento = {
         // O id do agendamento volta em toda notificação: é por ele que a
         // gente reencontra a cadeira certa sem depender de tabela de-para.
         reference_id: agendamentoId,
+        customer: {
+          name: cliente.nome,
+          email: cliente.email,
+          tax_id: cpf,
+          ...(telefone.length >= 10
+            ? {
+                phones: [
+                  {
+                    country: "55",
+                    area: telefone.slice(0, 2),
+                    number: telefone.slice(2),
+                    type: "MOBILE",
+                  },
+                ],
+              }
+            : {}),
+        },
         items: [
           { name: "Serviço na Johny Barbearia", quantity: 1, unit_amount: valorCentavos },
         ],

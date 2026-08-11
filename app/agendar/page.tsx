@@ -5,6 +5,7 @@ import { Logo } from "@/componentes/base";
 import { Fluxo } from "@/componentes/agendar/Fluxo";
 import { proximosDias } from "@/lib/agenda/dias";
 import { barbeirosAtivos, casa, servicosAtivos } from "@/lib/dados/casa";
+import { provedorAtual } from "@/lib/payments/provider";
 
 /**
  * Só a moldura é cacheada: serviços, barbeiros e a régua de dias. A grade de
@@ -69,6 +70,7 @@ export default async function Agendar() {
           cortesMes: barbearia.clube_cortes_mes,
         }}
         pagamentoObrigatorio={barbearia.pagamento_modalidade === "obrigatorio"}
+        pedeCpf={provedorAtual().pedeCpf}
         reservaMinutos={barbearia.reserva_minutos}
       />
     </div>
