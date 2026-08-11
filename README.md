@@ -33,6 +33,18 @@ Um arquivo por vez importa da 0008 para a 0009: o Postgres só aceita escrever
 `'client'` depois que o valor do enum estiver comitado, e o SQL Editor roda cada
 arquivo numa transação.
 
+Mudou dado direto no Supabase (SQL, script, seed)? A landing, o `/agendar` e o
+`/bot` são gerados uma vez e reaproveitados por dez minutos, então a tela
+continua mostrando o dado velho sem nada parecer errado. Para não esperar:
+
+```bash
+npm run atualizar                      # localhost
+npm run atualizar -- https://seu.site  # produção
+```
+
+O painel já faz isso sozinho quando salva. O comando é para mudança feita por
+fora, que não avisa ninguém.
+
 Depois gere o token do Johny e guarde o que aparecer:
 
 ```bash

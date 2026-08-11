@@ -12,7 +12,8 @@
     "teste:painel": "node scripts/teste-barbeiro.mjs",
     "teste:bot": "node --experimental-strip-types scripts/teste-bot.mjs",
     "zerar:teste": "node scripts/zerar-teste.mjs",
-    "guia": "node scripts/gerar-guia.mjs"
+    "guia": "node scripts/gerar-guia.mjs",
+    "atualizar": "node scripts/atualizar.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
