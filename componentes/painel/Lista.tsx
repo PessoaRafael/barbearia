@@ -89,16 +89,24 @@ export function Filtro({
 }
 
 /**
- * Trilho horizontal no celular: os filtros não cabem em linha, e quebrar em
- * duas fileiras come a tela antes de a lista aparecer.
+ * Os filtros quebram linha em vez de rolar de lado.
+ *
+ * Em trilho horizontal o último chip aparecia cortado no meio da palavra na
+ * borda da tela, e sem nada indicando que dava para arrastar aquilo lia como
+ * defeito. Duas fileiras ocupam mais altura, mas nenhuma opção fica escondida.
  */
 export function TrilhoDeFiltros({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="trilho -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0">
-      {children}
-    </div>
-  );
+  return <div className="flex flex-wrap gap-2">{children}</div>;
 }
+
+/**
+ * "Corte + Barba ilimitado" vira "Corte + Barba" no chip.
+ *
+ * Todo plano do clube é ilimitado, então a palavra não distingue nada e só
+ * ocupa o espaço que falta para o rótulo caber na tela do celular.
+ */
+export const curto = (nome: string) =>
+  nome.replace(/\s*ilimitad[oa]s?\s*/i, " ").trim();
 
 export function VerMais({
   mostrando,

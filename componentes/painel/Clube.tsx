@@ -1,8 +1,17 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Check, Crown, KeyRound, Plus, Search, UserPlus, X } from "lucide-react";
+import { Check, Crown, KeyRound, Plus, UserPlus, X } from "lucide-react";
 
+import {
+  achatar,
+  CampoBusca,
+  curto,
+  Filtro,
+  POR_VEZ,
+  TrilhoDeFiltros,
+  VerMais,
+} from "./Lista";
 import {
   cancelarAssinatura,
   gerarChaveCliente,
@@ -39,15 +48,6 @@ export type Assinante = {
 const pill =
   "inline-flex min-h-toque items-center justify-center gap-2 rounded-pill px-4 font-titulo text-sm font-semibold transition-colors";
 
-/** Sem acento e em minúscula: "Ângelo" tem que aparecer digitando "angelo". */
-const achatar = (t: string) =>
-  t
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase();
-
-const POR_VEZ = 12;
-
 /**
  * Quem atende sexta ou sábado veio de antes da regra nova.
  *
@@ -76,6 +76,8 @@ export function Clube({
   const [quantos, setQuantos] = useState(POR_VEZ);
 
   const vencidos = lista.filter((a) => a.status === "vencida");
+  const antigos = lista.filter((a) => ehAntigo(a.planoDias));
+  const planosNaLista = [...new Set(lista.map((a) => a.plano).filter(Boolean))];
 
   /**
    * Busca e filtro no navegador, não no servidor.
@@ -110,11 +112,6 @@ export function Clube({
 
   const mostrando = filtrados.slice(0, quantos);
 
-  // Nomes de plano que existem de verdade nesta lista: filtro por plano vazio
-  // é opção que só decepciona.
-  const planosNaLista = [...new Set(lista.map((a) => a.plano).filter(Boolean))];
-  const antigos = lista.filter((a) => ehAntigo(a.planoDias));
-
   const trocarFiltro = (valor: string) => {
     setFiltro(valor);
     setQuantos(POR_VEZ);
@@ -144,36 +141,16 @@ export function Clube({
 
       {lista.length > 8 ? (
         <div className="flex flex-col gap-2">
-          <label className="relative flex items-center">
-            <Search
-              className="pointer-events-none absolute left-3.5 h-4 w-4 text-texto-apagado"
-              strokeWidth={2}
-            />
-            <input
-              value={busca}
-              onChange={(e) => {
-                setBusca(e.target.value);
-                setQuantos(POR_VEZ);
-              }}
-              placeholder="Buscar por nome ou WhatsApp"
-              aria-label="Buscar assinante"
-              className="min-h-toque w-full rounded-pill border border-borda bg-superficie-ativa pl-10 pr-4 text-sm text-texto placeholder:text-texto-apagado"
-            />
-            {busca ? (
-              <button
-                type="button"
-                onClick={() => setBusca("")}
-                aria-label="Limpar busca"
-                className="absolute right-2 grid h-9 w-9 place-items-center rounded-pill text-texto-apagado hover:text-texto"
-              >
-                <X className="h-4 w-4" strokeWidth={2} />
-              </button>
-            ) : null}
-          </label>
+          <CampoBusca
+            valor={busca}
+            onMudar={(v) => {
+              setBusca(v);
+              setQuantos(POR_VEZ);
+            }}
+            placeholder="Buscar por nome ou WhatsApp"
+          />
 
-          {/* Trilho horizontal: no celular os filtros não cabem em linha, e
-              quebrar em duas fileiras come a tela antes da lista aparecer. */}
-          <div className="trilho -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0">
+          <TrilhoDeFiltros>
             <Filtro
               rotulo="Todos"
               conta={lista.length}
@@ -192,7 +169,7 @@ export function Clube({
             {planosNaLista.map((nome) => (
               <Filtro
                 key={nome}
-                rotulo={nome!}
+                rotulo={curto(nome!)}
                 conta={lista.filter((a) => a.plano === nome).length}
                 ativo={filtro === nome}
                 onClick={() => trocarFiltro(nome!)}
@@ -206,7 +183,7 @@ export function Clube({
                 onClick={() => trocarFiltro("antigos")}
               />
             ) : null}
-          </div>
+          </TrilhoDeFiltros>
         </div>
       ) : null}
 
@@ -223,8 +200,7 @@ export function Clube({
         <ul className="flex flex-col gap-2">
           {mostrando.map((a) => (
             /* Empilhado, e não em wrap. Em 360px a linha única espremia nome,
-               plano, telefone, valor e quatro botões na mesma faixa: sobrava
-               reticência em tudo e o preço encostava no nome. */
+               plano, telefone, valor e quatro botões na mesma faixa. */
             <li
               key={a.id}
               className={`flex flex-col gap-3 rounded-card border px-4 py-3 ${
@@ -233,9 +209,8 @@ export function Clube({
                   : "border-borda bg-superficie-ativa"
               }`}
             >
-              {/* O preço divide linha só com o nome. Antes ele estava na
-                  mesma faixa das três linhas, e o telefone e a validade
-                  herdavam a largura sobrando: "até 10/…" cortado em 360px. */}
+              {/* O preço divide linha só com o nome. Junto das três linhas, o
+                  telefone herdava a largura sobrando e cortava em 360px. */}
               <div className="flex flex-col gap-0.5">
                 <div className="flex items-baseline justify-between gap-3">
                   <span className="flex min-w-0 items-center gap-2 font-titulo text-sm font-semibold">
@@ -307,21 +282,13 @@ export function Clube({
         </ul>
       )}
 
-      {filtrados.length > mostrando.length ? (
-        <button
-          type="button"
-          onClick={() => setQuantos((n) => n + POR_VEZ)}
-          className={`${pill} border border-borda-forte text-texto hover:border-acao`}
-        >
-          Ver mais {filtrados.length - mostrando.length}
-        </button>
-      ) : null}
-
       {lista.length > 8 ? (
-        <p className="num text-xs text-texto-apagado">
-          mostrando {mostrando.length} de {filtrados.length}
-          {filtrados.length !== lista.length ? ` (${lista.length} no total)` : ""}
-        </p>
+        <VerMais
+          mostrando={mostrando.length}
+          total={filtrados.length}
+          geral={lista.length}
+          onMais={() => setQuantos((n) => n + POR_VEZ)}
+        />
       ) : null}
 
       {vencidos.length ? (
@@ -333,43 +300,10 @@ export function Clube({
 
       <p className="text-xs text-texto-apagado">
         O WhatsApp é a identidade. Assim que ele digitar esse número no
-        agendamento, o saldo de cortes aparece sozinho para ele. A chave é outra
-        coisa: serve para ele entrar em &ldquo;Sou do clube&rdquo; e ver os
-        próprios horários.
+        agendamento, o plano aparece sozinho para ele. O link de acesso é outra
+        coisa: serve para ver os próprios horários em &ldquo;Sou do clube&rdquo;.
       </p>
     </section>
-  );
-}
-
-function Filtro({
-  rotulo,
-  conta,
-  ativo,
-  alerta = false,
-  onClick,
-}: {
-  rotulo: string;
-  conta: number;
-  ativo: boolean;
-  alerta?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={ativo}
-      className={`inline-flex min-h-toque shrink-0 items-center gap-2 rounded-pill border px-4 font-titulo text-sm font-semibold transition-colors ${
-        ativo
-          ? "border-acao bg-acao text-acao-sobre"
-          : alerta
-            ? "border-alerta/50 bg-superficie-ativa text-alerta"
-            : "border-borda bg-superficie-ativa text-texto-suave hover:border-borda-forte"
-      }`}
-    >
-      {rotulo}
-      <span className="num text-xs opacity-70">{conta}</span>
-    </button>
   );
 }
 
