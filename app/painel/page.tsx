@@ -12,6 +12,8 @@ import {
   SoltarBloqueio,
 } from "@/componentes/painel/Acoes";
 import { Bloquear } from "@/componentes/painel/Bloquear";
+import { Caixa } from "@/componentes/painel/Caixa";
+import { Clientes } from "@/componentes/painel/Clientes";
 import { Clube } from "@/componentes/painel/Clube";
 import { Configuracoes } from "@/componentes/painel/Configuracoes";
 import { Servicos } from "@/componentes/painel/Servicos";
@@ -498,40 +500,7 @@ async function AbaClube({ escopo, pix }: { escopo: Escopo; pix: string }) {
 }
 
 async function AbaClientes({ escopo }: { escopo: Escopo }) {
-  const lista = await clientes(escopo);
-
-  return (
-    <Cartao titulo={`Clientes · ${lista.length}`}>
-      {lista.length === 0 ? (
-        <Vazio texto="A base começa a encher no primeiro agendamento." />
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {lista.map((c) => (
-            <li
-              key={c.id}
-              className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-card border border-borda bg-superficie-ativa px-4 py-3"
-            >
-              <div className="flex min-w-0 flex-[1_1_55%] flex-col">
-                <span className="truncate font-titulo text-sm font-semibold">
-                  {c.nome}
-                </span>
-                <span className="num truncate text-xs text-texto-suave">
-                  {telefoneBonito(c.telefone)}
-                  {c.faltas ? ` · ${c.faltas} falta(s)` : ""}
-                </span>
-              </div>
-              <span className="num shrink-0 text-xs text-texto-suave">
-                {c.total_cortes} cortes
-              </span>
-              <span className="num ml-auto shrink-0 font-titulo text-base font-bold">
-                {moedaCentavos(c.total_gasto_centavos)}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Cartao>
-  );
+  return <Clientes lista={await clientes(escopo)} />;
 }
 
 async function AbaServicos({ escopo }: { escopo: Escopo }) {
@@ -584,52 +553,7 @@ async function AbaFila({ escopo }: { escopo: Escopo }) {
 }
 
 async function AbaCaixa({ escopo, dia }: { escopo: Escopo; dia: string }) {
-  const lista = await caixaDoDia(escopo, dia);
-  const total = lista.reduce(
-    (soma, l) => soma + (l.tipo === "entrada" ? l.valorCentavos : -l.valorCentavos),
-    0,
-  );
-
-  return (
-    <Cartao titulo="Caixa do dia">
-      <div className="flex items-baseline justify-between gap-3 rounded-card border border-borda bg-superficie-ativa px-4 py-3">
-        <span className="text-sm text-texto-suave">Entrou hoje</span>
-        <span className="num font-titulo text-2xl font-bold text-acao">
-          {moedaCentavos(total)}
-        </span>
-      </div>
-
-      {lista.length === 0 ? (
-        <Vazio texto="Nada lançado ainda. Entra automático quando um corte é concluído ou um pix é confirmado." />
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {lista.map((l) => (
-            <li
-              key={l.id}
-              className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-card border border-borda bg-superficie-ativa px-4 py-3"
-            >
-              <div className="flex min-w-0 flex-1 flex-col">
-                <span className="truncate font-titulo text-sm font-semibold">
-                  {l.categoria}
-                </span>
-                <span className="truncate text-xs text-texto-suave">
-                  {l.descricao} {l.barbeiro ? `· ${l.barbeiro}` : ""}
-                </span>
-              </div>
-              <span
-                className={`num shrink-0 font-titulo text-base font-bold ${
-                  l.tipo === "entrada" ? "text-texto" : "text-alerta"
-                }`}
-              >
-                {l.tipo === "entrada" ? "" : "−"}
-                {moedaCentavos(l.valorCentavos)}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Cartao>
-  );
+  return <Caixa lista={await caixaDoDia(escopo, dia)} />;
 }
 
 async function AbaEquipe({ escopo }: { escopo: Escopo }) {
