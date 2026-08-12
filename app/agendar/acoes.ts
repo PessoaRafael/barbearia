@@ -265,6 +265,30 @@ export async function sessaoDoCliente(): Promise<{
   };
 }
 
+/**
+ * O horário já confirmou?
+ *
+ * Existe para a tela do cliente se atualizar sozinha depois que ele paga. Com
+ * o pix automático, a confirmação chega por webhook a qualquer momento, e sem
+ * isso ele ficaria olhando um "aguardando o pix" que já não é verdade —
+ * dependendo de uma mensagem no WhatsApp para descobrir.
+ *
+ * Recebe o token do agendamento, que é secreto e só quem marcou tem. Não
+ * devolve nada além do estado: serve para uma tela, não para vasculhar agenda.
+ */
+export async function situacaoDoAgendamento(token: string) {
+  if (!token || token.length < 8) return null;
+
+  const { data } = await clienteServico()
+    .from("appointments")
+    .select("status, valor_centavos")
+    .eq("token_cliente", token)
+    .maybeSingle();
+
+  if (!data) return null;
+  return { status: data.status as string, valorCentavos: data.valor_centavos };
+}
+
 const reserva = z.object({
   data: z.string().regex(DATA),
   hora: z.string().regex(HORA),

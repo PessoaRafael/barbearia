@@ -17,6 +17,7 @@ import {
   reconhecerCliente,
   reservar,
   sessaoDoCliente,
+  situacaoDoAgendamento,
   type Pix,
   type Reconhecido,
 } from "@/app/agendar/acoes";
@@ -1085,7 +1086,35 @@ function Status({
   nome: string;
   onRecomecar: () => void;
 }) {
-  const aguardando = fechado.status === "pendente_pagamento";
+  /**
+   * Enquanto o pix não cai, a tela pergunta sozinha se já caiu.
+   *
+   * Com a confirmação automática, o cliente paga e nada muda na frente dele —
+   * ele ficaria olhando "aguardando o pix" que já não é verdade, esperando uma
+   * mensagem no WhatsApp para descobrir. Aqui ele vê acontecer.
+   *
+   * Para de perguntar quando confirma, e desiste depois de cinco minutos: se
+   * não caiu até lá, o problema não é demora de rede.
+   */
+  const [status, setStatus] = useState(fechado.status);
+  const aguardando = status === "pendente_pagamento";
+
+  useEffect(() => {
+    if (!aguardando) return;
+
+    const parar = new Date(Date.now() + 5 * 60 * 1000);
+    const relogio = setInterval(async () => {
+      if (new Date() > parar) return clearInterval(relogio);
+
+      const agora = await situacaoDoAgendamento(fechado.token).catch(() => null);
+      if (agora && agora.status !== "pendente_pagamento") {
+        setStatus(agora.status);
+        clearInterval(relogio);
+      }
+    }, 5000);
+
+    return () => clearInterval(relogio);
+  }, [aguardando, fechado.token]);
 
   const linhas = [
     { rotulo: "Serviço", valor: `${servico.nome} · ${duracaoLabel(servico.duracaoMin)}` },
@@ -1109,11 +1138,15 @@ function Status({
         </span>
         <div className="flex min-w-0 flex-col gap-1">
           <h2 className="text-xl">
-            {aguardando ? "Reservado, aguardando o pix cair" : "Horário marcado"}
+            {aguardando
+              ? "Reservado, aguardando o pix cair"
+              : status === "confirmado" && fechado.status === "pendente_pagamento"
+                ? "Pix recebido, horário confirmado!"
+                : "Horário marcado"}
           </h2>
           <p className="text-sm text-texto-suave">
             {aguardando
-              ? "A cadeira está no seu nome, mas só vira horário confirmado depois que o Johny der o ok no pagamento."
+              ? "A cadeira está no seu nome. Assim que o pix cair, esta tela confirma sozinha — não precisa sair daqui."
               : "Te esperamos na cadeira. Se precisar remarcar, use o link abaixo."}
           </p>
         </div>
@@ -1136,7 +1169,7 @@ function Status({
         </div>
       </dl>
 
-      {fechado.pix ? (
+      {fechado.pix && aguardando ? (
         <>
           <PainelPix
             brcode={fechado.pix.brcode}
