@@ -23,8 +23,10 @@ export function PassoHorario({
   servicoId,
   diasDoPlano,
   planoNome,
+  soDe,
   onDia,
   onHora,
+  onVerTodos,
 }: {
   dias: Dia[];
   dia: Dia;
@@ -36,8 +38,11 @@ export function PassoHorario({
   /** Dias que o plano do assinante cobre. null enquanto não sabemos quem é. */
   diasDoPlano: number[] | null;
   planoNome: string | null;
+  /** Nome de quem está filtrando a grade, quando o cliente pediu "só ele". */
+  soDe: string | null;
   onDia: (data: string) => void;
   onHora: (hora: string) => void;
+  onVerTodos: () => void;
 }) {
   // "Tanto faz" aceita qualquer barbeiro; escolhido, só os dele.
   const doBarbeiro = (horarios ?? []).filter(
@@ -103,6 +108,21 @@ export function PassoHorario({
           })}
         </div>
       </div>
+
+      {soDe ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-acao/40 bg-superficie-ativa px-3 py-2">
+          <span className="text-xs text-texto-medio">
+            Mostrando só os horários de {soDe}.
+          </span>
+          <button
+            type="button"
+            onClick={onVerTodos}
+            className="inline-flex min-h-toque items-center rounded-pill px-3 font-titulo text-xs font-semibold text-acao"
+          >
+            Ver de todos
+          </button>
+        </div>
+      ) : null}
 
       {diasDoPlano ? (
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-texto-suave">

@@ -79,6 +79,16 @@ export function Fluxo({
   const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
   const [cpf, setCpf] = useState("");
+
+  /**
+   * "Quero esse mesmo, me mostra outro horário dele."
+   *
+   * Depois que o dia passou a vir antes do barbeiro, quem queria um
+   * profissional específico só descobria os horários dele testando hora por
+   * hora: a grade não diz quem está livre em cada uma. Este filtro é a volta
+   * para trás sem precisar recomeçar do link.
+   */
+  const [soDoBarbeiro, setSoDoBarbeiro] = useState<string | null>(null);
   const [forma, setForma] = useState<FormaPagamento | null>(null);
   const [passoAberto, setPassoAberto] = useState(1);
   const [erro, setErro] = useState<string | null>(null);
@@ -249,6 +259,7 @@ export function Fluxo({
   function escolherServico(id: string) {
     if (id !== servicoId) {
       limparDepoisDe(2);
+      setSoDoBarbeiro(null);
       setHorarios(null);
     }
     setServicoId(id);
@@ -335,6 +346,7 @@ export function Fluxo({
     setTemBarbeiro(false);
     setData(primeiroAberto.data);
     setHora(null);
+    setSoDoBarbeiro(null);
     setForma(null);
     setFechado(null);
     setErro(null);
@@ -465,7 +477,11 @@ export function Fluxo({
                     dia={dia}
                     horarios={horarios}
                     carregando={carregando}
-                    escolha={null}
+                    escolha={soDoBarbeiro}
+                    soDe={
+                      barbeiros.find((b) => b.id === soDoBarbeiro)?.nome ?? null
+                    }
+                    onVerTodos={() => setSoDoBarbeiro(null)}
                     hora={hora}
                     servicoId={servicoId}
                     diasDoPlano={
@@ -499,6 +515,13 @@ export function Fluxo({
                     hora={hora}
                     disponiveis={livresNaHora}
                     onEscolher={escolherBarbeiro}
+                    onVerHorarios={(id) => {
+                      setSoDoBarbeiro(id);
+                      setHora(null);
+                      setBarbeiro(null);
+                      setTemBarbeiro(false);
+                      setPassoAberto(2);
+                    }}
                   />
                 </Passo>
 

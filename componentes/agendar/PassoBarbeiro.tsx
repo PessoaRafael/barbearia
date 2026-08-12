@@ -20,6 +20,7 @@ export function PassoBarbeiro({
   hora,
   disponiveis,
   onEscolher,
+  onVerHorarios,
 }: {
   barbeiros: Barbeiro[];
   escolha: Escolha;
@@ -29,6 +30,8 @@ export function PassoBarbeiro({
   /** Ids livres exatamente na hora escolhida. */
   disponiveis: string[];
   onEscolher: (id: Escolha) => void;
+  /** "quero esse, me mostra os horários dele" — volta ao passo do dia. */
+  onVerHorarios: (id: string) => void;
 }) {
   const quando = `${rotuloDe(dia)} às ${hora ?? ""}`;
   const livres = barbeiros.filter((b) => disponiveis.includes(b.id));
@@ -65,7 +68,7 @@ export function PassoBarbeiro({
           const cheio = !disponiveis.includes(b.id);
 
           return (
-            <li key={b.id}>
+            <li key={b.id} className="flex flex-col gap-1.5">
               <button
                 type="button"
                 disabled={cheio}
@@ -110,6 +113,19 @@ export function PassoBarbeiro({
                   </span>
                 </span>
               </button>
+
+              {/* Sem isso, quem queria justamente este barbeiro só descobria
+                  outro horário dele testando hora por hora às cegas: a grade
+                  do passo anterior não diz quem está livre em cada uma. */}
+              {cheio ? (
+                <button
+                  type="button"
+                  onClick={() => onVerHorarios(b.id)}
+                  className="inline-flex min-h-toque items-center justify-center rounded-pill border border-borda-forte px-3 font-titulo text-xs font-semibold text-acao transition-colors hover:border-acao"
+                >
+                  Ver horários de {b.nome}
+                </button>
+              ) : null}
             </li>
           );
         })}
