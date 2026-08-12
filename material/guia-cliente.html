@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Johny Barbearia — Como marcar seu horário</title>
+<style>
+  @page { size: A4; margin: 0; }
+
+  :root {
+    --tinta:#17140e; --suave:#6f6858; --fraco:#9a927e;
+    --linha:#e6dfcd; --papel:#fffefa; --creme:#faf6ea;
+    --amarelo:#F5CE0A; --laranja:#C9622F; --verde:#6f7d3c;
+  }
+  * { box-sizing: border-box; }
+  html { background: #cfcabb; }
+  body {
+    margin: 0; color: var(--tinta);
+    font: 13.5px/1.5 "Segoe UI", -apple-system, system-ui, sans-serif;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+
+  .folha {
+    width: 210mm; min-height: 297mm; margin: 0 auto;
+    padding: 14mm 16mm 16mm; background: var(--papel);
+  }
+  .folha + .folha { margin-top: 8mm; }
+  @media print {
+    html { background: none; }
+    .folha, .folha + .folha { margin: 0; box-shadow: none; }
+    .folha { break-after: page; }
+    .folha:last-child { break-after: auto; }
+  }
+  @media screen { .folha { box-shadow: 0 3px 18px rgba(0,0,0,.2); } }
+
+  h1 { font-size: 23px; margin: 0 0 2px; letter-spacing: -.02em; }
+  h2 { font-size: 17px; margin: 0 0 4px; letter-spacing: -.015em; }
+  h3 {
+    font-size: 12px; margin: 16px 0 6px; text-transform: uppercase;
+    letter-spacing: .07em; color: var(--suave);
+  }
+  p { margin: 0 0 8px; }
+  .mini { font-size: 11.5px; color: var(--fraco); }
+
+  .cab {
+    display: flex; align-items: center; gap: 11px;
+    padding-bottom: 10px; margin-bottom: 14px; border-bottom: 2px solid var(--linha);
+  }
+  .cab img { width: 42px; height: 42px; border-radius: 10px; }
+  .cab .sub { font-size: 12px; color: var(--suave); }
+
+  /* Telas de celular desenhadas em HTML, no tema escuro do site. */
+  .telas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+  .fone {
+    background: #14120B; border: 1px solid #2E2A1C; border-radius: 12px;
+    padding: 9px; color: #F5F0E4; font-size: 10px;
+  }
+  .fone .tit { font-weight: 700; font-size: 11px; margin-bottom: 6px; }
+  .cx {
+    border: 1px solid #2E2A1C; background: #221F14; border-radius: 7px;
+    padding: 6px 8px; margin: 4px 0;
+  }
+  .cx.on { border-color: var(--amarelo); }
+  .rot { color: #B3AC94; font-size: 9px; }
+  .vlr { color: var(--amarelo); font-weight: 700; }
+  .bt {
+    display: block; text-align: center; padding: 6px; border-radius: 999px;
+    background: var(--amarelo); color: #111; font-weight: 700; font-size: 9.5px;
+    margin-top: 6px;
+  }
+  .bt.vz { background: none; color: #F5F0E4; border: 1px solid #4A422A; }
+  .pn {
+    display: inline-grid; place-items: center; width: 13px; height: 13px;
+    border-radius: 50%; background: var(--amarelo); color: #111;
+    font-size: 8px; font-weight: 800; margin-right: 4px;
+  }
+  .pn.off { background: #2E2A1C; color: #B3AC94; }
+  .grade { display: grid; grid-template-columns: repeat(4,1fr); gap: 3px; margin-top: 4px; }
+  .hr {
+    border: 1px solid #2E2A1C; border-top: 2px solid var(--amarelo);
+    border-radius: 5px; padding: 3px 0; text-align: center;
+    font-weight: 700; font-size: 9px;
+  }
+  .hr.on { background: var(--amarelo); color: #111; }
+  .selo {
+    display: inline-block; background: var(--amarelo); color: #111;
+    border-radius: 999px; padding: 1px 6px; font-size: 8px; font-weight: 800;
+  }
+
+  ol.notas { margin: 10px 0 0; padding: 0; list-style: none; counter-reset: n; }
+  ol.notas li {
+    counter-increment: n; position: relative; padding-left: 26px;
+    margin: 8px 0; font-size: 12.5px; line-height: 1.45;
+  }
+  ol.notas li::before {
+    content: counter(n); position: absolute; left: 0; top: 1px;
+    width: 19px; height: 19px; background: var(--amarelo); color: #111;
+    border-radius: 50%; display: grid; place-items: center;
+    font-size: 10px; font-weight: 800;
+  }
+  ol.notas strong { display: block; }
+
+  .aviso {
+    border-left: 3px solid var(--amarelo); background: #fdf7de;
+    padding: 9px 12px; margin: 12px 0; border-radius: 0 7px 7px 0; font-size: 12.5px;
+  }
+  .aviso.bom { border-color: var(--verde); background: #f2f4e6; }
+  .aviso.atencao { border-color: var(--laranja); background: #fbeee8; }
+  .aviso strong { display: block; margin-bottom: 2px; }
+
+  .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .bloco { border: 1px solid var(--linha); border-radius: 9px; padding: 11px 13px; background: var(--creme); }
+  .bloco h4 { margin: 0 0 5px; font-size: 13px; }
+
+  .rodape {
+    margin-top: 16px; padding-top: 9px; border-top: 1px solid var(--linha);
+    font-size: 11px; color: var(--fraco); display: flex; justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+
+<!-- ================================ PÁGINA 1 =============================== -->
+<section class="folha">
+  <div class="cab">
+    <img src="__LOGO__" alt="">
+    <div>
+      <h1>Marque seu horário pelo site</h1>
+      <div class="sub">Johny Barbearia · Nova Descoberta, Natal/RN</div>
+    </div>
+  </div>
+
+  <p>
+    Leva menos de um minuto e não precisa de cadastro nem senha. Abra o site no
+    celular e siga os passos abaixo — cada um só abre depois que você responde o
+    anterior, então não tem como se perder.
+  </p>
+
+  <h3>As telas, na ordem</h3>
+
+  <div class="telas">
+    <div class="fone">
+      <div class="tit"><span class="pn">1</span>Serviço</div>
+      <div class="cx on">
+        Máquina &amp; tesoura <span class="selo">mais escolhido</span>
+        <div class="rot">30 min · <span class="vlr">R$ 45,00</span></div>
+      </div>
+      <div class="cx">
+        Corte máquina
+        <div class="rot">30 min · <span class="vlr">R$ 30,00</span></div>
+      </div>
+      <div class="cx">
+        Barba
+        <div class="rot">30 min · <span class="vlr">R$ 35,00</span></div>
+      </div>
+    </div>
+
+    <div class="fone">
+      <div class="tit"><span class="pn">2</span>Quando</div>
+      <div class="rot">seg 12 · ter 13 · qua 14…</div>
+      <div class="grade">
+        <div class="hr">08:30</div>
+        <div class="hr">09:00</div>
+        <div class="hr on">09:30</div>
+        <div class="hr">10:00</div>
+        <div class="hr">14:00</div>
+        <div class="hr">14:30</div>
+        <div class="hr">15:00</div>
+        <div class="hr">16:00</div>
+      </div>
+      <div class="rot" style="margin-top:6px">
+        almoço 13h às 14h · domingo fechado
+      </div>
+    </div>
+
+    <div class="fone">
+      <div class="tit"><span class="pn">3</span>Quem corta</div>
+      <div class="cx on">
+        Tanto faz
+        <div class="rot">3 livres qua às 09:30</div>
+      </div>
+      <div class="cx">Johny <div class="rot">livre</div></div>
+      <div class="cx" style="opacity:.55">
+        Anderson <div class="rot">ocupado</div>
+      </div>
+      <div class="bt vz">Ver horários de Anderson</div>
+    </div>
+  </div>
+
+  <ol class="notas">
+    <li>
+      <strong>Escolha o serviço</strong>
+      O preço é fechado, sem surpresa na hora de pagar.
+    </li>
+    <li>
+      <strong>Escolha o dia e a hora</strong>
+      Só aparecem horários que estão livres de verdade. Se o dia estiver cheio,
+      você pode entrar na fila e a gente avisa se alguém desmarcar.
+    </li>
+    <li>
+      <strong>Escolha quem corta</strong>
+      Os três fazem tudo: corte, barba e química. Se tanto faz, escolha
+      &ldquo;Tanto faz&rdquo; e fica com quem liberar primeiro.
+    </li>
+    <li>
+      <strong>Nome e WhatsApp</strong>
+      Só isso. É pelo WhatsApp que a gente te avisa — e é ele que reconhece
+      quem é do Clube.
+    </li>
+    <li>
+      <strong>Pague o pix e pronto</strong>
+      O QR Code e o código copia e cola aparecem na própria tela.
+    </li>
+  </ol>
+
+  <div class="aviso atencao">
+    <strong>Quer um barbeiro específico e ele está ocupado?</strong>
+    Toque em &ldquo;Ver horários de Anderson&rdquo; que a tela volta mostrando
+    só os horários dele naquele dia. Não precisa começar de novo.
+  </div>
+
+  <div class="rodape">
+    <span>Johny Barbearia</span>
+    <span>página 1 de 2</span>
+  </div>
+</section>
+
+<!-- ================================ PÁGINA 2 =============================== -->
+<section class="folha">
+  <div class="cab">
+    <img src="__LOGO__" alt="">
+    <div>
+      <h1>Pagamento, Clube e remarcação</h1>
+      <div class="sub">O que acontece depois que você confirma</div>
+    </div>
+  </div>
+
+  <div class="duas">
+    <div>
+      <h2>Como funciona o pix</h2>
+      <p>
+        A cadeira fica reservada no seu nome enquanto o pagamento não cai. Você
+        paga pelo QR ou pelo copia e cola, e o Johny confere no extrato dele.
+      </p>
+      <p>
+        <strong>Não feche a tela.</strong> Assim que ele confirmar, ela muda
+        sozinha para &ldquo;horário confirmado&rdquo; na sua frente.
+      </p>
+      <div class="aviso">
+        <strong>Guarde o link do seu agendamento</strong>
+        No fim aparece &ldquo;Ver meu agendamento&rdquo;. É por ali que você
+        confere, remarca ou cancela depois.
+      </div>
+    </div>
+
+    <div class="fone">
+      <div class="tit">Reservado, aguardando o pix</div>
+      <div class="cx">
+        Máquina &amp; tesoura · Johny
+        <div class="rot">qua 13/08 às 09:30</div>
+      </div>
+      <div class="cx on">
+        <div class="rot">Total</div>
+        <div class="vlr" style="font-size:15px">R$ 45,00</div>
+      </div>
+      <div class="cx" style="text-align:center">
+        <div class="rot">QR Code do pix</div>
+        <div style="height:52px;margin:5px auto;width:52px;background:
+          repeating-conic-gradient(#F5F0E4 0 25%, #14120B 0 50%) 0 0/13px 13px"></div>
+        <div class="rot">ou copia e cola</div>
+      </div>
+      <div class="bt">Copiar código do pix</div>
+      <div class="bt vz">Ver meu agendamento</div>
+    </div>
+  </div>
+
+  <h3>Se você é do Clube</h3>
+
+  <div class="duas">
+    <div class="bloco">
+      <h4>Você não paga nada</h4>
+      <p class="mini" style="margin:0">
+        Basta digitar o mesmo WhatsApp que o Johny cadastrou. O sistema
+        reconhece seu plano sozinho e o valor vai a zero — não aparece pix.
+      </p>
+    </div>
+    <div class="bloco">
+      <h4>Atendimento de segunda a quinta</h4>
+      <p class="mini" style="margin:0">
+        Sexta e sábado a agenda fica para quem corta avulso. Quem é cliente
+        antigo da casa continua marcando até sábado.
+      </p>
+    </div>
+  </div>
+
+  <div class="aviso bom">
+    <strong>Recebeu um link do Johny?</strong>
+    Ele abre sua área do Clube direto, sem digitar nada. Ali você vê seus
+    próximos horários, seu histórico de cortes e marca sem sair da página.
+    Guarde a mensagem: o link continua valendo.
+  </div>
+
+  <h3>Perguntas rápidas</h3>
+
+  <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+    <tr style="border-bottom:1px solid var(--linha)">
+      <td style="padding:6px 0;width:42%"><strong>Preciso criar conta?</strong></td>
+      <td style="padding:6px 0">Não. Nome e WhatsApp, só.</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--linha)">
+      <td style="padding:6px 0"><strong>Não achei horário</strong></td>
+      <td style="padding:6px 0">Entre na fila de espera do dia. Se alguém
+        desmarcar, você é avisado no WhatsApp.</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--linha)">
+      <td style="padding:6px 0"><strong>Preciso desmarcar</strong></td>
+      <td style="padding:6px 0">Use o link &ldquo;Ver meu agendamento&rdquo;.
+        Avise o quanto antes para outra pessoa aproveitar.</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 0"><strong>Prefiro pelo WhatsApp</strong></td>
+      <td style="padding:6px 0">Dá também: o site tem um chat que marca por
+        conversa, é só falar o que você quer.</td>
+    </tr>
+  </table>
+
+  <div class="rodape">
+    <span>Segunda a sexta 08:30–18:30 · sábado até 17:30 · domingo fechado</span>
+    <span>página 2 de 2</span>
+  </div>
+</section>
+
+</body>
+</html>
