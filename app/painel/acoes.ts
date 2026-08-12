@@ -479,3 +479,122 @@ export async function salvarConfiguracoes(
   revalidatePath("/agendar");
   return { ok: true };
 }
+
+/**
+ * Links de pagamento do PagBank, um por valor cobrado.
+ *
+ * O Johny cria cada link no app dele e cola a URL aqui. Enquanto a API de
+ * pedidos não é liberada, é por aqui que sai o cartão — e apagar o campo
+ * simplesmente tira o botão da tela do cliente, sem quebrar nada.
+ */
+export async function salvarLinksPagamento(
+  _estado: { erro?: string; ok?: boolean } | null,
+  formulario: FormData,
+) {
+  const sessao = await exigirDono();
+  const supabase = clienteServico();
+
+  const guardar: { valor: number; url: string }[] = [];
+  const apagar: number[] = [];
+
+  for (const [campo, bruto] of formulario.entries()) {
+    const casa = campo.match(/^link_(\d+)$/);
+    if (!casa) continue;
+
+    const valor = Number(casa[1]);
+    const url = String(bruto).trim();
+
+    if (!url) {
+      apagar.push(valor);
+      continue;
+    }
+
+    // Só https: um link http aqui vira um cliente digitando cartão em aberto.
+    if (!/^https:\/\/\S+$/.test(url)) {
+      return { erro: "O link precisa começar com https://" };
+    }
+
+    guardar.push({ valor, url });
+  }
+
+  if (apagar.length) {
+    const { error } = await supabase
+      .from("payment_links")
+      .delete()
+      .eq("barbershop_id", sessao.barbeariaId)
+      .in("valor_centavos", apagar);
+
+    if (error) return { erro: "Não consegui remover um dos links." };
+  }
+
+  if (guardar.length) {
+    const { error } = await supabase.from("payment_links").upsert(
+      guardar.map((l) => ({
+        barbershop_id: sessao.barbeariaId,
+        valor_centavos: l.valor,
+        url: l.url,
+        ativo: true,
+      })),
+      { onConflict: "barbershop_id,valor_centavos" },
+    );
+
+    if (error) return { erro: "Não consegui salvar os links." };
+  }
+
+  revalidatePath("/painel");
+  revalidatePath("/agendar");
+  return { ok: true };
+}
+
+/**
+ * Fila do WhatsApp: dar baixa e descartar.
+ *
+ * A fila só sabia crescer. `enfileirar` inseria e nada nunca marcava como
+ * enviada, então o painel virou um monte de aviso velho que o Johny não tinha
+ * como tirar — e o de ontem atrapalhava achar o de hoje.
+ */
+export async function darBaixaNoAviso(id: string) {
+  const sessao = await exigirEquipe();
+
+  await clienteServico()
+    .from("notifications")
+    .update({ status: "enviada", enviada_em: new Date().toISOString() })
+    .eq("id", id)
+    .eq("barbershop_id", sessao.barbeariaId)
+    .eq("status", "pendente");
+
+  revalidatePath("/painel");
+  return { ok: true };
+}
+
+/** Descartar não apaga: marca como cancelada, e o histórico continua lá. */
+export async function descartarAviso(id: string) {
+  const sessao = await exigirEquipe();
+
+  await clienteServico()
+    .from("notifications")
+    .update({ status: "cancelada" })
+    .eq("id", id)
+    .eq("barbershop_id", sessao.barbeariaId)
+    .eq("status", "pendente");
+
+  revalidatePath("/painel");
+  return { ok: true };
+}
+
+/**
+ * Limpar a fila inteira de uma vez. Só o dono, porque some com a tela toda de
+ * quem estava trabalhando nela.
+ */
+export async function descartarTodosAvisos() {
+  const sessao = await exigirDono();
+
+  await clienteServico()
+    .from("notifications")
+    .update({ status: "cancelada" })
+    .eq("barbershop_id", sessao.barbeariaId)
+    .eq("status", "pendente");
+
+  revalidatePath("/painel");
+  return { ok: true };
+}

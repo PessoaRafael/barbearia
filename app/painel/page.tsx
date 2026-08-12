@@ -16,6 +16,9 @@ import { Caixa } from "@/componentes/painel/Caixa";
 import { Clientes } from "@/componentes/painel/Clientes";
 import { Clube } from "@/componentes/painel/Clube";
 import { Configuracoes } from "@/componentes/painel/Configuracoes";
+import { LinksDePagamento } from "@/componentes/painel/LinksDePagamento";
+import { FilaWhatsapp } from "@/componentes/painel/FilaWhatsapp";
+import { linksDaCasa, valoresCobrados } from "@/lib/payments/links";
 import { Servicos } from "@/componentes/painel/Servicos";
 import { crachaDoCookie, lerSessao } from "@/lib/auth/sessao";
 import {
@@ -138,14 +141,19 @@ export default async function Painel({
         ) : aba === "equipe" ? (
           <AbaEquipe escopo={escopo} />
         ) : (
-          <Configuracoes
-            pixKey={barbearia.pix_key ?? ""}
-            pixTitular={barbearia.pix_titular ?? ""}
-            modalidade={barbearia.pagamento_modalidade}
-            reservaMinutos={barbearia.reserva_minutos}
-            clubePreco={barbearia.clube_preco_centavos / 100}
-            clubeCortes={barbearia.clube_cortes_mes}
-          />
+          <div className="flex flex-col gap-4">
+            <Configuracoes
+              pixKey={barbearia.pix_key ?? ""}
+              pixTitular={barbearia.pix_titular ?? ""}
+              modalidade={barbearia.pagamento_modalidade}
+              reservaMinutos={barbearia.reserva_minutos}
+              clubePreco={barbearia.clube_preco_centavos / 100}
+              clubeCortes={barbearia.clube_cortes_mes}
+            />
+            <Suspense fallback={null}>
+              <AbaCartao escopo={escopo} />
+            </Suspense>
+          </div>
         )}
       </Suspense>
 
@@ -154,6 +162,19 @@ export default async function Painel({
       </Suspense>
     </>
   );
+}
+
+/** Links de cartão, um por valor cobrado. Carrega depois dos ajustes. */
+async function AbaCartao({ escopo }: { escopo: Escopo }) {
+  const [valores, links] = await Promise.all([
+    valoresCobrados(escopo.barbeariaId),
+    linksDaCasa(escopo.barbeariaId),
+  ]);
+
+  const atuais: Record<number, string> = {};
+  for (const l of links) if (l.ativo) atuais[l.valorCentavos] = l.url;
+
+  return <LinksDePagamento valores={valores} atuais={atuais} />;
 }
 
 async function Indicadores({ escopo, dia }: { escopo: Escopo; dia: string }) {
@@ -615,37 +636,23 @@ async function AbaEquipe({ escopo }: { escopo: Escopo }) {
 }
 
 async function AvisosNaFila({ escopo }: { escopo: Escopo }) {
-  const fila = await avisosPendentes(escopo);
-  if (!fila.length) return null;
+  const { itens, total } = await avisosPendentes(escopo);
+  if (!total) return null;
+
+  const avisos = itens.map((n) => {
+    const dados = (n.payload ?? {}) as Record<string, string>;
+    return {
+      id: n.id as string,
+      cliente: dados.cliente ?? "",
+      texto: textoDe(n.template as never, dados),
+      telefone: (n.telefone as string | null) ?? null,
+      quando: hora(n.criado_em as string),
+    };
+  });
 
   return (
-    <Cartao titulo={`WhatsApp na fila · ${fila.length}`}>
-      <p className="text-sm text-texto-suave">
-        Sem API oficial, o sistema escreve a mensagem e você dispara. Um clique
-        por pessoa.
-      </p>
-      <ul className="flex flex-col gap-2">
-        {fila.slice(0, 10).map((n) => {
-          const dados = (n.payload ?? {}) as Record<string, string>;
-          const texto = textoDe(n.template as never, dados);
-          return (
-            <li
-              key={n.id}
-              className="flex flex-wrap items-center gap-3 rounded-card border border-borda bg-superficie-ativa px-4 py-3"
-            >
-              <div className="flex min-w-0 flex-1 flex-col">
-                <span className="truncate font-titulo text-sm font-semibold">
-                  {dados.cliente || "Cliente"}
-                </span>
-                <span className="truncate text-xs text-texto-suave">{texto}</span>
-              </div>
-              {n.telefone ? (
-                <AvisoWhatsapp telefone={n.telefone} texto={texto} />
-              ) : null}
-            </li>
-          );
-        })}
-      </ul>
+    <Cartao titulo={`WhatsApp na fila · ${total}`}>
+      <FilaWhatsapp avisos={avisos} total={total} ehDono />
     </Cartao>
   );
 }

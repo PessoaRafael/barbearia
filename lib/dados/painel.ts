@@ -434,16 +434,23 @@ export const filaDeEspera = cache(async (escopo: Escopo) => {
   });
 });
 
-/** Fila do WhatsApp esperando o Johny disparar. */
+/**
+ * Fila do WhatsApp esperando o Johny disparar.
+ *
+ * O `count` vem do banco e não do tamanho da lista: a fila passou de 30 e o
+ * painel dizia "30" porque era o limite da consulta, não o que havia de
+ * verdade. O teto de 200 existe só para a tela não puxar a fila inteira de um
+ * dia ruim; o número mostrado continua sendo o real.
+ */
 export const avisosPendentes = cache(async (escopo: Escopo) => {
-  const { data } = await clienteServico()
+  const { data, count } = await clienteServico()
     .from("notifications")
-    .select("id, template, payload, telefone, criado_em")
+    .select("id, template, payload, telefone, criado_em", { count: "exact" })
     .eq("barbershop_id", escopo.barbeariaId)
     .eq("status", "pendente")
     .lte("agendada_para", new Date().toISOString())
     .order("agendada_para")
-    .limit(30);
+    .limit(200);
 
-  return data ?? [];
+  return { itens: data ?? [], total: count ?? data?.length ?? 0 };
 });
