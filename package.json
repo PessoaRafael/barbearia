@@ -14,7 +14,8 @@
     "zerar:teste": "node scripts/zerar-teste.mjs",
     "guia": "node scripts/gerar-guia.mjs",
     "atualizar": "node scripts/atualizar.mjs",
-    "teste:pagbank": "node scripts/teste-pagbank.mjs"
+    "teste:pagbank": "node scripts/teste-pagbank.mjs",
+    "clube:antigos": "node scripts/clube-antigos.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
