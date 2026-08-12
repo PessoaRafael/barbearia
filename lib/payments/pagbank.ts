@@ -91,6 +91,13 @@ export const pagbank: ProvedorPagamento = {
     const expiraEm = new Date(Date.now() + minutos * 60 * 1000);
     const site = (process.env.SITE_URL ?? "").replace(/\/$/, "");
 
+    /**
+     * Sem SITE_URL não existe para onde o PagBank avisar, e a cobrança
+     * nasceria órfã: o cliente pagaria e o horário ficaria pendente para
+     * sempre, sem ninguém perceber. Melhor não deixar marcar.
+     */
+    if (!site) throw new Error("pagbank_sem_site_url");
+
     const cpf = (cliente.cpf ?? "").replace(/\D/g, "");
     if (!cliente.email || cpf.length !== 11) {
       // Falha cedo e com nome claro: sem isso o PagBank devolve 400 e o
@@ -132,7 +139,7 @@ export const pagbank: ProvedorPagamento = {
             expiration_date: expiraEm.toISOString(),
           },
         ],
-        ...(site ? { notification_urls: [`${site}/api/webhook/pagbank`] } : {}),
+        notification_urls: [`${site}/api/webhook/pagbank`],
       }),
     });
 
