@@ -10,7 +10,7 @@ import {
 import { lerSessao } from "@/lib/auth/sessao";
 import { casa } from "@/lib/dados/casa";
 import { enfileirar } from "@/lib/notify/whatsapp";
-import { provedorAtual } from "@/lib/payments/provider";
+import { pixManual, provedorAtual } from "@/lib/payments/provider";
 import { svgDoBrcode } from "@/lib/pix/qr";
 import { clienteServico } from "@/lib/supabase/servidor";
 
@@ -462,16 +462,47 @@ export async function reservar(
         },
       });
     } catch (erro) {
-      const motivo = (erro as Error).message;
-      console.error("cobranca", motivo);
-      await supabase.rpc("cancelar", { p_agendamento: agendamento.id, p_por: "link" });
+      /**
+       * Provedor fora do ar não pode custar o agendamento.
+       *
+       * O pix manual é o BR Code da chave do próprio Johny: não depende de
+       * ninguém aprovar nada, e é como a casa funcionou este tempo todo. Então
+       * quando o provedor recusa — credencial, conta não homologada, API caída
+       * — a cobrança cai para ele em vez de o cliente levar um "não".
+       *
+       * O Johny volta a confirmar na mão nesses casos, que é o pior que pode
+       * acontecer. Perder a reserva seria muito pior.
+       */
+      console.error("cobranca pelo provedor falhou:", (erro as Error).message);
 
-      // O código entre parênteses é feio, mas é a diferença entre "não deu" e
-      // saber em trinta segundos se foi CPF recusado ou credencial errada.
-      return {
-        ok: false,
-        erro: `Não consegui gerar o pix agora. Tente de novo em instantes ou chame no WhatsApp. (${motivo})`,
-      };
+      cobranca = await pixManual
+        .criarCobranca({
+          barbeariaId: casaAtual.id,
+          agendamentoId: agendamento.id,
+          valorCentavos: agendamento.valor_centavos,
+          chavePix: casaAtual.pix_key,
+          titular: casaAtual.pix_titular ?? casaAtual.nome,
+          cidade: casaAtual.cidade,
+          minutos: casaAtual.reserva_minutos,
+          cliente: {
+            nome: dados.nome,
+            telefone: dados.telefone,
+            email: dados.email ?? null,
+            cpf: cpf || null,
+          },
+        })
+        .catch(() => null);
+
+      if (!cobranca) {
+        await supabase.rpc("cancelar", {
+          p_agendamento: agendamento.id,
+          p_por: "link",
+        });
+        return {
+          ok: false,
+          erro: "Não consegui gerar o pix agora. Chame no WhatsApp que a gente marca por lá.",
+        };
+      }
     }
 
     await supabase.from("payments").insert({
