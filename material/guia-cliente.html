@@ -111,6 +111,21 @@
   .bloco { border: 1px solid var(--linha); border-radius: 9px; padding: 11px 13px; background: var(--creme); }
   .bloco h4 { margin: 0 0 5px; font-size: 13px; }
 
+  /* Conversa do chat, com as bolhas do jeito que aparecem na tela. */
+  .fala { display: flex; margin: 5px 0; }
+  .fala.eu { justify-content: flex-end; }
+  .balao {
+    max-width: 82%; padding: 6px 9px; border-radius: 11px;
+    background: #221F14; border: 1px solid #2E2A1C; font-size: 10px;
+  }
+  .fala.eu .balao { background: var(--amarelo); color: #111; border-color: var(--amarelo); }
+  .fichas { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; }
+  .ficha {
+    border: 1px solid #4A422A; border-radius: 999px;
+    padding: 3px 7px; font-size: 9px; color: #F5F0E4;
+  }
+  .ficha.on { background: var(--amarelo); color: #111; border-color: var(--amarelo); }
+
   .rodape {
     margin-top: 16px; padding-top: 9px; border-top: 1px solid var(--linha);
     font-size: 11px; color: var(--fraco); display: flex; justify-content: space-between;
@@ -220,7 +235,7 @@
 
   <div class="rodape">
     <span>Johny Barbearia</span>
-    <span>página 1 de 2</span>
+    <span>página 1 de 3</span>
   </div>
 </section>
 
@@ -299,6 +314,100 @@
     Guarde a mensagem: o link continua valendo.
   </div>
 
+  <div class="rodape">
+    <span>Segunda a sexta 08:30–18:30 · sábado até 17:30 · domingo fechado</span>
+    <span>página 2 de 3</span>
+  </div>
+</section>
+
+
+<!-- ================================ PÁGINA 3 =============================== -->
+<section class="folha">
+  <div class="cab">
+    <img src="__LOGO__" alt="">
+    <div>
+      <h1>Prefere conversando? Use o chat</h1>
+      <div class="sub">O mesmo agendamento, no formato de conversa</div>
+    </div>
+  </div>
+
+  <p>
+    No topo do site tem o botão <strong>&ldquo;Marcar pelo chat&rdquo;</strong>.
+    Ele marca do mesmo jeito e na mesma agenda — muda só o formato: em vez de
+    telas, é conversa. Bom para quem acha mais fácil escrever do que navegar.
+  </p>
+
+  <div class="duas">
+    <div class="fone">
+      <div class="tit">Marcar pelo chat</div>
+
+      <div class="fala"><div class="balao">
+        Oi! Sou o assistente da Johny Barbearia. O que você quer fazer?
+      </div></div>
+
+      <div class="fala eu"><div class="balao">
+        quero degradê amanhã de tarde com o Anderson
+      </div></div>
+
+      <div class="fala"><div class="balao">
+        Degradê lateral com o Anderson, amanhã à tarde. Tenho esses horários:
+        <div class="fichas">
+          <span class="ficha">14:00</span>
+          <span class="ficha on">14:30</span>
+          <span class="ficha">16:00</span>
+        </div>
+      </div></div>
+
+      <div class="fala"><div class="balao">
+        14:30, anotado. Me passa seu WhatsApp com DDD que eu já vejo se você é
+        do clube.
+      </div></div>
+
+      <div class="fala eu"><div class="balao">84 99999-9999</div></div>
+
+      <div class="fala"><div class="balao">
+        Achei você, Pedro! Você tem o Corte + Barba ilimitado, então não paga
+        nada. Confirmo?
+        <div class="fichas">
+          <span class="ficha on">Confirmar</span>
+          <span class="ficha">Trocar horário</span>
+        </div>
+      </div></div>
+    </div>
+
+    <div>
+      <h3 style="margin-top:0">Como falar com ele</h3>
+
+      <ol class="notas">
+        <li>
+          <strong>Pode dizer tudo de uma vez</strong>
+          &ldquo;quero barba sábado de manhã&rdquo; já vale. Ele entende
+          serviço, dia, turno e barbeiro na mesma frase.
+        </li>
+        <li>
+          <strong>Ou só tocar nos botões</strong>
+          A cada pergunta aparecem as opções na tela. Dá para fazer tudo sem
+          digitar nada além do nome e do WhatsApp.
+        </li>
+        <li>
+          <strong>Errou? é só falar</strong>
+          &ldquo;quero outro horário&rdquo; ou &ldquo;recomeçar&rdquo; e ele
+          volta atrás sem perder o resto.
+        </li>
+        <li>
+          <strong>O pix aparece na conversa</strong>
+          Sem sair do chat. O código copia e cola vem ali mesmo.
+        </li>
+      </ol>
+
+      <div class="aviso bom" style="margin-top:14px">
+        <strong>É a mesma agenda</strong>
+        Marcou pelo chat ou pelas telas, dá no mesmo. O horário aparece na
+        agenda do Johny na hora, dos dois jeitos.
+      </div>
+    </div>
+  </div>
+
   <h3>Perguntas rápidas</h3>
 
   <table style="width:100%;border-collapse:collapse;font-size:12.5px">
@@ -323,9 +432,10 @@
     </tr>
   </table>
 
+
   <div class="rodape">
     <span>Segunda a sexta 08:30–18:30 · sábado até 17:30 · domingo fechado</span>
-    <span>página 2 de 2</span>
+    <span>página 3 de 3</span>
   </div>
 </section>
 
