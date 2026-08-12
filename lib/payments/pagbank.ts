@@ -47,10 +47,24 @@ async function chamar(caminho: string, opcoes: RequestInit = {}) {
   const corpo = texto ? JSON.parse(texto) : null;
 
   if (!resposta.ok) {
-    // A mensagem do PagBank vai para o log, nunca para a tela do cliente:
-    // ela cita campo interno e não ajuda quem só quer pagar o corte.
     console.error("pagbank", resposta.status, texto.slice(0, 500));
-    throw new Error(`pagbank_${resposta.status}`);
+
+    /**
+     * O código do campo recusado viaja junto do erro.
+     *
+     * A mensagem inteira do PagBank não serve para o cliente — cita campo
+     * interno e não ajuda quem só quer pagar o corte. Mas sem nenhuma pista,
+     * quem dá suporte fica dependendo do log da hospedagem para saber se foi
+     * CPF inválido ou credencial errada. O código resolve os dois lados.
+     */
+    const campos = (corpo?.error_messages ?? [])
+      .map((e: { parameter_name?: string }) => e.parameter_name)
+      .filter(Boolean)
+      .join(", ");
+
+    throw new Error(
+      `pagbank_${resposta.status}${campos ? ` (${campos})` : ""}`,
+    );
   }
 
   return corpo;

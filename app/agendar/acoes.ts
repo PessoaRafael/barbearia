@@ -462,12 +462,15 @@ export async function reservar(
         },
       });
     } catch (erro) {
-      console.error("cobranca", (erro as Error).message);
+      const motivo = (erro as Error).message;
+      console.error("cobranca", motivo);
       await supabase.rpc("cancelar", { p_agendamento: agendamento.id, p_por: "link" });
 
+      // O código entre parênteses é feio, mas é a diferença entre "não deu" e
+      // saber em trinta segundos se foi CPF recusado ou credencial errada.
       return {
         ok: false,
-        erro: "Não consegui gerar o pix agora. Tente de novo em instantes ou chame no WhatsApp.",
+        erro: `Não consegui gerar o pix agora. Tente de novo em instantes ou chame no WhatsApp. (${motivo})`,
       };
     }
 
