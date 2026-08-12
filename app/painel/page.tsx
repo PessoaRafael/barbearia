@@ -183,16 +183,24 @@ async function Indicadores({ escopo, dia }: { escopo: Escopo; dia: string }) {
     pixParaConferir(escopo),
   ]);
 
+  /**
+   * "A receber" somava tudo que estava confirmado ou concluído no dia — ou
+   * seja, o corte já feito e já pago entrava na conta. O Johny lia R$ 165 e
+   * ia atrás de dinheiro que já estava no bolso dele. Agora são duas coisas
+   * separadas: o que o dia vale, e o que de fato falta cair.
+   */
+  const aReceber = pendentes.reduce((s, p) => s + p.valorCentavos, 0);
+
   return (
     <dl className="grid grid-cols-3 gap-2 sm:gap-3">
       <Indicador rotulo="Marcados" valor={String(resumo.marcados)} />
       <Indicador
-        rotulo="A receber"
+        rotulo="Do dia"
         valor={moedaCentavos(resumo.receita_centavos)}
       />
       <Indicador
-        rotulo="Pix pendente"
-        valor={String(pendentes.length)}
+        rotulo="A receber"
+        valor={moedaCentavos(aReceber)}
         alerta={pendentes.length > 0}
       />
     </dl>
@@ -203,7 +211,7 @@ async function Indicadores({ escopo, dia }: { escopo: Escopo; dia: string }) {
 function IndicadoresVazios() {
   return (
     <dl className="grid grid-cols-3 gap-2 sm:gap-3">
-      {["Marcados", "A receber", "Pix pendente"].map((rotulo) => (
+      {["Marcados", "Do dia", "A receber"].map((rotulo) => (
         <div
           key={rotulo}
           className="flex flex-col gap-1 rounded-card border border-borda bg-superficie px-3 py-3 sm:px-4"
