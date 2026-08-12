@@ -10,6 +10,7 @@ import {
 import { lerSessao } from "@/lib/auth/sessao";
 import { casa } from "@/lib/dados/casa";
 import { enfileirar } from "@/lib/notify/whatsapp";
+import { linkDoValor } from "@/lib/payments/links";
 import { pixManual, provedorAtual } from "@/lib/payments/provider";
 import { svgDoBrcode } from "@/lib/pix/qr";
 import { clienteServico } from "@/lib/supabase/servidor";
@@ -333,6 +334,11 @@ export type Pix = {
   whatsapp: string | null;
   expiraEm: string;
   minutos: number;
+  /**
+   * Link de pagamento do PagBank para esse valor, quando o Johny tiver
+   * cadastrado um. É por onde sai o cartão; null significa só pix.
+   */
+  linkCartao: string | null;
 };
 
 export type ResultadoReserva =
@@ -524,6 +530,10 @@ export async function reservar(
       whatsapp: casaAtual.telefone,
       expiraEm: cobranca.expiraEm.toISOString(),
       minutos: casaAtual.reserva_minutos,
+      linkCartao: await linkDoValor(
+        casaAtual.id,
+        agendamento.valor_centavos,
+      ),
     };
   }
 

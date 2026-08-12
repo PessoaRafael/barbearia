@@ -12,6 +12,7 @@ import {
   type Resposta,
 } from "@/app/bot/acoes";
 import { ComoConfirma } from "@/componentes/agendar/ComoConfirma";
+import { OutrasFormas } from "@/componentes/agendar/OutrasFormas";
 import { PainelPix } from "@/componentes/agendar/PainelPix";
 import { Logo } from "@/componentes/base";
 
@@ -185,6 +186,15 @@ export function Conversa({
                 minutos={pix.minutos}
                 seguraOHorario={pix.seguraOHorario}
               />
+              {pix.linkCartao ? (
+                <div className="mt-3">
+                  <OutrasFormas
+                    url={pix.linkCartao}
+                    valor={pix.valor}
+                    whatsapp={pix.whatsapp}
+                  />
+                </div>
+              ) : null}
               {pix.seguraOHorario ? (
                 <div className="mt-3">
                   <ComoConfirma

@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { Check, Crown, TriangleAlert, X } from "lucide-react";
 
 import { pedirClube, type PedidoClube } from "@/app/acoes-clube";
+import { OutrasFormas } from "@/componentes/agendar/OutrasFormas";
 import { PainelPix } from "@/componentes/agendar/PainelPix";
 
 /**
@@ -114,6 +115,10 @@ export function ModalClube({
                   minutos={0}
                   seguraOHorario={false}
                 />
+
+                {pago.linkCartao ? (
+                  <OutrasFormas url={pago.linkCartao} valor={pago.valor} />
+                ) : null}
 
                 <p className="text-sm text-texto-medio">
                   Assim que o pix cair, o Johny libera o seu clube e te chama no

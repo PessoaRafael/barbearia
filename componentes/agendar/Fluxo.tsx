@@ -26,6 +26,7 @@ import { moedaCentavos, telefoneBonito } from "@/lib/formato";
 import { ComoConfirma } from "./ComoConfirma";
 import { Dica } from "./Dica";
 import { Passo, type EstadoPasso } from "./Passo";
+import { OutrasFormas } from "./OutrasFormas";
 import { PainelPix } from "./PainelPix";
 import { PassoBarbeiro } from "./PassoBarbeiro";
 import { PassoHorario } from "./PassoHorario";
@@ -1203,6 +1204,13 @@ function Status({
             minutos={fechado.pix.minutos}
             seguraOHorario={aguardando}
           />
+          {fechado.pix.linkCartao ? (
+            <OutrasFormas
+              url={fechado.pix.linkCartao}
+              valor={moedaCentavos(fechado.valorCentavos)}
+              whatsapp={fechado.pix.whatsapp}
+            />
+          ) : null}
           <ComoConfirma
             minutos={fechado.pix.minutos}
             whatsapp={fechado.pix.whatsapp}

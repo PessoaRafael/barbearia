@@ -5,7 +5,9 @@ import { CalendarCheck, CalendarX2, Timer, XCircle } from "lucide-react";
 import { Logo } from "@/componentes/base";
 import { ComoConfirma } from "@/componentes/agendar/ComoConfirma";
 import { PainelPix } from "@/componentes/agendar/PainelPix";
+import { OutrasFormas } from "@/componentes/agendar/OutrasFormas";
 import { casa } from "@/lib/dados/casa";
+import { linkDoValor } from "@/lib/payments/links";
 import { moedaCentavos } from "@/lib/formato";
 import { duracaoLabel } from "@/componentes/agendar/tipos";
 import { HORAS_LIMITE_CANCELAMENTO } from "@/lib/regras";
@@ -83,6 +85,11 @@ export default async function MeuAgendamento({
   const aguardando = agendamento.status === "pendente_pagamento";
   const encerrado = ["cancelado", "expirado"].includes(agendamento.status);
 
+  // Só procura o link do cartão se ainda há o que pagar.
+  const linkCartao = aguardando
+    ? await linkDoValor(barbearia.id, agendamento.valorCentavos)
+    : null;
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-borda">
@@ -148,6 +155,13 @@ export default async function MeuAgendamento({
               valor={moedaCentavos(agendamento.valorCentavos)}
               minutos={barbearia.reserva_minutos}
             />
+            {linkCartao ? (
+              <OutrasFormas
+                url={linkCartao}
+                valor={moedaCentavos(agendamento.valorCentavos)}
+                whatsapp={barbearia.telefone}
+              />
+            ) : null}
             <ComoConfirma
               minutos={barbearia.reserva_minutos}
               whatsapp={barbearia.telefone}

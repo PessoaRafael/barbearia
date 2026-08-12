@@ -5,6 +5,7 @@ import { z } from "zod";
 import { casa } from "@/lib/dados/casa";
 import { moedaCentavos } from "@/lib/formato";
 import { enfileirar } from "@/lib/notify/whatsapp";
+import { linkDoValor } from "@/lib/payments/links";
 import { provedorAtual } from "@/lib/payments/provider";
 import { svgDoBrcode } from "@/lib/pix/qr";
 import { clienteServico } from "@/lib/supabase/servidor";
@@ -33,6 +34,8 @@ export type PedidoClube =
       valor: string;
       plano: string;
       jaAssinante: boolean;
+      /** Link de cartão do PagBank para a mensalidade, se houver. */
+      linkCartao: string | null;
     }
   | { ok: false; erro: string };
 
@@ -121,5 +124,6 @@ export async function pedirClube(
     valor: moedaCentavos(plano.preco_centavos),
     plano: plano.nome,
     jaAssinante: Boolean(assinatura),
+    linkCartao: await linkDoValor(barbearia.id, plano.preco_centavos),
   };
 }
