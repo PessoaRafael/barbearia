@@ -246,16 +246,17 @@ export function Clube({
                   </span>
 
                   {a.plano ? (
-                    <span className="flex flex-wrap items-center gap-1.5">
+                    <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                       <span className="truncate text-xs text-texto-suave">
                         {a.plano}
                       </span>
-                      {/* Tag leve, sem caixa: é uma nota sobre a pessoa, não um
-                          selo. E só em quem foge da regra — marcar os 40 que
-                          seguem o padrão viraria ruído em toda linha. */}
+                      {/* Curta e cheia, não frase. "antigo, marca até sábado"
+                          brigava com o nome do plano na mesma linha e as duas
+                          coisas ficavam ilegíveis. Duas palavras cabem em
+                          360px e dizem o que interessa: o dia a mais. */}
                       {ehAntigo(a.planoDias) ? (
-                        <span className="shrink-0 text-[11px] font-semibold text-clube">
-                          · antigo, marca até sábado
+                        <span className="shrink-0 rounded-pill bg-clube px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-fundo">
+                          até sáb
                         </span>
                       ) : null}
                     </span>
