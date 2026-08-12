@@ -15,6 +15,7 @@
     "guia": "node scripts/gerar-guia.mjs",
     "atualizar": "node scripts/atualizar.mjs",
     "teste:pagbank": "node scripts/teste-pagbank.mjs",
+    "pagbank:diagnostico": "node scripts/diagnostico-pagbank.mjs",
     "clube:lote": "node scripts/clube-lote.mjs"
   },
   "dependencies": {
