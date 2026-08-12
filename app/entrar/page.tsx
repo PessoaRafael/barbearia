@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { KeyRound, TriangleAlert } from "lucide-react";
 
 import { Logo } from "@/componentes/base";
@@ -20,9 +20,44 @@ function mascarar(bruto: string) {
   return `JHNY-${limpo.slice(0, 4)}-${limpo.slice(4)}`;
 }
 
+/**
+ * A chave pode vir no link: /entrar?c=JHNY-XXXX-XXXX
+ *
+ * É o que o Johny manda no WhatsApp. O cliente toca e entra, sem decorar nem
+ * digitar nada — e continua sendo a chave que autoriza, não o telefone, que
+ * qualquer um sabe.
+ *
+ * Envia sozinho uma vez só. Se a chave estiver errada, o formulário fica ali
+ * preenchido para a pessoa corrigir em vez de recarregar em looping.
+ */
 export default function Entrar() {
   const [estado, acao, enviando] = useActionState(entrar, null);
   const [chave, setChave] = useState("");
+
+  const formulario = useRef<HTMLFormElement>(null);
+  const jaTentou = useRef(false);
+
+  /**
+   * Lê o endereço depois que a página monta, e não com useSearchParams.
+   *
+   * useSearchParams obriga a página inteira a esperar o JavaScript para
+   * aparecer, e tela de entrar nascendo em branco é o pior lugar para isso.
+   * Aqui o formulário já vem pronto do servidor e a chave do link entra
+   * sozinha logo em seguida.
+   */
+  useEffect(() => {
+    if (jaTentou.current) return;
+
+    const doLink = mascarar(
+      new URLSearchParams(window.location.search).get("c") ?? "",
+    );
+    if (doLink.length < 14) return;
+
+    jaTentou.current = true;
+    setChave(doLink);
+    // Espera o valor entrar no campo antes de enviar.
+    requestAnimationFrame(() => formulario.current?.requestSubmit());
+  }, []);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-5 py-10">
@@ -38,7 +73,7 @@ export default function Entrar() {
           </div>
         </div>
 
-        <form action={acao} className="flex flex-col gap-4">
+        <form ref={formulario} action={acao} className="flex flex-col gap-4">
           <label className="flex flex-col gap-2">
             <span className="text-xs uppercase tracking-wide text-texto-apagado">
               Chave de acesso

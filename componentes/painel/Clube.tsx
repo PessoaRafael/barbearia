@@ -47,6 +47,10 @@ const achatar = (t: string) =>
 
 const POR_VEZ = 12;
 
+/** "2026-09-10" vira "10/09": ninguém lê data ISO num cartão de cliente. */
+const dia = (data: string) =>
+  data ? data.split("-").reverse().slice(0, 2).join("/") : "";
+
 export function Clube({
   lista,
   planos,
@@ -193,62 +197,76 @@ export function Clube({
       ) : (
         <ul className="flex flex-col gap-2">
           {mostrando.map((a) => (
+            /* Empilhado, e não em wrap. Em 360px a linha única espremia nome,
+               plano, telefone, valor e quatro botões na mesma faixa: sobrava
+               reticência em tudo e o preço encostava no nome. */
             <li
               key={a.id}
-              className={`flex flex-wrap items-center gap-x-4 gap-y-2 rounded-card border px-4 py-3 ${
+              className={`flex flex-col gap-3 rounded-card border px-4 py-3 ${
                 a.status === "vencida"
                   ? "border-alerta/40 bg-superficie-ativa"
                   : "border-borda bg-superficie-ativa"
               }`}
             >
-              <div className="flex min-w-0 flex-[1_1_50%] flex-col">
-                <span className="flex items-center gap-2 truncate font-titulo text-sm font-semibold">
-                  <Crown
-                    className={`h-3.5 w-3.5 shrink-0 ${
-                      a.status === "vencida" ? "text-alerta" : "text-clube"
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span className="flex items-center gap-2 truncate font-titulo text-sm font-semibold">
+                    <Crown
+                      className={`h-3.5 w-3.5 shrink-0 ${
+                        a.status === "vencida" ? "text-alerta" : "text-clube"
+                      }`}
+                      strokeWidth={2.5}
+                    />
+                    <span className="truncate">{a.nome}</span>
+                  </span>
+
+                  {a.plano ? (
+                    <span className="truncate text-xs text-texto-suave">
+                      {a.plano}
+                    </span>
+                  ) : null}
+
+                  <span
+                    className={`num truncate text-xs ${
+                      a.status === "vencida" ? "text-alerta" : "text-texto-apagado"
                     }`}
-                    strokeWidth={2.5}
-                  />
-                  {a.nome}
-                </span>
-                <span
-                  className={`num truncate text-xs ${
-                    a.status === "vencida" ? "text-alerta" : "text-texto-suave"
-                  }`}
-                >
-                  {a.plano ? `${a.plano} · ` : ""}
-                  {telefoneBonito(a.telefone)} ·{" "}
-                  {a.status === "vencida"
-                    ? `venceu em ${a.proximaCobranca}`
-                    : `vale até ${a.cicloFim}`}
+                  >
+                    {telefoneBonito(a.telefone)} ·{" "}
+                    {a.status === "vencida"
+                      ? `venceu ${dia(a.proximaCobranca)}`
+                      : `até ${dia(a.cicloFim)}`}
+                  </span>
+                </div>
+
+                <span className="num shrink-0 font-titulo text-base font-bold">
+                  {moedaCentavos(a.precoCentavos)}
                 </span>
               </div>
 
-              <span className="num ml-auto shrink-0 font-titulo text-base font-bold">
-                {moedaCentavos(a.precoCentavos)}
-              </span>
-
-              <ChaveDoCliente
-                clienteId={a.clienteId}
-                nome={a.nome}
-                chave={a.chave}
-              />
-
-              <Recebi assinaturaId={a.id} vencida={a.status === "vencida"} />
-
-              {a.status === "vencida" ? (
-                <AvisoWhatsapp
+              <div className="flex flex-wrap gap-2">
+                <ChaveDoCliente
+                  clienteId={a.clienteId}
+                  nome={a.nome}
                   telefone={a.telefone}
-                  texto={textoDe("mensalidade_vencida", {
-                    cliente: a.nome.split(" ")[0],
-                    quando: a.proximaCobranca,
-                    valor: moedaCentavos(a.precoCentavos),
-                    pix: pixKey,
-                  })}
+                  chave={a.chave}
                 />
-              ) : null}
 
-              <Tirar assinaturaId={a.id} />
+                <Recebi assinaturaId={a.id} vencida={a.status === "vencida"} />
+
+                {a.status === "vencida" ? (
+                  <AvisoWhatsapp
+                    telefone={a.telefone}
+                    texto={textoDe("mensalidade_vencida", {
+                      cliente: a.nome.split(" ")[0],
+                      quando: dia(a.proximaCobranca),
+                      valor: moedaCentavos(a.precoCentavos),
+                      pix: pixKey,
+                    })}
+                  />
+                ) : null}
+
+                <Tirar assinaturaId={a.id} />
+              </div>
             </li>
           ))}
         </ul>
@@ -415,10 +433,12 @@ function Inscrever({
 function ChaveDoCliente({
   clienteId,
   nome,
+  telefone,
   chave,
 }: {
   clienteId: string;
   nome: string;
+  telefone: string;
   chave: Assinante["chave"];
 }) {
   const [rodando, comecar] = useTransition();
@@ -426,29 +446,39 @@ function ChaveDoCliente({
   const [erro, setErro] = useState<string | null>(null);
 
   if (nova) {
-    const endereco =
-      typeof window === "undefined" ? "" : `${window.location.origin}/entrar`;
+    /**
+     * O link já leva a chave dentro. É a diferença entre o cliente decorar
+     * oito caracteres e simplesmente tocar no que chegou no WhatsApp.
+     */
+    const link =
+      typeof window === "undefined"
+        ? ""
+        : `${window.location.origin}/entrar?c=${nova}`;
+
+    const recado = `Oi ${nome.split(" ")[0]}! Esse link abre sua área do Clube Johny, é só tocar:
+${link}
+
+Dá para ver seus horários e marcar sem pagar nada. Guarda essa mensagem, o link continua valendo.`;
 
     return (
       <div className="flex w-full flex-col gap-3 rounded-card border border-acao/50 bg-superficie p-4">
         <div className="flex flex-col gap-1">
           <span className="text-xs uppercase tracking-wide text-texto-apagado">
-            Chave de {nome.split(" ")[0]}
+            Acesso de {nome.split(" ")[0]}
           </span>
           <span className="num font-titulo text-2xl font-bold tracking-wide text-acao">
             {nova}
           </span>
+          <span className="break-all text-xs text-texto-suave">{link}</span>
         </div>
         <p className="text-xs text-alerta">
-          Mande agora: essa chave não aparece de novo. Se ele perder, gere outra
-          e a antiga para de valer na hora.
+          Mande agora: isso não aparece de novo. Se ele perder, gere outro e o
+          anterior para de valer na hora.
         </p>
         <div className="flex flex-col gap-2 sm:flex-row">
-          <BotaoCopiar valor={nova} rotulo="Copiar chave" destaque />
+          <BotaoCopiar valor={link} rotulo="Copiar link" destaque />
           <a
-            href={`https://wa.me/?text=${encodeURIComponent(
-              `Sua chave do Clube Johny: ${nova}\nEntre em ${endereco} e toque em Sou do clube.`,
-            )}`}
+            href={`https://wa.me/${telefone.replace(/\D/g, "").replace(/^(?!55)/, "55")}?text=${encodeURIComponent(recado)}`}
             target="_blank"
             rel="noreferrer"
             className={`${pill} border border-borda-forte text-texto hover:border-acao`}
@@ -483,10 +513,10 @@ function ChaveDoCliente({
       }
       title={
         chave
-          ? `Chave ${chave.prefixo}···· ${
-              chave.ultimoAcesso ? "já usada por ele" : "ainda não usada"
-            }. Gerar outra derruba essa.`
-          : "Gera a chave para ele entrar na área do clube"
+          ? `Acesso ${chave.prefixo}···· ${
+              chave.ultimoAcesso ? "já usado por ele" : "ainda não usado"
+            }. Gerar outro derruba esse.`
+          : "Gera o link de acesso dele à área do clube"
       }
       className={`${pill} shrink-0 border text-texto disabled:opacity-60 ${
         erro
@@ -495,7 +525,7 @@ function ChaveDoCliente({
       }`}
     >
       <KeyRound className="h-4 w-4" strokeWidth={2} />
-      {rodando ? "..." : erro ? "Deu erro" : chave ? "Nova chave" : "Gerar chave"}
+      {rodando ? "..." : erro ? "Deu erro" : chave ? "Novo link" : "Gerar link"}
     </button>
   );
 }
