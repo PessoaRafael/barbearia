@@ -233,9 +233,12 @@ export function Clube({
                   : "border-borda bg-superficie-ativa"
               }`}
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 flex-col gap-0.5">
-                  <span className="flex items-center gap-2 truncate font-titulo text-sm font-semibold">
+              {/* O preço divide linha só com o nome. Antes ele estava na
+                  mesma faixa das três linhas, e o telefone e a validade
+                  herdavam a largura sobrando: "até 10/…" cortado em 360px. */}
+              <div className="flex flex-col gap-0.5">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="flex min-w-0 items-center gap-2 font-titulo text-sm font-semibold">
                     <Crown
                       className={`h-3.5 w-3.5 shrink-0 ${
                         a.status === "vencida" ? "text-alerta" : "text-clube"
@@ -245,37 +248,33 @@ export function Clube({
                     <span className="truncate">{a.nome}</span>
                   </span>
 
-                  {a.plano ? (
-                    <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                      <span className="truncate text-xs text-texto-suave">
-                        {a.plano}
-                      </span>
-                      {/* Curta e cheia, não frase. "antigo, marca até sábado"
-                          brigava com o nome do plano na mesma linha e as duas
-                          coisas ficavam ilegíveis. Duas palavras cabem em
-                          360px e dizem o que interessa: o dia a mais. */}
-                      {ehAntigo(a.planoDias) ? (
-                        <span className="shrink-0 rounded-pill bg-clube px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-fundo">
-                          até sáb
-                        </span>
-                      ) : null}
-                    </span>
-                  ) : null}
-
-                  <span
-                    className={`num truncate text-xs ${
-                      a.status === "vencida" ? "text-alerta" : "text-texto-apagado"
-                    }`}
-                  >
-                    {telefoneBonito(a.telefone)} ·{" "}
-                    {a.status === "vencida"
-                      ? `venceu ${dia(a.proximaCobranca)}`
-                      : `até ${dia(a.cicloFim)}`}
+                  <span className="num shrink-0 font-titulo text-base font-bold">
+                    {moedaCentavos(a.precoCentavos)}
                   </span>
                 </div>
 
-                <span className="num shrink-0 font-titulo text-base font-bold">
-                  {moedaCentavos(a.precoCentavos)}
+                {a.plano ? (
+                  <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="truncate text-xs text-texto-suave">
+                      {a.plano}
+                    </span>
+                    {ehAntigo(a.planoDias) ? (
+                      <span className="shrink-0 rounded-pill bg-clube px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-fundo">
+                        até sáb
+                      </span>
+                    ) : null}
+                  </span>
+                ) : null}
+
+                <span
+                  className={`num text-xs ${
+                    a.status === "vencida" ? "text-alerta" : "text-texto-apagado"
+                  }`}
+                >
+                  {telefoneBonito(a.telefone)} ·{" "}
+                  {a.status === "vencida"
+                    ? `venceu ${dia(a.proximaCobranca)}`
+                    : `até ${dia(a.cicloFim)}`}
                 </span>
               </div>
 
