@@ -16,6 +16,7 @@
     "atualizar": "node scripts/atualizar.mjs",
     "teste:pagbank": "node scripts/teste-pagbank.mjs",
     "pagbank:diagnostico": "node scripts/diagnostico-pagbank.mjs",
+    "relatorio": "node scripts/relatorio.mjs",
     "clube:lote": "node scripts/clube-lote.mjs"
   },
   "dependencies": {
