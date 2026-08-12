@@ -122,6 +122,45 @@ export const painelAgenda = cache(async function painelAgenda(
   };
 })
 
+/**
+ * Quantos horários entraram desde a última vez que esta chave abriu a agenda.
+ *
+ * Conta só o que ainda vale: expirado e cancelado entram e saem sozinhos, e
+ * avisar sobre eles seria mandar o Johny procurar o que não existe.
+ */
+export const novosNaAgenda = cache(async (escopo: Escopo) => {
+  const supabase = clienteServico();
+
+  const { data: chave } = await supabase
+    .from("access_keys")
+    .select("agenda_vista_em")
+    .eq("id", escopo.chaveId)
+    .maybeSingle();
+
+  // Primeira vez: mostra o que entrou nas últimas 24h, em vez de despejar o
+  // histórico inteiro como se fosse novidade.
+  const desde =
+    chave?.agenda_vista_em ??
+    new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+  const { count } = await supabase
+    .from("appointments")
+    .select("id", { count: "exact", head: true })
+    .eq("barbershop_id", escopo.barbeariaId)
+    .in("status", ["confirmado", "pendente_pagamento"])
+    .gt("criado_em", desde);
+
+  return { quantos: count ?? 0, desde };
+});
+
+/** Carimba que a agenda foi vista agora. Fora do caminho crítico. */
+export async function marcarAgendaVista(escopo: Escopo) {
+  await clienteServico()
+    .from("access_keys")
+    .update({ agenda_vista_em: new Date().toISOString() })
+    .eq("id", escopo.chaveId);
+}
+
 /** cache() para o indicador e o crachá da barra lateral não pedirem duas vezes. */
 export const resumoDoDia = cache(
   async (escopo: Escopo, data = hojeNaCasa()) => {

@@ -39,12 +39,28 @@ const ABAS = [
  * Nada de `startTransition` em volta do Link, que faria o React segurar a tela
  * antiga até a nova ficar pronta, justamente o contrário do que se quer aqui.
  */
-export function BarraLateral({ pendentes }: { pendentes: number }) {
+export function BarraLateral({
+  pendentes,
+  novos,
+}: {
+  pendentes: number;
+  /** Horários que entraram desde a última vez que ele abriu a agenda. */
+  novos: number;
+}) {
   const parametros = useSearchParams();
   const atual = parametros.get("aba") ?? "agenda";
 
   const [tocada, setTocada] = useState<string | null>(null);
   useEffect(() => setTocada(null), [atual]);
+
+  /**
+   * O crachá some no toque, não na resposta do servidor.
+   *
+   * A barra vive no layout e não é redesenhada ao trocar de aba, então esperar
+   * o servidor deixaria o número aceso depois de ele já ter olhado — e um
+   * aviso que não apaga quando você atende vira ruído em dois dias.
+   */
+  const [viuAgenda, setViuAgenda] = useState(false);
 
   const escolhida = tocada ?? atual;
 
@@ -54,13 +70,21 @@ export function BarraLateral({ pendentes }: { pendentes: number }) {
         {ABAS.map((item) => {
           const ativo = item.id === escolhida;
           const Icone = item.icone;
-          const conta = item.id === "pix" && pendentes > 0 ? pendentes : null;
+          const conta =
+            item.id === "pix" && pendentes > 0
+              ? pendentes
+              : item.id === "agenda" && novos > 0 && !viuAgenda
+                ? novos
+                : null;
 
           return (
             <li key={item.id}>
               <Link
                 href={`/painel?aba=${item.id}`}
-                onClick={() => setTocada(item.id)}
+                onClick={() => {
+                  setTocada(item.id);
+                  if (item.id === "agenda") setViuAgenda(true);
+                }}
                 aria-current={ativo ? "page" : undefined}
                 className={`relative flex min-h-[62px] flex-col items-center justify-center gap-1 rounded-card border px-2 py-2 text-center transition-colors lg:min-h-toque lg:flex-row lg:items-center lg:gap-3 lg:px-3 lg:py-2.5 lg:text-left ${
                   ativo
@@ -86,7 +110,11 @@ export function BarraLateral({ pendentes }: { pendentes: number }) {
                 {/* No celular o crachá encosta no canto do bloco; na lista do
                     desktop ele fica no fim da linha, como antes. */}
                 {conta ? (
-                  <span className="num absolute right-1.5 top-1.5 rounded-pill bg-alerta px-1.5 py-0.5 font-titulo text-xs font-bold text-fundo lg:static lg:shrink-0 lg:px-2">
+                  <span
+                    className={`num absolute right-1.5 top-1.5 rounded-pill px-1.5 py-0.5 font-titulo text-xs font-bold text-fundo lg:static lg:shrink-0 lg:px-2 ${
+                      item.id === "pix" ? "bg-alerta" : "bg-acao"
+                    }`}
+                  >
                     {conta}
                   </span>
                 ) : null}

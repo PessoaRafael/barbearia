@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { after } from "next/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -31,6 +32,8 @@ import {
   clientes,
   equipe,
   filaDeEspera,
+  marcarAgendaVista,
+  novosNaAgenda,
   painelAgenda,
   pixParaConferir,
   resumoDoDia,
@@ -256,12 +259,16 @@ async function AbaAgenda({
   dia: string;
   dias: ReturnType<typeof proximosDias>;
 }) {
-  const {
-    marcados,
-    bloqueios,
-    barbeiros: time,
-    janela,
-  } = await painelAgenda(escopo, dia);
+  const [{ marcados, bloqueios, barbeiros: time, janela }, novos] =
+    await Promise.all([painelAgenda(escopo, dia), novosNaAgenda(escopo)]);
+
+  /**
+   * Ele abriu a agenda: o contador zera a partir de agora.
+   *
+   * Depois de responder, não antes — carimbar primeiro faria a própria leitura
+   * apagar o "novo" da tela que ele ainda nem viu.
+   */
+  after(() => marcarAgendaVista(escopo));
 
   const porBarbeiro = new Map<string, typeof marcados>();
   for (const m of marcados) {

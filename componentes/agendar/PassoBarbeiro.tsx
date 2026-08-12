@@ -78,12 +78,16 @@ export function PassoBarbeiro({
                       : "border-borda bg-superficie-ativa hover:border-borda-forte"
                 }`}
               >
+                {/* Ocupado não mostra foto: vira só as iniciais apagadas. O
+                    olho vai no rosto antes de ler "ocupado", e rosto em cor
+                    cheia lê como disponível por mais que o card esteja
+                    desabilitado. */}
                 <Retrato
-                  src={b.foto ?? undefined}
-                  alt={b.nomeCompleto}
+                  src={cheio ? undefined : (b.foto ?? undefined)}
+                  alt={cheio ? "" : b.nomeCompleto}
                   iniciais={b.nome.slice(0, 2).toUpperCase()}
                   tamanhos="(min-width: 640px) 220px, 64px"
-                  className="w-16 shrink-0 sm:w-full"
+                  className={`w-16 shrink-0 sm:w-full ${cheio ? "opacity-50" : ""}`}
                   proporcao="1 / 1"
                 />
                 <span className="flex min-w-0 flex-col gap-0.5">

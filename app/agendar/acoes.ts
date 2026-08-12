@@ -435,21 +435,41 @@ export async function reservar(
         .eq("id", (criado as { client_id: string }).client_id);
     }
 
-    const cobranca = await provedorAtual().criarCobranca({
-      barbeariaId: casaAtual.id,
-      agendamentoId: agendamento.id,
-      valorCentavos: agendamento.valor_centavos,
-      chavePix: casaAtual.pix_key,
-      titular: casaAtual.pix_titular ?? casaAtual.nome,
-      cidade: casaAtual.cidade,
-      minutos: casaAtual.reserva_minutos,
-      cliente: {
-        nome: dados.nome,
-        telefone: dados.telefone,
-        email: dados.email ?? null,
-        cpf: cpf || null,
-      },
-    });
+    /**
+     * O horário já existe neste ponto, e a cobrança pode falhar (provedor
+     * fora do ar, credencial errada, configuração faltando). Sem este cerco,
+     * o erro estourava a tela inteira e o horário ficava preso: sem pix, sem
+     * ninguém sabendo, e a cadeira bloqueada até o prazo vencer.
+     *
+     * Agora o agendamento é desfeito e o cliente recebe um recado que faz
+     * sentido para ele.
+     */
+    let cobranca;
+    try {
+      cobranca = await provedorAtual().criarCobranca({
+        barbeariaId: casaAtual.id,
+        agendamentoId: agendamento.id,
+        valorCentavos: agendamento.valor_centavos,
+        chavePix: casaAtual.pix_key,
+        titular: casaAtual.pix_titular ?? casaAtual.nome,
+        cidade: casaAtual.cidade,
+        minutos: casaAtual.reserva_minutos,
+        cliente: {
+          nome: dados.nome,
+          telefone: dados.telefone,
+          email: dados.email ?? null,
+          cpf: cpf || null,
+        },
+      });
+    } catch (erro) {
+      console.error("cobranca", (erro as Error).message);
+      await supabase.rpc("cancelar", { p_agendamento: agendamento.id, p_por: "link" });
+
+      return {
+        ok: false,
+        erro: "Não consegui gerar o pix agora. Tente de novo em instantes ou chame no WhatsApp.",
+      };
+    }
 
     await supabase.from("payments").insert({
       barbershop_id: casaAtual.id,

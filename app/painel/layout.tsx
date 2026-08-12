@@ -4,7 +4,7 @@ import { Logo } from "@/componentes/base";
 import { BarraLateral } from "@/componentes/painel/BarraLateral";
 import { sair } from "@/app/entrar/acoes";
 import { lerSessao } from "@/lib/auth/sessao";
-import { pixParaConferir } from "@/lib/dados/painel";
+import { novosNaAgenda, pixParaConferir } from "@/lib/dados/painel";
 
 /**
  * A casca do painel: cabeçalho e barra lateral.
@@ -24,7 +24,15 @@ export default async function LayoutDoPainel({
   if (sessao.papel === "client") redirect("/clube");
 
   const barbearia = sessao.casa;
-  const pendentes = await pixParaConferir(sessao);
+  const escopo = {
+    chaveId: sessao.chaveId,
+    barbeariaId: sessao.barbeariaId,
+  };
+
+  const [pendentes, novos] = await Promise.all([
+    pixParaConferir(escopo),
+    novosNaAgenda(escopo),
+  ]);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -51,7 +59,7 @@ export default async function LayoutDoPainel({
       </header>
 
       <div className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col gap-5 px-5 py-6 sm:px-8 lg:flex-row lg:items-start lg:gap-6 lg:px-10">
-        <BarraLateral pendentes={pendentes.length} />
+        <BarraLateral pendentes={pendentes.length} novos={novos.quantos} />
 
         <main className="flex min-w-0 flex-1 flex-col gap-5">{children}</main>
       </div>
