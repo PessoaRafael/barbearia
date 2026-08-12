@@ -130,6 +130,9 @@ export async function cancelar(
   await avisarFila(id, agendamento.inicio);
 
   revalidatePath(`/meu-agendamento/${analise.data.token}`);
+  // A área do clube lista os próximos horários da mesma pessoa: sem isso ela
+  // continuaria mostrando o que acabou de ser desmarcado.
+  revalidatePath("/clube");
   return { ok: true };
 }
 

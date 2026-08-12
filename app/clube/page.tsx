@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { CalendarCheck, Clock, Crown, Scissors, TriangleAlert } from "lucide-react";
 
 import { Logo } from "@/componentes/base";
+import { Desmarcar } from "@/componentes/clube/Desmarcar";
 import { sair } from "@/app/entrar/acoes";
 import { lerSessao } from "@/lib/auth/sessao";
 import { diasEmTexto } from "@/lib/dados/casa";
@@ -193,7 +194,7 @@ export default async function AreaDoClube() {
               {area.proximos.map((m) => (
                 <li
                   key={m.inicio}
-                  className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-card border border-borda bg-superficie px-4 py-3"
+                  className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-card border border-borda bg-superficie px-4 py-3"
                 >
                   <CalendarCheck
                     className="h-5 w-5 shrink-0 text-acao"
@@ -213,6 +214,10 @@ export default async function AreaDoClube() {
                       <Clock className="h-3.5 w-3.5" strokeWidth={2.5} />
                       falta o pix
                     </span>
+                  ) : null}
+
+                  {m.token ? (
+                    <Desmarcar token={m.token} inicio={m.inicio} />
                   ) : null}
 
                   {m.token ? (
