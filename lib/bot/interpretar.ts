@@ -222,6 +222,20 @@ export function acharTelefone(texto: string) {
   return undefined;
 }
 
+/**
+ * CPF na mensagem. Exige os 11 dígitos exatos para não confundir com telefone,
+ * que tem 10 ou 11: quando dá 11 nos dois, quem decide é o que o bot está
+ * esperando naquele momento, não este matcher.
+ */
+export function acharCpf(texto: string) {
+  const digitos = texto.replace(/\D/g, "");
+  return digitos.length === 11 ? digitos : undefined;
+}
+
+export function acharEmail(texto: string) {
+  return texto.trim().match(/[^\s@]+@[^\s@]+\.[^\s@]{2,}/)?.[0]?.toLowerCase();
+}
+
 export function acharForma(texto: string): Extraido["forma"] {
   const limpo = normalizar(texto);
 

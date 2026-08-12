@@ -3,7 +3,9 @@
 import { horariosLivres } from "@/lib/agenda/disponibilidade";
 import { proximosDias, rotuloDe } from "@/lib/agenda/dias";
 import {
+  acharCpf,
   acharData,
+  acharEmail,
   acharForma,
   acharHora,
   acharIntencao,
@@ -21,7 +23,11 @@ import {
   servicosAtivos,
 } from "@/lib/dados/casa";
 import { moedaCentavos, telefoneBonito } from "@/lib/formato";
-import { reconhecerCliente, reservar } from "@/app/agendar/acoes";
+import {
+  pagamentoPedeCpf,
+  reconhecerCliente,
+  reservar,
+} from "@/app/agendar/acoes";
 
 /**
  * Bot de marcação: encadeamento de regras, sem modelo de linguagem.
@@ -50,6 +56,9 @@ export type Estado = {
   planoNome?: string;
   planoCategorias?: string[];
   planoDias?: number[];
+  /** Só quando o provedor de pagamento exige. Ver `provedorAtual().pedeCpf`. */
+  email?: string;
+  cpf?: string;
   token?: string;
 };
 
@@ -291,6 +300,16 @@ export async function conversar(
   if (!estado.forma) {
     const achada = acharForma(texto);
     if (achada) estado.forma = achada;
+  }
+  if (!estado.email) {
+    const achado = acharEmail(texto);
+    if (achado) estado.email = achado;
+  }
+  // Só depois do telefone: os dois têm 11 dígitos, e o telefone vem primeiro
+  // na conversa. Sem essa ordem, o CPF comeria o número de quem digitou 11.
+  if (!estado.cpf && estado.telefone) {
+    const achado = acharCpf(texto);
+    if (achado && achado !== estado.telefone) estado.cpf = achado;
   }
   if (!estado.nome && estado.telefone) {
     const achado = acharNome(texto);
@@ -595,6 +614,9 @@ export async function conversar(
     estado.planoCategorias = quem.plano?.categorias;
     estado.planoDias = quem.plano?.diasSemana;
     if (quem.nome && !estado.nome) estado.nome = quem.nome;
+    // Já pagou aqui antes: não pergunta e-mail e CPF de novo.
+    if (quem.email && !estado.email) estado.email = quem.email;
+    if (quem.cpf && !estado.cpf) estado.cpf = quem.cpf;
 
     if (quem.nome) {
       falas.push(
@@ -725,6 +747,28 @@ export async function conversar(
     }
   }
 
+  /**
+   * O provedor de pagamento pode exigir CPF e e-mail (o PagBank exige). Peço
+   * um de cada vez, e só de quem vai pagar no pix: quem usa o clube ou acerta
+   * na cadeira não passa por aqui.
+   *
+   * Vem depois de tudo de propósito. Se pedisse antes, seria documento pedido
+   * a quem ainda nem sabe se tem horário.
+   */
+  if (estado.forma === "pix" && (await pagamentoPedeCpf())) {
+    if (!estado.email) {
+      falas.push(
+        "Falta só uma coisa: o banco exige e-mail e CPF para gerar o pix no seu nome. Qual é seu e-mail?",
+      );
+      return { estado, falas, opcoes: [] };
+    }
+
+    if (!estado.cpf) {
+      falas.push("Agora o CPF, só os números.");
+      return { estado, falas, opcoes: [] };
+    }
+  }
+
   // ---- tudo preenchido: fecha ----------------------------------------------
 
   const saida = await reservar({
@@ -737,6 +781,8 @@ export async function conversar(
     usarClube: estado.forma === "clube",
     formaPagamento: estado.forma,
     origem: "chat",
+    ...(estado.email ? { email: estado.email } : {}),
+    ...(estado.cpf ? { cpf: estado.cpf } : {}),
   });
 
   if (!saida.ok) {

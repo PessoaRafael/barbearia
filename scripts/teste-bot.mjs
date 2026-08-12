@@ -8,6 +8,8 @@ import {
   acharForma,
   acharHora,
   acharIntencao,
+  acharCpf,
+  acharEmail,
   acharNome,
   acharPorNome,
   acharTelefone,
@@ -110,6 +112,15 @@ conferir("serviço", acharPorNome(frase, SERVICOS)?.id, "degrade");
 conferir("barbeiro", acharPorNome(frase, BARBEIROS)?.id, "anderson");
 conferir("dia", acharData(frase, DIAS), "2026-08-04");
 conferir("turno", acharTurno(frase), "tarde");
+
+console.log("\n9. CPF e e-mail, que o PagBank exige");
+conferir("acha e-mail no meio da frase", acharEmail("meu email e joao@teste.com ok"), "joao@teste.com");
+conferir("e-mail em maiuscula vira minuscula", acharEmail("JOAO@TESTE.COM"), "joao@teste.com");
+conferir("frase sem e-mail", acharEmail("nao tenho email"), undefined);
+conferir("acha CPF com pontuacao", acharCpf("123.456.789-09"), "12345678909");
+conferir("acha CPF so numeros", acharCpf("12345678909"), "12345678909");
+// Telefone tem 10 ou 11 digitos: os de 10 nunca podem virar CPF.
+conferir("telefone de 10 digitos nao e CPF", acharCpf("8499835180"), undefined);
 
 console.log("");
 if (falhas) {
