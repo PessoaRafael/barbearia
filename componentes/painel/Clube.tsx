@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Check, Crown, KeyRound, Plus, UserPlus, X } from "lucide-react";
+import { useMemo, useState, useTransition } from "react";
+import { Check, Crown, KeyRound, Plus, Search, UserPlus, X } from "lucide-react";
 
 import {
   cancelarAssinatura,
@@ -38,6 +38,15 @@ export type Assinante = {
 const pill =
   "inline-flex min-h-toque items-center justify-center gap-2 rounded-pill px-4 font-titulo text-sm font-semibold transition-colors";
 
+/** Sem acento e em minúscula: "Ângelo" tem que aparecer digitando "angelo". */
+const achatar = (t: string) =>
+  t
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase();
+
+const POR_VEZ = 12;
+
 export function Clube({
   lista,
   planos,
@@ -48,7 +57,47 @@ export function Clube({
   pixKey: string;
 }) {
   const [abrindo, setAbrindo] = useState(false);
+  const [busca, setBusca] = useState("");
+  const [filtro, setFiltro] = useState("todos");
+  const [quantos, setQuantos] = useState(POR_VEZ);
+
   const vencidos = lista.filter((a) => a.status === "vencida");
+
+  /**
+   * Busca e filtro no navegador, não no servidor.
+   *
+   * A lista inteira já veio junto com a página, e são dezenas, não milhares:
+   * ir ao banco a cada letra digitada seria mais lento e ainda piscaria a tela.
+   * Se um dia passar de umas poucas centenas, isso vira consulta paginada.
+   */
+  const filtrados = useMemo(() => {
+    const termo = achatar(busca.trim());
+    const digitos = busca.replace(/\D/g, "");
+
+    return lista.filter((a) => {
+      if (filtro === "vencidas" && a.status !== "vencida") return false;
+      if (filtro !== "todos" && filtro !== "vencidas" && a.plano !== filtro) {
+        return false;
+      }
+      if (!termo) return true;
+
+      return (
+        achatar(a.nome).includes(termo) ||
+        (digitos.length >= 3 && a.telefone.includes(digitos))
+      );
+    });
+  }, [lista, busca, filtro]);
+
+  const mostrando = filtrados.slice(0, quantos);
+
+  // Nomes de plano que existem de verdade nesta lista: filtro por plano vazio
+  // é opção que só decepciona.
+  const planosNaLista = [...new Set(lista.map((a) => a.plano).filter(Boolean))];
+
+  const trocarFiltro = (valor: string) => {
+    setFiltro(valor);
+    setQuantos(POR_VEZ);
+  };
 
   return (
     <section className="flex flex-col gap-4 rounded-grande border border-borda bg-superficie p-4 sm:p-5">
@@ -72,14 +121,78 @@ export function Clube({
         <Inscrever planos={planos} onPronto={() => setAbrindo(false)} />
       ) : null}
 
+      {lista.length > 8 ? (
+        <div className="flex flex-col gap-2">
+          <label className="relative flex items-center">
+            <Search
+              className="pointer-events-none absolute left-3.5 h-4 w-4 text-texto-apagado"
+              strokeWidth={2}
+            />
+            <input
+              value={busca}
+              onChange={(e) => {
+                setBusca(e.target.value);
+                setQuantos(POR_VEZ);
+              }}
+              placeholder="Buscar por nome ou WhatsApp"
+              aria-label="Buscar assinante"
+              className="min-h-toque w-full rounded-pill border border-borda bg-superficie-ativa pl-10 pr-4 text-sm text-texto placeholder:text-texto-apagado"
+            />
+            {busca ? (
+              <button
+                type="button"
+                onClick={() => setBusca("")}
+                aria-label="Limpar busca"
+                className="absolute right-2 grid h-9 w-9 place-items-center rounded-pill text-texto-apagado hover:text-texto"
+              >
+                <X className="h-4 w-4" strokeWidth={2} />
+              </button>
+            ) : null}
+          </label>
+
+          {/* Trilho horizontal: no celular os filtros não cabem em linha, e
+              quebrar em duas fileiras come a tela antes da lista aparecer. */}
+          <div className="trilho -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0">
+            <Filtro
+              rotulo="Todos"
+              conta={lista.length}
+              ativo={filtro === "todos"}
+              onClick={() => trocarFiltro("todos")}
+            />
+            {vencidos.length ? (
+              <Filtro
+                rotulo="Vencidas"
+                conta={vencidos.length}
+                alerta
+                ativo={filtro === "vencidas"}
+                onClick={() => trocarFiltro("vencidas")}
+              />
+            ) : null}
+            {planosNaLista.map((nome) => (
+              <Filtro
+                key={nome}
+                rotulo={nome!}
+                conta={lista.filter((a) => a.plano === nome).length}
+                ativo={filtro === nome}
+                onClick={() => trocarFiltro(nome!)}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       {lista.length === 0 ? (
         <p className="rounded-card border border-borda bg-superficie-ativa px-4 py-10 text-center text-sm text-texto-suave">
           Nenhum assinante ainda. Coloque o primeiro pelo botão acima, é o
           WhatsApp dele que liga tudo.
         </p>
+      ) : filtrados.length === 0 ? (
+        <p className="rounded-card border border-borda bg-superficie-ativa px-4 py-10 text-center text-sm text-texto-suave">
+          Ninguém encontrado com esse nome ou número.
+        </p>
       ) : (
         <ul className="flex flex-col gap-2">
-          {lista.map((a) => (
+          {mostrando.map((a) => (
             <li
               key={a.id}
               className={`flex flex-wrap items-center gap-x-4 gap-y-2 rounded-card border px-4 py-3 ${
@@ -141,6 +254,23 @@ export function Clube({
         </ul>
       )}
 
+      {filtrados.length > mostrando.length ? (
+        <button
+          type="button"
+          onClick={() => setQuantos((n) => n + POR_VEZ)}
+          className={`${pill} border border-borda-forte text-texto hover:border-acao`}
+        >
+          Ver mais {filtrados.length - mostrando.length}
+        </button>
+      ) : null}
+
+      {lista.length > 8 ? (
+        <p className="num text-xs text-texto-apagado">
+          mostrando {mostrando.length} de {filtrados.length}
+          {filtrados.length !== lista.length ? ` (${lista.length} no total)` : ""}
+        </p>
+      ) : null}
+
       {vencidos.length ? (
         <p className="text-xs text-alerta">
           {vencidos.length} mensalidade(s) vencida(s). Enquanto está vencida, o
@@ -155,6 +285,38 @@ export function Clube({
         próprios horários.
       </p>
     </section>
+  );
+}
+
+function Filtro({
+  rotulo,
+  conta,
+  ativo,
+  alerta = false,
+  onClick,
+}: {
+  rotulo: string;
+  conta: number;
+  ativo: boolean;
+  alerta?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={ativo}
+      className={`inline-flex min-h-toque shrink-0 items-center gap-2 rounded-pill border px-4 font-titulo text-sm font-semibold transition-colors ${
+        ativo
+          ? "border-acao bg-acao text-acao-sobre"
+          : alerta
+            ? "border-alerta/50 bg-superficie-ativa text-alerta"
+            : "border-borda bg-superficie-ativa text-texto-suave hover:border-borda-forte"
+      }`}
+    >
+      {rotulo}
+      <span className="num text-xs opacity-70">{conta}</span>
+    </button>
   );
 }
 
