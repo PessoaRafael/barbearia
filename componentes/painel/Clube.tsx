@@ -32,6 +32,7 @@ export type Assinante = {
   proximaCobranca: string;
   nome: string;
   telefone: string;
+  planoDias: number[];
   chave: { id: string; prefixo: string; ultimoAcesso: string | null } | null;
 };
 
@@ -46,6 +47,15 @@ const achatar = (t: string) =>
     .toLowerCase();
 
 const POR_VEZ = 12;
+
+/**
+ * Quem atende sexta ou sábado veio de antes da regra nova.
+ *
+ * É o mesmo plano — muda só o dia que essas pessoas podem marcar. Por isso
+ * vira etiqueta na pessoa, e não outro item no filtro: separar em dois chips
+ * com o mesmo nome faria parecer que existem dois produtos.
+ */
+const ehAntigo = (dias: number[]) => dias.includes(5) || dias.includes(6);
 
 /** "2026-09-10" vira "10/09": ninguém lê data ISO num cartão de cliente. */
 const dia = (data: string) =>
@@ -80,7 +90,13 @@ export function Clube({
 
     return lista.filter((a) => {
       if (filtro === "vencidas" && a.status !== "vencida") return false;
-      if (filtro !== "todos" && filtro !== "vencidas" && a.plano !== filtro) {
+      if (filtro === "antigos" && !ehAntigo(a.planoDias)) return false;
+      if (
+        filtro !== "todos" &&
+        filtro !== "vencidas" &&
+        filtro !== "antigos" &&
+        a.plano !== filtro
+      ) {
         return false;
       }
       if (!termo) return true;
@@ -97,6 +113,7 @@ export function Clube({
   // Nomes de plano que existem de verdade nesta lista: filtro por plano vazio
   // é opção que só decepciona.
   const planosNaLista = [...new Set(lista.map((a) => a.plano).filter(Boolean))];
+  const antigos = lista.filter((a) => ehAntigo(a.planoDias));
 
   const trocarFiltro = (valor: string) => {
     setFiltro(valor);
@@ -181,6 +198,14 @@ export function Clube({
                 onClick={() => trocarFiltro(nome!)}
               />
             ))}
+            {antigos.length ? (
+              <Filtro
+                rotulo="Antigos"
+                conta={antigos.length}
+                ativo={filtro === "antigos"}
+                onClick={() => trocarFiltro("antigos")}
+              />
+            ) : null}
           </div>
         </div>
       ) : null}
@@ -221,8 +246,18 @@ export function Clube({
                   </span>
 
                   {a.plano ? (
-                    <span className="truncate text-xs text-texto-suave">
-                      {a.plano}
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      <span className="truncate text-xs text-texto-suave">
+                        {a.plano}
+                      </span>
+                      {/* Tag leve, sem caixa: é uma nota sobre a pessoa, não um
+                          selo. E só em quem foge da regra — marcar os 40 que
+                          seguem o padrão viraria ruído em toda linha. */}
+                      {ehAntigo(a.planoDias) ? (
+                        <span className="shrink-0 text-[11px] font-semibold text-clube">
+                          · antigo, marca até sábado
+                        </span>
+                      ) : null}
                     </span>
                   ) : null}
 

@@ -345,6 +345,9 @@ export const assinantes = cache(async (escopo: Escopo) => {
       nome: (c as { nome?: string })?.nome ?? "",
       telefone: (c as { telefone?: string })?.telefone ?? "",
       plano: (pl as { nome?: string } | null)?.nome ?? null,
+      // Os planos novo e antigo têm o mesmo nome e mudam só nos dias. Sem
+      // isso, a tela não teria como separar quem atende até sábado.
+      planoDias: (pl as { dias_semana?: number[] } | null)?.dias_semana ?? [],
       chave: chave
         ? {
             id: chave.id,
