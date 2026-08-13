@@ -38,7 +38,7 @@ export async function GET(requisicao: NextRequest) {
 
     const { data: proximos } = await supabase
       .from("appointments")
-      .select("id, inicio, clients(nome, telefone), services(nome), barbers(apelido)")
+      .select("id, inicio, clients(nome, telefone), services!service_id(nome), barbers(apelido)")
       .eq("barbershop_id", casa.id)
       .eq("status", "confirmado")
       .gte("inicio", de.toISOString())

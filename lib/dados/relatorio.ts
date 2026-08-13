@@ -75,7 +75,7 @@ export const relatorioDoDia = cache(
       supabase
         .from("appointments")
         .select(
-          "inicio, status, valor_centavos, usou_credito_clube, service_id, clients(nome), services(nome, preco_centavos), barbers!barber_id(apelido), payments(status)",
+          "inicio, status, valor_centavos, usou_credito_clube, service_id, clients(nome), services!service_id(nome, preco_centavos), barbers!barber_id(apelido), payments(status)",
         )
         .eq("barbershop_id", escopo.barbeariaId)
         .gte("inicio", inicio)

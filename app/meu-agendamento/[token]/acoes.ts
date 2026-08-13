@@ -34,7 +34,7 @@ export async function buscarAgendamento(
     .from("appointments")
     .select(
       `id, inicio, fim, status, valor_centavos, usou_credito_clube,
-       services(nome, duracao_min), barbers(apelido), clients(nome, telefone),
+       services!service_id(nome, duracao_min), barbers(apelido), clients(nome, telefone),
        payments(brcode, expira_em, status)`,
     )
     .eq("token_cliente", token)

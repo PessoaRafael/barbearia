@@ -239,7 +239,7 @@ export const pixParaConferir = cache(async (escopo: Escopo) => {
   const { data } = await clienteServico()
     .from("payments")
     .select(
-      "id, valor_centavos, expira_em, criado_em, appointments(inicio, clients(nome, telefone), services(nome), barbers(apelido))",
+      "id, valor_centavos, expira_em, criado_em, appointments(inicio, clients(nome, telefone), services!service_id(nome), barbers(apelido))",
     )
     .eq("barbershop_id", escopo.barbeariaId)
     .eq("status", "aguardando")
