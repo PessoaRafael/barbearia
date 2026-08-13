@@ -776,7 +776,7 @@ export async function conversar(
   const saida = await reservar({
     data: estado.data,
     hora: estado.hora,
-    servicoId: servico.id,
+    servicoIds: [servico.id],
     barbeiroId: estado.barbeiroId ?? null,
     nome: estado.nome,
     telefone: estado.telefone,

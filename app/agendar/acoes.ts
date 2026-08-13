@@ -26,28 +26,30 @@ const HORA = /^\d{2}:\d{2}$/;
 
 const consulta = z.object({
   data: z.string().regex(DATA),
-  servicoId: z.string().uuid(),
+  /** Corte, barba, sobrancelha: a grade tem que caber tudo junto. */
+  servicoIds: z.array(z.string().uuid()).min(1).max(4),
   barbeiroId: z.string().uuid().nullable().optional(),
 });
 
 export async function buscarHorarios(entrada: z.input<typeof consulta>) {
-  const { data, servicoId, barbeiroId } = consulta.parse(entrada);
+  const { data, servicoIds, barbeiroId } = consulta.parse(entrada);
   const { id } = await casa();
 
   const supabase = clienteServico();
-  const { data: servico } = await supabase
+  const { data: servicos } = await supabase
     .from("services")
     .select("duracao_min")
-    .eq("id", servicoId)
-    .eq("barbershop_id", id)
-    .maybeSingle();
+    .in("id", servicoIds)
+    .eq("barbershop_id", id);
 
-  if (!servico) return [];
+  // Sumiu algum id, a grade seria montada com menos tempo do que o corte
+  // ocupa de verdade — e o barbeiro acabaria com dois clientes em cima.
+  if (!servicos || servicos.length !== servicoIds.length) return [];
 
   return horariosLivres({
     barbeariaId: id,
     data,
-    duracaoMin: servico.duracao_min,
+    duracaoMin: servicos.reduce((t, s) => t + s.duracao_min, 0),
     barbeiroId: barbeiroId ?? null,
   });
 }
@@ -293,7 +295,7 @@ export async function situacaoDoAgendamento(token: string) {
 const reserva = z.object({
   data: z.string().regex(DATA),
   hora: z.string().regex(HORA),
-  servicoId: z.string().uuid(),
+  servicoIds: z.array(z.string().uuid()).min(1).max(4),
   // null = "tanto faz, primeiro que liberar"
   barbeiroId: z.string().uuid().nullable(),
   nome: z.string().trim().min(2).max(80),
@@ -367,7 +369,7 @@ export async function reservar(
   if (!barbeiroId) {
     const livres = await buscarHorarios({
       data: dados.data,
-      servicoId: dados.servicoId,
+      servicoIds: dados.servicoIds,
     });
     const nesteHorario = livres.find((l) => l.hora === dados.hora);
     if (!nesteHorario?.barbeiros.length) {
@@ -384,7 +386,7 @@ export async function reservar(
     supabase.rpc("reservar", {
       p_barbearia: casaAtual.id,
       p_barbeiro: barbeiroId,
-      p_servico: dados.servicoId,
+      p_servicos: dados.servicoIds,
       p_nome: dados.nome,
       p_telefone: dados.telefone.replace(/\D/g, ""),
       p_inicio: instante(dados.data, dados.hora).toISOString(),
@@ -541,12 +543,12 @@ export async function reservar(
   // vazios, e o cliente recebia "está marcado: com , 07/08 às 08:30".
   const [{ data: quem }, { data: oQue }] = await Promise.all([
     supabase.from("barbers").select("apelido").eq("id", barbeiroId).maybeSingle(),
-    supabase
-      .from("services")
-      .select("nome")
-      .eq("id", dados.servicoId)
-      .maybeSingle(),
+    supabase.from("services").select("nome").in("id", dados.servicoIds),
   ]);
+
+  // "Corte + Barba" na mensagem, não só o mais caro.
+  const nomeDosServicos =
+    (oQue ?? []).map((s) => s.nome).join(" + ") || "seu horário";
 
   await enfileirar({
     barbeariaId: casaAtual.id,
@@ -556,7 +558,7 @@ export async function reservar(
     dados: {
       cliente: dados.nome.split(" ")[0],
       quando: `${dados.data.split("-").reverse().slice(0, 2).join("/")} às ${dados.hora}`,
-      servico: oQue?.nome ?? "seu horário",
+      servico: nomeDosServicos,
       barbeiro: quem?.apelido ?? "a equipe",
     },
   });

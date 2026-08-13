@@ -71,7 +71,7 @@ export function Fluxo({
   // Referência estável para o efeito que corrige o dia do assinante.
   const diasDisponiveis = dias;
 
-  const [servicoId, setServicoId] = useState<string | null>(null);
+  const [servicoIds, setServicoIds] = useState<string[]>([]);
   const [barbeiro, setBarbeiro] = useState<Escolha>(null);
   const [temBarbeiro, setTemBarbeiro] = useState(false);
   const [data, setData] = useState(primeiroAberto.data);
@@ -100,7 +100,19 @@ export function Fluxo({
   const [reconhecido, setReconhecido] = useState<Reconhecido | null>(null);
   const [enviando, comecarEnvio] = useTransition();
 
-  const servico = servicos.find((s) => s.id === servicoId) ?? null;
+  // Ordem do catálogo, não a ordem em que ele tocou: a lista precisa ficar
+  // igual toda vez que ele volta ao passo 1.
+  const escolhidos = servicos.filter((s) => servicoIds.includes(s.id));
+
+  // O mais caro representa o conjunto onde só cabe um nome (recibo, agenda).
+  const servico =
+    escolhidos.reduce<Servico | null>(
+      (maior, s) => (!maior || s.precoCentavos > maior.precoCentavos ? s : maior),
+      null,
+    ) ?? null;
+
+  const duracaoTotal = escolhidos.reduce((t, s) => t + s.duracaoMin, 0);
+  const nomeDosServicos = escolhidos.map((s) => s.nome).join(" + ");
   const dia = dias.find((d) => d.data === data) ?? primeiroAberto;
 
   /**
@@ -165,12 +177,12 @@ export function Fluxo({
    * sem voltar ao servidor a cada clique.
    */
   useEffect(() => {
-    if (!servico) return;
+    if (!servicoIds.length) return;
 
     let valeu = true;
     setCarregando(true);
 
-    buscarHorarios({ data, servicoId: servico.id })
+    buscarHorarios({ data, servicoIds })
       .then((lista) => {
         if (valeu) setHorarios(lista);
       })
@@ -184,7 +196,10 @@ export function Fluxo({
     return () => {
       valeu = false;
     };
-  }, [servico, data]);
+    // A lista vira texto de propósito: array novo a cada render dispararia o
+    // efeito para sempre.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [servicoIds.join(","), data]);
 
   /**
    * Usar o clube depende de três coisas ao mesmo tempo: a assinatura estar em
@@ -195,9 +210,12 @@ export function Fluxo({
   const plano = reconhecido?.plano ?? null;
   const diaEscolhido = new Date(`${data}T12:00:00-03:00`).getUTCDay();
 
-  const planoCobre = Boolean(
-    servico && plano?.categorias.includes(servico.categoria) && servico.cobertoPeloClube,
+  // Basta um serviço do plano para valer a pena usar o clube; o que ficar de
+  // fora continua sendo cobrado, igual o banco faz.
+  const cobertos = escolhidos.filter(
+    (s) => plano?.categorias.includes(s.categoria) && s.cobertoPeloClube,
   );
+  const planoCobre = cobertos.length > 0;
   const diaDoPlano = Boolean(plano?.diasSemana.includes(diaEscolhido));
 
   const podeClube =
@@ -207,11 +225,14 @@ export function Fluxo({
     diaDoPlano &&
     (reconhecido?.creditosRestantes ?? 0) > 0;
 
-  const valorCentavos = !servico
-    ? 0
-    : forma === "clube"
-      ? comClube(servico)
-      : servico.precoCentavos;
+  const valorCentavos = escolhidos.reduce(
+    (total, s) =>
+      total +
+      (forma === "clube" && cobertos.includes(s)
+        ? comClube(s)
+        : s.precoCentavos),
+    0,
+  );
 
   /**
    * CPF e e-mail só entram em cena para quem vai pagar no pix, e só quando o
@@ -224,7 +245,7 @@ export function Fluxo({
     !precisaDeCpf || (/^\S+@\S+\.\S+$/.test(email.trim()) && cpfLimpo.length === 11);
 
   const faltam = [
-    servicoId,
+    escolhidos.length ? "ok" : null,
     hora,
     contatoOk ? "ok" : null,
     temBarbeiro ? "ok" : null,
@@ -257,14 +278,18 @@ export function Fluxo({
     setErro(null);
   }
 
-  function escolherServico(id: string) {
-    if (id !== servicoId) {
-      limparDepoisDe(2);
-      setSoDoBarbeiro(null);
-      setHorarios(null);
-    }
-    setServicoId(id);
-    setPassoAberto(2);
+  /**
+   * Marcar e desmarcar. Cada mudança derruba o horário escolhido de propósito:
+   * somar a barba muda a duração, e o encaixe que servia para 30 minutos pode
+   * não servir para 45.
+   */
+  function alternarServico(id: string) {
+    setServicoIds((atuais) =>
+      atuais.includes(id) ? atuais.filter((x) => x !== id) : [...atuais, id],
+    );
+    limparDepoisDe(2);
+    setSoDoBarbeiro(null);
+    setHorarios(null);
   }
 
   /** Trocar de horário devolve a escolha do barbeiro: quem estava livre às 10h
@@ -312,14 +337,14 @@ export function Fluxo({
   }
 
   function confirmar() {
-    if (!servico || !hora || !forma) return;
+    if (!escolhidos.length || !hora || !forma) return;
     setErro(null);
 
     comecarEnvio(async () => {
       const saida = await reservar({
         data,
         hora,
-        servicoId: servico.id,
+        servicoIds,
         barbeiroId: barbeiro,
         nome: nome.trim(),
         telefone: telefone.replace(/\D/g, ""),
@@ -331,7 +356,7 @@ export function Fluxo({
       if (!saida.ok) {
         setErro(saida.erro);
         // O horário pode ter sido tomado: recarrega a grade e volta ao passo 3.
-        buscarHorarios({ data, servicoId: servico.id }).then(setHorarios);
+        buscarHorarios({ data, servicoIds }).then(setHorarios);
         setHora(null);
         setPassoAberto(2);
         return;
@@ -342,7 +367,7 @@ export function Fluxo({
   }
 
   function recomecar() {
-    setServicoId(null);
+    setServicoIds([]);
     setBarbeiro(null);
     setTemBarbeiro(false);
     setData(primeiroAberto.data);
@@ -409,8 +434,8 @@ export function Fluxo({
                 etapas={[
                   {
                     rotulo: "Serviço",
-                    valor: servico
-                      ? `${servico.nome} · ${duracaoLabel(servico.duracaoMin)}`
+                    valor: escolhidos.length
+                      ? `${nomeDosServicos} · ${duracaoLabel(duracaoTotal)}`
                       : null,
                   },
                   { rotulo: "Quando", valor: hora ? quando : null },
@@ -418,7 +443,7 @@ export function Fluxo({
                   { rotulo: "Seus dados", valor: reconhecido ? nome : null },
                   { rotulo: "Pagamento", valor: forma ? resumoPagamento : null },
                 ]}
-                total={servico ? valorCentavos : null}
+                total={escolhidos.length ? valorCentavos : null}
               />
             </div>
           </aside>
@@ -449,16 +474,17 @@ export function Fluxo({
                   titulo="Serviço"
                   estado={estado(1)}
                   resumo={
-                    servico
-                      ? `${servico.nome} · ${duracaoLabel(servico.duracaoMin)} · ${moedaCentavos(servico.precoCentavos)}`
+                    escolhidos.length
+                      ? `${nomeDosServicos} · ${duracaoLabel(duracaoTotal)} · ${moedaCentavos(valorCentavos)}`
                       : undefined
                   }
                   onAbrir={() => setPassoAberto(1)}
                 >
                   <PassoServico
                     servicos={servicos}
-                    escolhido={servico}
-                    onEscolher={escolherServico}
+                    escolhidos={escolhidos}
+                    onAlternar={alternarServico}
+                    onPronto={() => setPassoAberto(2)}
                   />
                 </Passo>
 
@@ -484,7 +510,7 @@ export function Fluxo({
                     }
                     onVerTodos={() => setSoDoBarbeiro(null)}
                     hora={hora}
-                    servicoId={servicoId}
+                    servicoId={servico?.id ?? null}
                     diasDoPlano={
                       reconhecido?.assinante ? (plano?.diasSemana ?? null) : null
                     }
