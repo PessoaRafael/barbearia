@@ -9,6 +9,7 @@ import {
   KeyRound,
   ListChecks,
   Scissors,
+  FileDown,
   Settings,
   Timer,
   Users,
@@ -123,6 +124,17 @@ export function BarraLateral({
           );
         })}
       </ul>
+
+      {/* Fora da lista de abas de propósito: não é uma tela do painel, é um
+          papel para levar embora. Mora em /relatorio para o cabeçalho e esta
+          barra não saírem impressos junto. */}
+      <Link
+        href="/relatorio"
+        className="mt-2 flex min-h-toque items-center justify-center gap-2 rounded-card border border-borda bg-superficie px-3 font-titulo text-sm font-semibold text-texto-suave transition-colors hover:border-acao hover:text-acao lg:justify-start"
+      >
+        <FileDown className="h-4 w-4 shrink-0" strokeWidth={2} />
+        Fechamento do dia
+      </Link>
     </nav>
   );
 }
