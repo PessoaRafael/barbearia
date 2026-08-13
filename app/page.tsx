@@ -359,24 +359,54 @@ function Time({
 function Rodape() {
   return (
     <footer className="border-t border-borda bg-superficie">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-5 py-10 sm:px-8 lg:flex-row lg:items-start lg:justify-between lg:px-10">
-        <div className="flex flex-col gap-3 lg:max-w-sm">
+      {/* Três colunas no desktop, empilhado no celular. Com duas, a da
+          esquerda ficava com três linhas de texto e meia tela de vazio ao
+          lado — o cartão do mapa é estreito por natureza e não tem como
+          esticar sem deformar o mapa. */}
+      <div className="mx-auto grid w-full max-w-6xl gap-8 px-5 py-10 sm:px-8 lg:grid-cols-[1fr_auto_minmax(320px,380px)] lg:gap-12 lg:px-10">
+        <div className="flex flex-col gap-3">
           <div className="flex items-center gap-3">
             <Logo tamanho={40} />
             <span className="font-titulo text-base font-bold">{CASA.nome}</span>
           </div>
-          <p className="text-sm text-texto-suave">
+          <p className="max-w-sm text-sm text-texto-suave">
             Fica na Nova Descoberta, em Natal. Marque o horário pelo site e
             chegue na hora: a cadeira já está no seu nome.
           </p>
+          <p className="num text-sm text-texto-apagado">
+            {CASA.clientesAtendidos} clientes atendidos
+          </p>
         </div>
+
+        <nav className="flex flex-col gap-3">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-texto-apagado">
+            Atalhos
+          </h3>
+          <ul className="flex flex-col gap-2.5 text-sm">
+            {[
+              { href: "/agendar", texto: "Marcar horário" },
+              { href: "/bot", texto: "Marcar pelo chat" },
+              { href: "#servicos", texto: "Serviços e preços" },
+              { href: "#time", texto: "Quem corta" },
+              { href: "#clube", texto: "Clube de assinatura" },
+              { href: "/entrar", texto: "Sou do clube" },
+            ].map((l) => (
+              <li key={l.href}>
+                <Link
+                  href={l.href}
+                  className="text-texto-suave transition-colors hover:text-acao"
+                >
+                  {l.texto}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
 
         {/* Mapa, endereço, horário e contato num bloco só. Antes o endereço
             era texto no canto e o horário uma coluna do outro lado — quem
             queria saber se era perto tinha que juntar as duas coisas. */}
-        <div className="w-full lg:max-w-md">
-          <OndeFica />
-        </div>
+        <OndeFica />
       </div>
 
       <div className="border-t border-borda">
