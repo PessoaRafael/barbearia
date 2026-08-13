@@ -2,11 +2,8 @@ import Link from "next/link";
 import {
   ArrowRight,
   Check,
-  Clock,
   Crown,
-  MapPin,
   MessageCircle,
-  Phone,
   Scissors,
 } from "lucide-react";
 
@@ -20,6 +17,7 @@ import {
   servicosAtivos,
   type PlanoClube,
 } from "@/lib/dados/casa";
+import { OndeFica } from "@/componentes/site/OndeFica";
 import { CASA } from "@/lib/casa";
 import { moedaCentavos } from "@/lib/formato";
 
@@ -361,43 +359,23 @@ function Time({
 function Rodape() {
   return (
     <footer className="border-t border-borda bg-superficie">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-5 py-10 sm:px-8 lg:flex-row lg:justify-between lg:px-10">
-        <div className="flex flex-col gap-3">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-5 py-10 sm:px-8 lg:flex-row lg:items-start lg:justify-between lg:px-10">
+        <div className="flex flex-col gap-3 lg:max-w-sm">
           <div className="flex items-center gap-3">
             <Logo tamanho={40} />
             <span className="font-titulo text-base font-bold">{CASA.nome}</span>
           </div>
-          <span className="flex items-start gap-2 text-sm text-texto-suave">
-            <MapPin className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={1.75} />
-            <span className="flex flex-col">
-              {CASA.endereco}
-              <span className="num">
-                {CASA.cidade} · CEP {CASA.cep}
-              </span>
-            </span>
-          </span>
-          <span className="num flex items-center gap-2 text-sm text-texto-suave">
-            <Phone className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-            {CASA.telefone}
-          </span>
+          <p className="text-sm text-texto-suave">
+            Fica na Nova Descoberta, em Natal. Marque o horário pelo site e
+            chegue na hora: a cadeira já está no seu nome.
+          </p>
         </div>
 
-        <div className="flex flex-col gap-3">
-          <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-texto-apagado">
-            <Clock className="h-4 w-4" strokeWidth={1.75} />
-            Horário de funcionamento
-          </h3>
-          <ul className="flex flex-col gap-2">
-            {CASA.expediente.map((linha) => (
-              <li
-                key={linha.dia}
-                className="flex items-baseline justify-between gap-8 text-sm lg:min-w-[320px]"
-              >
-                <span className="text-texto-medio">{linha.dia}</span>
-                <span className="num text-texto-suave">{linha.horario}</span>
-              </li>
-            ))}
-          </ul>
+        {/* Mapa, endereço, horário e contato num bloco só. Antes o endereço
+            era texto no canto e o horário uma coluna do outro lado — quem
+            queria saber se era perto tinha que juntar as duas coisas. */}
+        <div className="w-full lg:max-w-md">
+          <OndeFica />
         </div>
       </div>
 
