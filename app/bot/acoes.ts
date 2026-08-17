@@ -88,6 +88,7 @@ export type Resposta = {
     avisoPago: string;
     /** Link de cartão do PagBank para esse valor, quando existir. */
     linkCartao: string | null;
+    cartaoAutomatico: boolean;
   } | null;
 };
 
@@ -847,6 +848,7 @@ export async function conversar(
           whatsapp: barbearia.telefone,
           avisoPago: `Oi! Sou ${estado.nome}, acabei de pagar o pix de ${moedaCentavos(saida.valorCentavos)} do meu horário de ${quando}, às ${estado.hora}.`,
           linkCartao: saida.pix.linkCartao,
+          cartaoAutomatico: saida.pix.cartaoAutomatico,
         }
       : null,
   };

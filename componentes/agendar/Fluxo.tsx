@@ -1272,9 +1272,10 @@ function Status({
             minutos={fechado.pix.minutos}
             seguraOHorario={aguardando}
           />
-          {fechado.pix.linkCartao ? (
+          {fechado.pix.cartaoAutomatico || fechado.pix.linkCartao ? (
             <OutrasFormas
-              url={fechado.pix.linkCartao}
+              token={fechado.pix.cartaoAutomatico ? fechado.token : null}
+              url={fechado.pix.cartaoAutomatico ? null : fechado.pix.linkCartao}
               valor={moedaCentavos(fechado.valorCentavos)}
               whatsapp={fechado.pix.whatsapp}
             />

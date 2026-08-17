@@ -186,10 +186,11 @@ export function Conversa({
                 minutos={pix.minutos}
                 seguraOHorario={pix.seguraOHorario}
               />
-              {pix.linkCartao ? (
+              {pix.cartaoAutomatico || pix.linkCartao ? (
                 <div className="mt-3">
                   <OutrasFormas
-                    url={pix.linkCartao}
+                    token={pix.cartaoAutomatico ? token : null}
+                    url={pix.cartaoAutomatico ? null : pix.linkCartao}
                     valor={pix.valor}
                     whatsapp={pix.whatsapp}
                   />

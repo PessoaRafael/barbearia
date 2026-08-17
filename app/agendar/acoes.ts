@@ -11,6 +11,7 @@ import { lerSessao } from "@/lib/auth/sessao";
 import { casa } from "@/lib/dados/casa";
 import { enfileirar } from "@/lib/notify/whatsapp";
 import { linkDoValor } from "@/lib/payments/links";
+import { cartaoLigado } from "@/lib/payments/stripe";
 import { duracaoJunta } from "@/lib/regras";
 import { pixManual, provedorAtual } from "@/lib/payments/provider";
 import { svgDoBrcode } from "@/lib/pix/qr";
@@ -342,6 +343,8 @@ export type Pix = {
    * cadastrado um. É por onde sai o cartão; null significa só pix.
    */
   linkCartao: string | null;
+  /** Stripe ligada: a tela pode criar a cobrança de cartão na hora. */
+  cartaoAutomatico: boolean;
 };
 
 export type ResultadoReserva =
@@ -537,6 +540,7 @@ export async function reservar(
         casaAtual.id,
         agendamento.valor_centavos,
       ),
+      cartaoAutomatico: cartaoLigado(),
     };
   }
 

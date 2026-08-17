@@ -8,6 +8,7 @@ import { PainelPix } from "@/componentes/agendar/PainelPix";
 import { OutrasFormas } from "@/componentes/agendar/OutrasFormas";
 import { casa } from "@/lib/dados/casa";
 import { linkDoValor } from "@/lib/payments/links";
+import { cartaoLigado } from "@/lib/payments/stripe";
 import { moedaCentavos } from "@/lib/formato";
 import { duracaoLabel } from "@/componentes/agendar/tipos";
 import { HORAS_LIMITE_CANCELAMENTO } from "@/lib/regras";
@@ -90,6 +91,11 @@ export default async function MeuAgendamento({
     ? await linkDoValor(barbearia.id, agendamento.valorCentavos)
     : null;
 
+  // Com a Stripe ligada, a cobrança nasce na hora com o valor deste horário e
+  // confirma sozinha. O link fixo do painel vira reserva para quando ela não
+  // estiver disponível.
+  const cartaoAutomatico = aguardando && cartaoLigado();
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-borda">
@@ -155,9 +161,10 @@ export default async function MeuAgendamento({
               valor={moedaCentavos(agendamento.valorCentavos)}
               minutos={barbearia.reserva_minutos}
             />
-            {linkCartao ? (
+            {cartaoAutomatico || linkCartao ? (
               <OutrasFormas
-                url={linkCartao}
+                token={cartaoAutomatico ? token : null}
+                url={cartaoAutomatico ? null : linkCartao}
                 valor={moedaCentavos(agendamento.valorCentavos)}
                 whatsapp={barbearia.telefone}
               />

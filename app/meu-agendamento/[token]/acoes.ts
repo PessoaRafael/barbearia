@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { casa } from "@/lib/dados/casa";
 import { enfileirar } from "@/lib/notify/whatsapp";
+import { cartaoLigado, sessaoDeCartao, sessaoFoiPaga } from "@/lib/payments/stripe";
 import { HORAS_LIMITE_CANCELAMENTO } from "@/lib/regras";
 import { clienteServico } from "@/lib/supabase/servidor";
 
@@ -178,5 +179,90 @@ async function avisarFila(barbeariaId: string, inicio: string) {
       .from("waitlist")
       .update({ avisado_em: new Date().toISOString() })
       .eq("id", linha.id);
+  }
+}
+
+/**
+ * Página de cartão para este agendamento.
+ *
+ * Cria a cobrança na Stripe e guarda uma linha em `payments` com o id da
+ * sessão no txid — é por ele que o webhook acha a cobrança quando o cliente
+ * termina de pagar, e é isso que faz a agenda confirmar sozinha.
+ *
+ * O pix não é tocado: a linha dele continua lá, esperando. Quem confirmar
+ * primeiro vence, e o webhook encerra a outra.
+ */
+export async function pagarComCartao(token: string) {
+  if (!/^[a-f0-9]{32}$/i.test(token)) return { erro: "Link inválido." };
+  if (!cartaoLigado()) return { erro: "Cartão não está disponível agora." };
+
+  const site = process.env.SITE_URL?.replace(/\/$/, "");
+  if (!site) return { erro: "Cartão não está disponível agora." };
+
+  const supabase = clienteServico();
+
+  const { data: ag } = await supabase
+    .from("appointments")
+    .select(
+      "id, barbershop_id, status, valor_centavos, clients(nome, email), services!service_id(nome)",
+    )
+    .eq("token_cliente", token)
+    .maybeSingle();
+
+  if (!ag) return { erro: "Não achei esse agendamento." };
+  if (ag.valor_centavos <= 0) return { erro: "Esse horário não tem valor a pagar." };
+  if (!["pendente_pagamento", "confirmado"].includes(ag.status as string)) {
+    return { erro: "Esse horário não está mais aberto para pagamento." };
+  }
+
+  const um = <T,>(v: T | T[] | null) => (Array.isArray(v) ? (v[0] ?? null) : v);
+  const cliente = um(ag.clients as never) as { nome: string; email: string | null } | null;
+  const servico = um(ag.services as never) as { nome: string } | null;
+
+  // Já existe uma sessão de cartão aberta? Reaproveita, senão cada toque no
+  // botão criaria uma cobrança nova e o cliente veria várias no extrato.
+  const { data: aberta } = await supabase
+    .from("payments")
+    .select("txid")
+    .eq("appointment_id", ag.id)
+    .eq("metodo", "cartao")
+    .eq("status", "aguardando")
+    .maybeSingle();
+
+  if (aberta?.txid) {
+    try {
+      if (!(await sessaoFoiPaga(aberta.txid))) {
+        return { ok: true, url: `https://checkout.stripe.com/c/pay/${aberta.txid}` };
+      }
+    } catch {
+      // Sessão sumiu ou expirou do lado deles: segue e cria outra.
+    }
+  }
+
+  try {
+    const sessao = await sessaoDeCartao({
+      agendamentoId: ag.id as string,
+      valorCentavos: ag.valor_centavos as number,
+      descricao: servico?.nome ?? "Horário na barbearia",
+      clienteNome: cliente?.nome ?? "cliente",
+      clienteEmail: cliente?.email ?? null,
+      siteUrl: site,
+      tokenCliente: token,
+    });
+
+    await supabase.from("payments").insert({
+      barbershop_id: ag.barbershop_id,
+      appointment_id: ag.id,
+      metodo: "cartao",
+      valor_centavos: ag.valor_centavos,
+      status: "aguardando",
+      txid: sessao.id,
+    });
+
+    return { ok: true, url: sessao.url };
+  } catch (erro) {
+    console.error("stripe: nao consegui criar a sessao:", (erro as Error).message);
+    // Falhar aqui não pode custar o horário: o pix continua na tela.
+    return { erro: "Não consegui abrir o cartão agora. Use o pix acima." };
   }
 }
