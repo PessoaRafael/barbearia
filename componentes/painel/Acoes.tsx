@@ -161,6 +161,18 @@ export function GerarChave({
   const [rodando, comecar] = useTransition();
   const [chave, setChave] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [confirmando, setConfirmando] = useState(false);
+
+  const gerar = () =>
+    comecar(async () => {
+      const r = await gerarChaveDe(barbeiroId);
+      if (r.erro) setErro(r.erro);
+      else if (r.chave) {
+        setErro(null);
+        setConfirmando(false);
+        setChave(r.chave);
+      }
+    });
 
   if (chave) {
     return (
@@ -201,18 +213,43 @@ export function GerarChave({
     );
   }
 
+  // Mesma confirmação da chave do assinante, e pelo mesmo motivo: gerar
+  // derruba a anterior na hora, e o Anderson já ficou de fora assim.
+  if (temChave && confirmando) {
+    return (
+      <div className="flex flex-col gap-2 rounded-card border border-alerta/50 bg-superficie-ativa p-3">
+        <span className="text-xs text-texto">
+          A chave atual de {nome} <b>para de funcionar na hora</b>. Ele vai
+          precisar da nova para entrar no painel.
+        </span>
+        {erro ? <span className="text-xs text-alerta">{erro}</span> : null}
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={rodando}
+            onClick={gerar}
+            className={`${pill} border border-alerta/60 text-alerta hover:bg-alerta/10 disabled:opacity-60`}
+          >
+            {rodando ? "Gerando..." : "Gerar e mandar agora"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirmando(false)}
+            className={`${pill} text-texto-suave hover:text-texto`}
+          >
+            Deixa
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-2">
       <button
         type="button"
         disabled={rodando}
-        onClick={() =>
-          comecar(async () => {
-            const r = await gerarChaveDe(barbeiroId);
-            if (r.erro) setErro(r.erro);
-            else if (r.chave) setChave(r.chave);
-          })
-        }
+        onClick={() => (temChave ? setConfirmando(true) : gerar())}
         className={`${pill} ${
           temChave
             ? "border border-borda-forte text-texto hover:border-acao"

@@ -413,6 +413,18 @@ function ChaveDoCliente({
   const [rodando, comecar] = useTransition();
   const [nova, setNova] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [confirmando, setConfirmando] = useState(false);
+
+  const gerar = () =>
+    comecar(async () => {
+      const r = await gerarChaveCliente(clienteId);
+      if (r.erro) setErro(r.erro);
+      else if (r.chave) {
+        setErro(null);
+        setConfirmando(false);
+        setNova(r.chave);
+      }
+    });
 
   if (nova) {
     /**
@@ -466,20 +478,50 @@ Dá para ver seus horários e marcar sem pagar nada. Guarda essa mensagem, o lin
     );
   }
 
+  /**
+   * Perguntar antes, quando já existe link.
+   *
+   * Gerar derruba o anterior na hora, e isso já deixou dois clientes de fora:
+   * o Johny tocava para rever o link, o antigo morria, e o novo não chegava a
+   * eles. O aviso depois de gerar não servia para nada — o estrago já estava
+   * feito quando ele aparecia.
+   */
+  if (chave && confirmando) {
+    return (
+      <div className="flex w-full flex-col gap-2 rounded-card border border-alerta/50 bg-superficie p-3">
+        <span className="text-xs text-texto">
+          O link atual de {nome.split(" ")[0]} <b>para de funcionar na hora</b>.
+          {chave.ultimoAcesso
+            ? " Ele já usou esse, então vai perder o acesso até receber o novo."
+            : " Ele ainda não usou esse."}
+        </span>
+        {erro ? <span className="text-xs text-alerta">{erro}</span> : null}
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={rodando}
+            onClick={gerar}
+            className={`${pill} border border-alerta/60 text-alerta hover:bg-alerta/10 disabled:opacity-60`}
+          >
+            {rodando ? "Gerando..." : "Gerar e mandar agora"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirmando(false)}
+            className={`${pill} text-texto-suave hover:text-texto`}
+          >
+            Deixa
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <button
       type="button"
       disabled={rodando}
-      onClick={() =>
-        comecar(async () => {
-          const r = await gerarChaveCliente(clienteId);
-          if (r.erro) setErro(r.erro);
-          else if (r.chave) {
-            setErro(null);
-            setNova(r.chave);
-          }
-        })
-      }
+      onClick={() => (chave ? setConfirmando(true) : gerar())}
       title={
         chave
           ? `Acesso ${chave.prefixo}···· ${
