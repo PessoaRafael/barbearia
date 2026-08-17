@@ -839,49 +839,57 @@ function Pagamento({
         </p>
       ) : null}
 
-      <Opcao
-        icone={<QrCode className="h-5 w-5" strokeWidth={2} />}
-        /**
-         * Para quem é do clube, o pix não garante nada que ele já não tenha: o
-         * horário dele confirma na hora, sem pagar. Chamar isso de "garantir o
-         * horário" fez assinante pagar por medo de perder a cadeira.
-         */
-        titulo={
-          podeClube
-            ? "Prefiro pagar este avulso"
-            : obrigatorio
-              ? "Pagar no pix e garantir o horário"
-              : "Pagar no pix agora"
-        }
-        apoio={
-          podeClube
-            ? "Não precisa: com o clube o horário já fica confirmado sem pagar."
-            : obrigatorio
-              ? "A cadeira fica reservada enquanto o pix não cai. O QR aparece ao confirmar."
-              : "O QR e o código copia e cola aparecem assim que você confirmar."
-        }
-        valor={cheio}
-        ativo={forma === "pix"}
-        destaque
-        onClick={() => onEscolher("pix")}
-      />
+      {/**
+        * Quem é do clube não escolhe forma de pagamento: não existe escolha.
+        * O horário dele confirma na hora e o plano cobre.
+        *
+        * Antes a tela mostrava "está no seu plano" ao lado de "pagar no pix e
+        * garantir o horário", e a segunda frase parece mais segura para quem
+        * teme perder a cadeira. Dois assinantes pagaram por isso — R$ 35 e
+        * R$ 45 — por cortes que o plano deles já cobria.
+        *
+        * Sobrando valor (serviço fora do plano no mesmo horário), o próprio
+        * bloco do clube diz quanto falta, e o pix aparece depois de confirmar.
+        */}
+      {podeClube ? null : (
+        <>
+          <Opcao
+            icone={<QrCode className="h-5 w-5" strokeWidth={2} />}
+            titulo={
+              obrigatorio
+                ? "Pagar no pix e garantir o horário"
+                : "Pagar no pix agora"
+            }
+            apoio={
+              obrigatorio
+                ? "A cadeira fica reservada enquanto o pix não cai. O QR aparece ao confirmar."
+                : "O QR e o código copia e cola aparecem assim que você confirmar."
+            }
+            valor={cheio}
+            ativo={forma === "pix"}
+            destaque
+            onClick={() => onEscolher("pix")}
+          />
 
-      {/* Com pagamento antecipado obrigatório, pagar na cadeira não existe:
-          mostrar a opção só para o horário nascer pendente confundiria. */}
-      {obrigatorio ? (
-        <p className="rounded-card border border-borda bg-superficie-ativa px-4 py-3 text-sm text-texto-suave">
-          A casa marca mediante pagamento antecipado. Não dá para acertar na
-          cadeira.
-        </p>
-      ) : (
-        <Opcao
-          icone={<Banknote className="h-5 w-5" strokeWidth={2} />}
-          titulo="Dinheiro ou cartão na cadeira"
-          apoio="Você acerta com o barbeiro no fim do corte."
-          valor={cheio}
-          ativo={forma === "cadeira"}
-          onClick={() => onEscolher("cadeira")}
-        />
+          {/* Com pagamento antecipado obrigatório, pagar na cadeira não
+              existe: mostrar a opção só para o horário nascer pendente
+              confundiria. */}
+          {obrigatorio ? (
+            <p className="rounded-card border border-borda bg-superficie-ativa px-4 py-3 text-sm text-texto-suave">
+              A casa marca mediante pagamento antecipado. Não dá para acertar
+              na cadeira.
+            </p>
+          ) : (
+            <Opcao
+              icone={<Banknote className="h-5 w-5" strokeWidth={2} />}
+              titulo="Dinheiro ou cartão na cadeira"
+              apoio="Você acerta com o barbeiro no fim do corte."
+              valor={cheio}
+              ativo={forma === "cadeira"}
+              onClick={() => onEscolher("cadeira")}
+            />
+          )}
+        </>
       )}
 
       {children}
