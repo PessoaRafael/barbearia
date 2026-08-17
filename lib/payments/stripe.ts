@@ -46,6 +46,26 @@ async function chamar(caminho: string, corpo?: Record<string, string>) {
   return dados;
 }
 
+
+/**
+ * O que a gente manda junto de toda cobrança, e por quê.
+ *
+ * `billing_address_collection` — a Stripe pede o endereço na página dela e
+ * repassa ao antifraude e ao banco emissor. Cobrança sem endereço chega ao
+ * banco como transação "magra", e banco recusa transação magra de
+ * estabelecimento que nunca viu: foi o `do_not_honor` que apareceu no
+ * primeiro teste.
+ *
+ * `statement_descriptor` — é o que sai na fatura do cliente. Sem isso ele lê
+ * um nome que não reconhece, liga para o banco e contesta a compra. Contestação
+ * custa taxa, devolve o dinheiro e ainda queima a reputação da conta; o nome
+ * certo na fatura evita a maior parte disso.
+ */
+const SEMPRE: Record<string, string> = {
+  billing_address_collection: "required",
+  "payment_intent_data[statement_descriptor]": "JOHNY BARBEARIA",
+};
+
 export type SessaoCartao = {
   /** Vira o txid do pagamento: é por ele que o webhook acha a cobrança. */
   id: string;
@@ -72,6 +92,7 @@ export async function sessaoDeCartao(entrada: {
   const volta = `${site}/meu-agendamento/${entrada.tokenCliente}`;
 
   const corpo: Record<string, string> = {
+    ...SEMPRE,
     mode: "payment",
     "payment_method_types[0]": "card",
     client_reference_id: entrada.agendamentoId,
@@ -113,6 +134,7 @@ export async function sessaoDoClube(entrada: {
   const site = entrada.siteUrl.replace(/\/$/, "");
 
   const s = await chamar("checkout/sessions", {
+    ...SEMPRE,
     mode: "payment",
     "payment_method_types[0]": "card",
     client_reference_id: entrada.clienteId,
