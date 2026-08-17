@@ -320,7 +320,29 @@ export function Fluxo({
     // Já pagou aqui antes: não faz o cliente redigitar CPF e e-mail.
     setEmail((atual) => atual || quem.email || "");
     setCpf((atual) => atual || quem.cpf || "");
-    setForma(null);
+
+    /**
+     * Assinante já chega com o clube marcado.
+     *
+     * Deixar em branco fazia o assinante escolher entre "está no seu plano" e
+     * "pagar no pix e garantir o horário" — e a segunda frase parece mais
+     * segura. Dois assinantes pagaram assim, um R$ 35 e outro R$ 45, por
+     * cortes que o plano deles já cobria.
+     *
+     * Ele pode trocar se quiser, mas o certo tem que ser o padrão: não existe
+     * motivo para quem paga mensalidade pagar de novo na cadeira.
+     */
+    const cobre =
+      clube.ativo &&
+      quem.assinante &&
+      (quem.creditosRestantes ?? 0) > 0 &&
+      Boolean(quem.plano?.diasSemana.includes(diaEscolhido)) &&
+      escolhidos.some(
+        (sv) =>
+          quem.plano?.categorias.includes(sv.categoria) && sv.cobertoPeloClube,
+      );
+
+    setForma(cobre ? "clube" : null);
     setPassoAberto(5);
   }
 
@@ -819,13 +841,24 @@ function Pagamento({
 
       <Opcao
         icone={<QrCode className="h-5 w-5" strokeWidth={2} />}
+        /**
+         * Para quem é do clube, o pix não garante nada que ele já não tenha: o
+         * horário dele confirma na hora, sem pagar. Chamar isso de "garantir o
+         * horário" fez assinante pagar por medo de perder a cadeira.
+         */
         titulo={
-          obrigatorio ? "Pagar no pix e garantir o horário" : "Pagar no pix agora"
+          podeClube
+            ? "Prefiro pagar este avulso"
+            : obrigatorio
+              ? "Pagar no pix e garantir o horário"
+              : "Pagar no pix agora"
         }
         apoio={
-          obrigatorio
-            ? "A cadeira fica reservada enquanto o pix não cai. O QR aparece ao confirmar."
-            : "O QR e o código copia e cola aparecem assim que você confirmar."
+          podeClube
+            ? "Não precisa: com o clube o horário já fica confirmado sem pagar."
+            : obrigatorio
+              ? "A cadeira fica reservada enquanto o pix não cai. O QR aparece ao confirmar."
+              : "O QR e o código copia e cola aparecem assim que você confirmar."
         }
         valor={cheio}
         ativo={forma === "pix"}
