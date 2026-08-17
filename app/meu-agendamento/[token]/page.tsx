@@ -6,6 +6,7 @@ import { Logo } from "@/componentes/base";
 import { ComoConfirma } from "@/componentes/agendar/ComoConfirma";
 import { PainelPix } from "@/componentes/agendar/PainelPix";
 import { OutrasFormas } from "@/componentes/agendar/OutrasFormas";
+import { PagamentoAprovado } from "@/componentes/agendar/PagamentoAprovado";
 import { casa } from "@/lib/dados/casa";
 import { linkDoValor } from "@/lib/payments/links";
 import { cartaoLigado } from "@/lib/payments/stripe";
@@ -57,10 +58,14 @@ const APARENCIA: Record<
 
 export default async function MeuAgendamento({
   params,
+  searchParams,
 }: {
   params: Promise<{ token: string }>;
+  searchParams: Promise<{ pago?: string }>;
 }) {
-  const { token } = await params;
+  const [{ token }, { pago }] = await Promise.all([params, searchParams]);
+  // A Stripe devolve o cliente com ?pago=1 depois da página de cartão.
+  const voltouDoCartao = pago === "1";
   const [agendamento, barbearia] = await Promise.all([
     buscarAgendamento(token),
     casa(),
@@ -108,6 +113,13 @@ export default async function MeuAgendamento({
       </header>
 
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 px-5 py-8 sm:px-8">
+        {voltouDoCartao ? (
+          <PagamentoAprovado
+            token={token}
+            jaConfirmado={agendamento.status === "confirmado"}
+          />
+        ) : null}
+
         <div className="flex items-start gap-3">
           <span
             className={`grid h-11 w-11 shrink-0 place-items-center rounded-pill border ${
@@ -151,7 +163,7 @@ export default async function MeuAgendamento({
           </div>
         </dl>
 
-        {aguardando && agendamento.pix?.status === "aguardando" ? (
+        {aguardando && !voltouDoCartao && agendamento.pix?.status === "aguardando" ? (
           <>
             <PainelPix
               brcode={agendamento.pix.brcode}
