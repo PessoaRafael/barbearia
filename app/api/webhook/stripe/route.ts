@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { assinaturaConfere, sessaoFoiPaga } from "@/lib/payments/stripe";
+import { ativarAssinatura } from "@/lib/clube/ativar";
+import { assinaturaConfere, marcasDaSessao } from "@/lib/payments/stripe";
 import { clienteServico } from "@/lib/supabase/servidor";
 
 export const dynamic = "force-dynamic";
@@ -45,17 +46,42 @@ export async function POST(req: Request) {
   const sessaoId = sessao.id as string | undefined;
   if (!sessaoId) return NextResponse.json({ ignorado: "sem id" });
 
-  // Pergunta de volta em vez de acreditar no que veio no corpo.
+  // Pergunta de volta em vez de acreditar no que veio no corpo. As marcas
+  // vêm da mesma consulta: é o metadata da Stripe, não o do corpo recebido.
+  let marcas: { paga: boolean; metadata: Record<string, string> };
   try {
-    if (!(await sessaoFoiPaga(sessaoId))) {
-      console.warn("stripe: sessão avisada como completa mas não paga:", sessaoId);
-      return NextResponse.json({ ignorado: "não paga" });
-    }
+    marcas = await marcasDaSessao(sessaoId);
   } catch (erro) {
     // Não conseguimos conferir: melhor a Stripe reenviar do que confirmar no
     // escuro. Aqui o 500 é proposital.
     console.error("stripe: falha ao conferir a sessão:", (erro as Error).message);
     return NextResponse.json({ erro: "conferencia" }, { status: 500 });
+  }
+
+  if (!marcas.paga) {
+    console.warn("stripe: sessão avisada como completa mas não paga:", sessaoId);
+    return NextResponse.json({ ignorado: "não paga" });
+  }
+
+  /**
+   * Mensalidade do clube, não horário.
+   *
+   * O carimbo vem da consulta à Stripe, não do corpo do aviso — o corpo até
+   * está assinado, mas quem decide ligar assinatura tem que ler da fonte.
+   */
+  if (marcas.metadata.tipo === "clube") {
+    const r = await ativarAssinatura({
+      barbeariaId: marcas.metadata.barbearia,
+      clienteId: marcas.metadata.cliente,
+      planoId: marcas.metadata.plano,
+    });
+
+    if (!r.ok) {
+      console.error("stripe clube: não consegui ativar", sessaoId, r.erro);
+      return NextResponse.json({ erro: "assinatura" }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true, clube: true, ate: r.ate });
   }
 
   const supabase = clienteServico();

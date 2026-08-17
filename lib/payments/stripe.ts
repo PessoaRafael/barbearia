@@ -93,6 +93,54 @@ export async function sessaoDeCartao(entrada: {
   return { id: s.id as string, url: s.url as string };
 }
 
+/**
+ * Página de pagamento da mensalidade do clube.
+ *
+ * Mesma peça do agendamento, com outro carimbo no metadata: é ele que diz ao
+ * webhook se o que voltou é um horário para confirmar ou uma assinatura para
+ * ligar. O valor vem do plano escolhido — R$ 129,99 ou R$ 189,99 — igual ao
+ * corte vem do serviço.
+ */
+export async function sessaoDoClube(entrada: {
+  barbeariaId: string;
+  clienteId: string;
+  planoId: string;
+  planoNome: string;
+  valorCentavos: number;
+  clienteNome: string;
+  siteUrl: string;
+}): Promise<SessaoCartao> {
+  const site = entrada.siteUrl.replace(/\/$/, "");
+
+  const s = await chamar("checkout/sessions", {
+    mode: "payment",
+    "payment_method_types[0]": "card",
+    client_reference_id: entrada.clienteId,
+    "metadata[tipo]": "clube",
+    "metadata[barbearia]": entrada.barbeariaId,
+    "metadata[cliente]": entrada.clienteId,
+    "metadata[plano]": entrada.planoId,
+    success_url: `${site}/?clube=ok`,
+    cancel_url: `${site}/?clube=voltou`,
+    "line_items[0][quantity]": "1",
+    "line_items[0][price_data][currency]": "brl",
+    "line_items[0][price_data][unit_amount]": String(entrada.valorCentavos),
+    "line_items[0][price_data][product_data][name]": `Clube Johny · ${entrada.planoNome}`,
+    "line_items[0][price_data][product_data][description]": `No nome de ${entrada.clienteNome}`,
+  });
+
+  return { id: s.id as string, url: s.url as string };
+}
+
+/** O que a Stripe carimbou na cobrança: serve para saber o que confirmar. */
+export async function marcasDaSessao(sessaoId: string) {
+  const s = await chamar(`checkout/sessions/${sessaoId}`);
+  return {
+    paga: s.payment_status === "paid",
+    metadata: (s.metadata ?? {}) as Record<string, string>,
+  };
+}
+
 /** Confere se a cobrança foi mesmo paga, perguntando para a Stripe. */
 export async function sessaoFoiPaga(sessaoId: string) {
   const s = await chamar(`checkout/sessions/${sessaoId}`);
