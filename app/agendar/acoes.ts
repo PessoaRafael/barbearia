@@ -11,6 +11,7 @@ import { lerSessao } from "@/lib/auth/sessao";
 import { casa } from "@/lib/dados/casa";
 import { enfileirar } from "@/lib/notify/whatsapp";
 import { linkDoValor } from "@/lib/payments/links";
+import { duracaoJunta } from "@/lib/regras";
 import { pixManual, provedorAtual } from "@/lib/payments/provider";
 import { svgDoBrcode } from "@/lib/pix/qr";
 import { clienteServico } from "@/lib/supabase/servidor";
@@ -49,7 +50,7 @@ export async function buscarHorarios(entrada: z.input<typeof consulta>) {
   return horariosLivres({
     barbeariaId: id,
     data,
-    duracaoMin: servicos.reduce((t, s) => t + s.duracao_min, 0),
+    duracaoMin: duracaoJunta(servicos.map((s) => s.duracao_min)),
     barbeiroId: barbeiroId ?? null,
   });
 }

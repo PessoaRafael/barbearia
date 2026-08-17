@@ -22,6 +22,7 @@ import {
   type Reconhecido,
 } from "@/app/agendar/acoes";
 import { rotuloDe, type Dia } from "@/lib/agenda/dias";
+import { duracaoJunta } from "@/lib/regras";
 import { moedaCentavos, telefoneBonito } from "@/lib/formato";
 import { ComoConfirma } from "./ComoConfirma";
 import { Dica } from "./Dica";
@@ -111,7 +112,7 @@ export function Fluxo({
       null,
     ) ?? null;
 
-  const duracaoTotal = escolhidos.reduce((t, s) => t + s.duracaoMin, 0);
+  const duracaoTotal = duracaoJunta(escolhidos.map((s) => s.duracaoMin));
   const nomeDosServicos = escolhidos.map((s) => s.nome).join(" + ");
   const dia = dias.find((d) => d.data === data) ?? primeiroAberto;
 

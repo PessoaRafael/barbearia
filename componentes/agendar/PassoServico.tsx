@@ -5,6 +5,7 @@ import { Check, Plus } from "lucide-react";
 
 import { Etiqueta } from "@/componentes/base";
 import { moedaCentavos } from "@/lib/formato";
+import { duracaoJunta } from "@/lib/regras";
 import { duracaoLabel, type Servico } from "./tipos";
 
 /**
@@ -39,7 +40,7 @@ export function PassoServico({
   const lista = servicos.filter((s) => s.categoria === categoria);
 
   const marcados = new Set(escolhidos.map((s) => s.id));
-  const minutos = escolhidos.reduce((t, s) => t + s.duracaoMin, 0);
+  const minutos = duracaoJunta(escolhidos.map((s) => s.duracaoMin));
   const preco = escolhidos.reduce((t, s) => t + s.precoCentavos, 0);
   const noLimite = escolhidos.length >= limite;
 
@@ -183,12 +184,20 @@ export function PassoServico({
           </ul>
 
           <div className="flex items-baseline justify-between gap-3 border-t border-borda pt-3">
-            <span className="num text-sm text-texto-suave">
-              {escolhidos.length === 1
-                ? "1 serviço"
-                : `${escolhidos.length} serviços`}
-              {" · "}
-              {duracaoLabel(minutos)}
+            <span className="num flex flex-col text-sm text-texto-suave">
+              <span>
+                {escolhidos.length === 1
+                  ? "1 serviço"
+                  : `${escolhidos.length} serviços`}
+                {" · "}
+                {duracaoLabel(minutos)}
+              </span>
+              {/* Sem isto parece conta errada: 30 + 30 aparecendo como 45. */}
+              {escolhidos.length > 1 ? (
+                <span className="text-xs text-texto-apagado">
+                  junto sai mais rápido que separado
+                </span>
+              ) : null}
             </span>
             <span className="num font-titulo text-2xl font-bold text-acao">
               {moedaCentavos(preco)}
