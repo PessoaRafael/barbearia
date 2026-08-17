@@ -24,7 +24,7 @@ export type Escolha = string | null;
 
 export type Livre = { hora: string; barbeiros: string[] };
 
-export type FormaPagamento = "clube" | "pix" | "cadeira";
+export type FormaPagamento = "clube" | "pix" | "cartao" | "cadeira";
 
 export function duracaoLabel(min: number) {
   if (min < 60) return `${min} min`;

@@ -5,6 +5,7 @@ import { useEffect, useState, useTransition } from "react";
 import {
   Banknote,
   CalendarCheck,
+  CreditCard,
   Crown,
   QrCode,
   Timer,
@@ -57,6 +58,7 @@ export function Fluxo({
   clube,
   pagamentoObrigatorio,
   pedeCpf,
+  cartaoDisponivel,
   reservaMinutos,
 }: {
   servicos: Servico[];
@@ -66,6 +68,8 @@ export function Fluxo({
   pagamentoObrigatorio: boolean;
   /** O provedor de pagamento exige CPF e e-mail? Só então a tela pede. */
   pedeCpf: boolean;
+  /** Stripe ligada: o cartão vira opção no passo de pagamento. */
+  cartaoDisponivel: boolean;
   reservaMinutos: number;
 }) {
   const primeiroAberto = dias.find((d) => !d.fechado) ?? dias[0];
@@ -385,6 +389,16 @@ export function Fluxo({
         return;
       }
 
+      /**
+       * Cartão: a página é da Stripe, então a tela sai daqui. O horário já
+       * está reservado e o pix já existe — se ele desistir e voltar, cai no
+       * QR normalmente, sem perder a cadeira.
+       */
+      if (saida.cartaoUrl) {
+        window.location.href = saida.cartaoUrl;
+        return;
+      }
+
       setFechado(saida);
     });
   }
@@ -432,9 +446,11 @@ export function Fluxo({
         : "1 corte do clube"
       : forma === "pix"
         ? "Pix"
-        : forma === "cadeira"
-          ? "Dinheiro ou cartão na cadeira"
-          : "";
+        : forma === "cartao"
+          ? "Cartão"
+          : forma === "cadeira"
+            ? "Dinheiro ou cartão na cadeira"
+            : "";
 
   return (
     <>
@@ -608,6 +624,7 @@ export function Fluxo({
                       quando={rotuloDe(dia)}
                       reconhecido={reconhecido}
                       obrigatorio={pagamentoObrigatorio}
+                      cartaoDisponivel={cartaoDisponivel}
                       forma={forma}
                       onEscolher={escolherForma}
                     >
@@ -659,11 +676,18 @@ export function Fluxo({
                             : "bg-acao text-acao-sobre hover:bg-acao-hover"
                         }`}
                       >
+                        {/* No cartão o botão leva para fora: dizer só
+                            "confirmar" faria a página da Stripe parecer um
+                            desvio inesperado. */}
                         {enviando
-                          ? "Marcando..."
+                          ? forma === "cartao"
+                            ? "Abrindo o cartão..."
+                            : "Marcando..."
                           : !contatoOk
                             ? "Falta o CPF e o e-mail no passo 5"
-                            : `Confirmar horário · ${moedaCentavos(valorCentavos)}`}
+                            : forma === "cartao"
+                              ? `Ir para o cartão · ${moedaCentavos(valorCentavos)}`
+                              : `Confirmar horário · ${moedaCentavos(valorCentavos)}`}
                       </button>
                     </div>
                   ) : null}
@@ -783,6 +807,7 @@ function Dados({
 function Pagamento({
   servico,
   podeClube,
+  cartaoDisponivel,
   planoCobre,
   quando,
   reconhecido,
@@ -793,6 +818,7 @@ function Pagamento({
 }: {
   servico: Servico;
   podeClube: boolean;
+  cartaoDisponivel: boolean;
   planoCobre: boolean;
   quando: string;
   reconhecido: Reconhecido | null;
@@ -870,6 +896,28 @@ function Pagamento({
             destaque
             onClick={() => onEscolher("pix")}
           />
+
+          {/**
+            * Cartão ao lado do pix, e não pendurado depois de confirmar.
+            *
+            * Antes ele aparecia embaixo do QR, o que só fazia sentido quando
+            * era um link fixo colado à mão. Escolher pix no passo 5 e receber
+            * uma oferta de cartão no 6 não é escolha, é remendo.
+            *
+            * E ele tem uma vantagem real sobre o pix: confirma sozinho, então
+            * o horário já nasce confirmado em vez de esperar o Johny conferir
+            * o extrato.
+            */}
+          {cartaoDisponivel ? (
+            <Opcao
+              icone={<CreditCard className="h-5 w-5" strokeWidth={2} />}
+              titulo="Pagar no cartão"
+              apoio="Crédito ou débito, na página segura da Stripe. Seu horário confirma na hora, sem esperar ninguém."
+              valor={cheio}
+              ativo={forma === "cartao"}
+              onClick={() => onEscolher("cartao")}
+            />
+          ) : null}
 
           {/* Com pagamento antecipado obrigatório, pagar na cadeira não
               existe: mostrar a opção só para o horário nascer pendente

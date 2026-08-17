@@ -11,7 +11,7 @@ import { lerSessao } from "@/lib/auth/sessao";
 import { casa } from "@/lib/dados/casa";
 import { enfileirar } from "@/lib/notify/whatsapp";
 import { linkDoValor } from "@/lib/payments/links";
-import { cartaoLigado } from "@/lib/payments/stripe";
+import { cartaoLigado, sessaoDeCartao } from "@/lib/payments/stripe";
 import { duracaoJunta } from "@/lib/regras";
 import { pixManual, provedorAtual } from "@/lib/payments/provider";
 import { svgDoBrcode } from "@/lib/pix/qr";
@@ -303,7 +303,7 @@ const reserva = z.object({
   nome: z.string().trim().min(2).max(80),
   telefone: z.string().trim().min(10).max(20),
   usarClube: z.boolean().default(false),
-  formaPagamento: z.enum(["pix", "cadeira", "clube"]).default("cadeira"),
+  formaPagamento: z.enum(["pix", "cartao", "cadeira", "clube"]).default("cadeira"),
   /** Por onde a pessoa marcou. O bot passa "chat"; o formulário, "link". */
   origem: z.enum(["link", "chat"]).default("link"),
   /** Só quando o provedor de pagamento exige. Ver `provedorAtual().pedeCpf`. */
@@ -355,6 +355,12 @@ export type ResultadoReserva =
       valorCentavos: number;
       barbeiro: string;
       pix: Pix | null;
+      /**
+       * Escolheu cartão: a tela manda ele para esta página da Stripe em vez
+       * de mostrar o QR. Vem null quando a cobrança não pôde ser criada, e aí
+       * a tela cai no pix, que continua pronto.
+       */
+      cartaoUrl?: string | null;
     }
   | { ok: false; erro: string };
 
@@ -568,6 +574,45 @@ export async function reservar(
     },
   });
 
+  /**
+   * Cartão escolhido no passo de pagamento.
+   *
+   * O pix já foi criado acima e continua valendo — é a rede embaixo. Se a
+   * Stripe não responder, o cliente cai na tela do QR em vez de ficar sem
+   * caminho nenhum, e o horário dele já está reservado de qualquer jeito.
+   */
+  let cartaoUrl: string | null = null;
+
+  if (dados.formaPagamento === "cartao" && cartaoLigado() && pix) {
+    try {
+      const site = process.env.SITE_URL?.replace(/\/$/, "");
+      if (!site) throw new Error("sem SITE_URL");
+
+      const sessao = await sessaoDeCartao({
+        agendamentoId: agendamento.id,
+        valorCentavos: agendamento.valor_centavos,
+        descricao: nomeDosServicos,
+        clienteNome: dados.nome,
+        clienteEmail: dados.email ?? null,
+        siteUrl: site,
+        tokenCliente: agendamento.token_cliente,
+      });
+
+      await supabase.from("payments").insert({
+        barbershop_id: casaAtual.id,
+        appointment_id: agendamento.id,
+        metodo: "cartao",
+        valor_centavos: agendamento.valor_centavos,
+        status: "aguardando",
+        txid: sessao.id,
+      });
+
+      cartaoUrl = sessao.url;
+    } catch (erro) {
+      console.error("stripe: sessao nao criada:", (erro as Error).message);
+    }
+  }
+
   return {
     ok: true,
     token: agendamento.token_cliente,
@@ -575,5 +620,6 @@ export async function reservar(
     valorCentavos: agendamento.valor_centavos,
     barbeiro: quem?.apelido ?? "",
     pix,
+    cartaoUrl,
   };
 }
