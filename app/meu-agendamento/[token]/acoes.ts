@@ -250,6 +250,17 @@ export async function pagarComCartao(token: string) {
       tokenCliente: token,
     });
 
+    // Herda o prazo do pix daquele horário: os dois caminhos morrem junto
+    // quando a reserva vence. Sem data, a linha ficaria viva para sempre.
+    const { data: opix } = await supabase
+      .from("payments")
+      .select("expira_em")
+      .eq("appointment_id", ag.id)
+      .eq("metodo", "pix")
+      .order("criado_em", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
     await supabase.from("payments").insert({
       barbershop_id: ag.barbershop_id,
       appointment_id: ag.id,
@@ -257,6 +268,7 @@ export async function pagarComCartao(token: string) {
       valor_centavos: ag.valor_centavos,
       status: "aguardando",
       txid: sessao.id,
+      expira_em: opix?.expira_em ?? null,
     });
 
     return { ok: true, url: sessao.url };

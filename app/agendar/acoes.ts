@@ -605,6 +605,9 @@ export async function reservar(
         valor_centavos: agendamento.valor_centavos,
         status: "aguardando",
         txid: sessao.id,
+        // Mesmo prazo da reserva. Sem data, a linha nunca expira e fica viva
+        // para sempre num horário que já voltou para a grade.
+        expira_em: pix.expiraEm,
       });
 
       cartaoUrl = sessao.url;

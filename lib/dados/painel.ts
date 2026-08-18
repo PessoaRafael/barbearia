@@ -242,6 +242,16 @@ export const pixParaConferir = cache(async (escopo: Escopo) => {
       "id, valor_centavos, expira_em, criado_em, appointments(inicio, clients(nome, telefone), services!service_id(nome), barbers(apelido))",
     )
     .eq("barbershop_id", escopo.barbeariaId)
+    /**
+     * Só pix. Cobrança de cartão se confirma sozinha pelo webhook, e quem
+     * desiste no meio deixa a linha esperando — que aparecia aqui como se
+     * fosse um pix a conferir.
+     *
+     * Isso já custou um cliente: o Iuri escolheu cartão, não terminou, e o
+     * Johny clicou em "não recebi" achando que era pix não pago. O clique
+     * cancela o horário. Ele teve que marcar de novo.
+     */
+    .eq("metodo", "pix")
     .eq("status", "aguardando")
     .order("criado_em", { ascending: true });
 
