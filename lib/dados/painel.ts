@@ -327,7 +327,7 @@ export const assinantes = cache(async (escopo: Escopo) => {
     supabase
       .from("subscriptions")
       .select(
-        "id, client_id, status, preco_centavos, cortes_mes, ciclo_inicio, ciclo_fim, proxima_cobranca, clients(nome, telefone), club_plans(nome, dias_semana)",
+        "id, client_id, status, preco_centavos, cortes_mes, ciclo_inicio, ciclo_fim, proxima_cobranca, clients(nome, telefone, nascimento), club_plans(nome, dias_semana)",
       )
       .eq("barbershop_id", escopo.barbeariaId)
       .neq("status", "cancelada"),
@@ -354,6 +354,7 @@ export const assinantes = cache(async (escopo: Escopo) => {
       proximaCobranca: s.proxima_cobranca as string,
       nome: (c as { nome?: string })?.nome ?? "",
       telefone: (c as { telefone?: string })?.telefone ?? "",
+      nascimento: (c as { nascimento?: string | null })?.nascimento ?? null,
       plano: (pl as { nome?: string } | null)?.nome ?? null,
       // Os planos novo e antigo têm o mesmo nome e mudam só nos dias. Sem
       // isso, a tela não teria como separar quem atende até sábado.

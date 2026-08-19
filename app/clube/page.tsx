@@ -8,6 +8,7 @@ import { sair } from "@/app/entrar/acoes";
 import { lerSessao } from "@/lib/auth/sessao";
 import { diasEmTexto } from "@/lib/dados/casa";
 import { moedaCentavos, telefoneBonito } from "@/lib/formato";
+import { Aniversario } from "@/componentes/clube/Aniversario";
 import { clienteServico } from "@/lib/supabase/servidor";
 
 /**
@@ -31,6 +32,7 @@ type Marcado = {
 type Area = {
   nome: string;
   telefone: string;
+  nascimento: string | null;
   total_cortes: number;
   assinante: boolean;
   vencida: boolean;
@@ -173,6 +175,10 @@ export default async function AreaDoClube() {
             </p>
           )}
         </section>
+
+        {/* Só para quem é do clube: quem não assina não tem por que dar a
+            data, e pedir mesmo assim seria coletar dado à toa. */}
+        {area.assinante ? <Aniversario atual={area.nascimento} /> : null}
 
         <Link
           href="/agendar"

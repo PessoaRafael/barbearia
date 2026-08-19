@@ -41,6 +41,7 @@ export type Assinante = {
   proximaCobranca: string;
   nome: string;
   telefone: string;
+  nascimento: string | null;
   planoDias: number[];
   chave: { id: string; prefixo: string; ultimoAcesso: string | null } | null;
 };
@@ -56,6 +57,18 @@ const pill =
  * com o mesmo nome faria parecer que existem dois produtos.
  */
 const ehAntigo = (dias: number[]) => dias.includes(5) || dias.includes(6);
+
+/**
+ * Faz aniversário neste mês?
+ *
+ * Só o mês importa: a lista serve para o Johny lembrar de quem cortar cabelo
+ * de graça, mandar mensagem ou simplesmente dar os parabéns na cadeira.
+ */
+const fazAniversarioNoMes = (nascimento: string | null) =>
+  Boolean(nascimento) && Number(nascimento!.slice(5, 7)) === new Date().getMonth() + 1;
+
+const diaEMes = (nascimento: string) =>
+  `${nascimento.slice(8, 10)}/${nascimento.slice(5, 7)}`;
 
 /** "2026-09-10" vira "10/09": ninguém lê data ISO num cartão de cliente. */
 const dia = (data: string) =>
@@ -77,6 +90,7 @@ export function Clube({
 
   const vencidos = lista.filter((a) => a.status === "vencida");
   const antigos = lista.filter((a) => ehAntigo(a.planoDias));
+  const aniversariantes = lista.filter((a) => fazAniversarioNoMes(a.nascimento));
   const planosNaLista = [...new Set(lista.map((a) => a.plano).filter(Boolean))];
 
   /**
@@ -93,10 +107,13 @@ export function Clube({
     return lista.filter((a) => {
       if (filtro === "vencidas" && a.status !== "vencida") return false;
       if (filtro === "antigos" && !ehAntigo(a.planoDias)) return false;
+      if (filtro === "aniversario" && !fazAniversarioNoMes(a.nascimento))
+        return false;
       if (
         filtro !== "todos" &&
         filtro !== "vencidas" &&
         filtro !== "antigos" &&
+        filtro !== "aniversario" &&
         a.plano !== filtro
       ) {
         return false;
@@ -183,6 +200,17 @@ export function Clube({
                 onClick={() => trocarFiltro("antigos")}
               />
             ) : null}
+
+            {/* Some quando ninguém do mês faz aniversário: um chip com zero
+                em cima é ruído onze meses por ano. */}
+            {aniversariantes.length ? (
+              <Filtro
+                rotulo="Aniversário no mês"
+                conta={aniversariantes.length}
+                ativo={filtro === "aniversario"}
+                onClick={() => trocarFiltro("aniversario")}
+              />
+            ) : null}
           </TrilhoDeFiltros>
         </div>
       ) : null}
@@ -236,6 +264,18 @@ export function Clube({
                     {ehAntigo(a.planoDias) ? (
                       <span className="shrink-0 rounded-pill bg-clube px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-fundo">
                         até sáb
+                      </span>
+                    ) : null}
+                    {a.nascimento ? (
+                      <span
+                        className={`num shrink-0 rounded-pill px-2 py-0.5 text-[11px] font-semibold ${
+                          fazAniversarioNoMes(a.nascimento)
+                            ? "bg-acao text-acao-sobre"
+                            : "text-texto-apagado"
+                        }`}
+                        title={`Aniversário em ${diaEMes(a.nascimento)}`}
+                      >
+                        🎂 {diaEMes(a.nascimento)}
                       </span>
                     ) : null}
                   </span>

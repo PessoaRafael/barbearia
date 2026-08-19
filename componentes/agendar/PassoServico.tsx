@@ -25,14 +25,23 @@ export function PassoServico({
   escolhidos,
   onAlternar,
   onPronto,
+  cobertos,
+  planoNome,
   limite = 4,
 }: {
   servicos: Servico[];
   escolhidos: Servico[];
   onAlternar: (id: string) => void;
   onPronto: () => void;
+  /**
+   * Ids que o plano do assinante cobre. Vazio para quem não é do clube, e é
+   * assim que a lista volta a mostrar preço para todo mundo.
+   */
+  cobertos?: Set<string>;
+  planoNome?: string | null;
   limite?: number;
 }) {
+  const noPlano = (id: string) => Boolean(cobertos?.has(id));
   const categorias = [...new Set(servicos.map((s) => s.categoria))];
   const [categoria, setCategoria] = useState(
     escolhidos[0]?.categoria ?? categorias[0],
@@ -41,7 +50,12 @@ export function PassoServico({
 
   const marcados = new Set(escolhidos.map((s) => s.id));
   const minutos = duracaoJunta(escolhidos.map((s) => s.duracaoMin));
-  const preco = escolhidos.reduce((t, s) => t + s.precoCentavos, 0);
+  // O que o plano cobre não entra na conta: o assinante já pagou isso na
+  // mensalidade, e somar aqui faria a tela pedir dinheiro que ele não deve.
+  const preco = escolhidos.reduce(
+    (t, s) => t + (noPlano(s.id) ? 0 : s.precoCentavos),
+    0,
+  );
   const noLimite = escolhidos.length >= limite;
 
   return (
@@ -119,13 +133,26 @@ export function PassoServico({
                   </span>
                 </span>
 
-                <span
-                  className={`num shrink-0 font-titulo text-base font-bold ${
-                    dentro ? "text-acao" : "text-texto"
-                  }`}
-                >
-                  {moedaCentavos(s.precoCentavos)}
-                </span>
+                {/* Para quem é do clube, o preço do que o plano cobre não é
+                    informação útil — é ruído que faz duvidar se vai pagar. */}
+                {noPlano(s.id) ? (
+                  <span className="flex shrink-0 flex-col items-end">
+                    <span className="font-titulo text-base font-bold text-clube">
+                      Grátis
+                    </span>
+                    <span className="text-[11px] text-texto-apagado">
+                      no seu plano
+                    </span>
+                  </span>
+                ) : (
+                  <span
+                    className={`num shrink-0 font-titulo text-base font-bold ${
+                      dentro ? "text-acao" : "text-texto"
+                    }`}
+                  >
+                    {moedaCentavos(s.precoCentavos)}
+                  </span>
+                )}
 
                 {/* Não é botão de verdade: a linha inteira já é clicável, e um
                     botão dentro do outro quebraria o toque no celular. */}
@@ -154,7 +181,9 @@ export function PassoServico({
           por aí — que é o momento em que a frase serve para alguma coisa. */}
       {escolhidos.length === 0 ? (
         <p className="text-xs text-texto-apagado">
-          Pode juntar mais de um. Corte e barba no mesmo horário, por exemplo.
+          {planoNome
+            ? `O que o seu ${planoNome} cobre aparece como grátis. Pode juntar mais de um.`
+            : "Pode juntar mais de um. Corte e barba no mesmo horário, por exemplo."}
         </p>
       ) : null}
 
@@ -176,8 +205,12 @@ export function PassoServico({
                 <span className="min-w-0 flex-1 truncate text-texto">
                   {s.nome}
                 </span>
-                <span className="num shrink-0 text-texto-suave">
-                  {moedaCentavos(s.precoCentavos)}
+                <span
+                  className={`num shrink-0 ${
+                    noPlano(s.id) ? "text-clube" : "text-texto-suave"
+                  }`}
+                >
+                  {noPlano(s.id) ? "no plano" : moedaCentavos(s.precoCentavos)}
                 </span>
               </li>
             ))}

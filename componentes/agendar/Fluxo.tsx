@@ -215,6 +215,27 @@ export function Fluxo({
   const plano = reconhecido?.plano ?? null;
   const diaEscolhido = new Date(`${data}T12:00:00-03:00`).getUTCDay();
 
+  /**
+   * O que o plano dele cobre, para a lista de serviços já sair com preço zero.
+   *
+   * Quem chega pela área do clube é reconhecido antes do primeiro toque, então
+   * ele vê "grátis" no corte e o preço na sobrancelha desde o passo 1 — sem
+   * precisar percorrer a tela inteira para descobrir o que paga.
+   *
+   * Vazio para quem não é do clube, e aí a lista mostra preço para todo mundo,
+   * como sempre foi.
+   */
+  const cobertosPeloPlano = new Set(
+    reconhecido?.assinante && plano
+      ? servicos
+          .filter(
+            (sv) =>
+              plano.categorias.includes(sv.categoria) && sv.cobertoPeloClube,
+          )
+          .map((sv) => sv.id)
+      : [],
+  );
+
   // Basta um serviço do plano para valer a pena usar o clube; o que ficar de
   // fora continua sendo cobrado, igual o banco faz.
   const cobertos = escolhidos.filter(
@@ -524,6 +545,10 @@ export function Fluxo({
                     escolhidos={escolhidos}
                     onAlternar={alternarServico}
                     onPronto={() => setPassoAberto(2)}
+                    cobertos={cobertosPeloPlano}
+                    planoNome={
+                      reconhecido?.assinante ? (plano?.nome ?? null) : null
+                    }
                   />
                 </Passo>
 
