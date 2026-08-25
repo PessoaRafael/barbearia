@@ -7,8 +7,9 @@ import {
   Scissors,
 } from "lucide-react";
 
-import { Etiqueta, Logo, Retrato, Secao } from "@/componentes/base";
+import { Logo, Retrato, Secao } from "@/componentes/base";
 import { ModalClube } from "@/componentes/site/ModalClube";
+import { Vitrine } from "@/componentes/site/Vitrine";
 import {
   barbeirosAtivos,
   casa,
@@ -171,7 +172,6 @@ function Hero({
 type ServicoDb = Awaited<ReturnType<typeof servicosAtivos>>[number];
 
 function Servicos({ servicos }: { servicos: ServicoDb[] }) {
-  const categorias = [...new Set(servicos.map((s) => s.categoria))];
 
   return (
     <Secao
@@ -179,47 +179,16 @@ function Servicos({ servicos }: { servicos: ServicoDb[] }) {
       titulo="O que a gente faz"
       apoio="Preço fechado, sem surpresa na hora de pagar. Quem é do Clube não paga pelo que o plano cobre."
     >
-      <div className="flex flex-col gap-6">
-        {categorias.map((categoria) => {
-          const lista = servicos.filter((s) => s.categoria === categoria);
-          return (
-            <div key={categoria} className="flex flex-col gap-3">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-texto-apagado">
-                {categoria}
-              </h3>
-              <ul className="grid gap-3 sm:grid-cols-2">
-                {lista.map((servico) => (
-                  <li
-                    key={servico.id}
-                    className="flex items-center gap-4 rounded-card border border-borda bg-superficie p-4"
-                  >
-                    <div className="flex min-w-0 flex-1 flex-col gap-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-titulo text-base font-semibold">
-                          {servico.nome}
-                        </span>
-                        {/* Nada de etiqueta de clube por serviço: repetida em
-                            todo corte, ela vira ruído e ainda lê como "só para
-                            quem é do clube". Quem explica isso é a seção do
-                            Clube, logo abaixo. */}
-                        {servico.tag ? (
-                          <Etiqueta tom="neutro">{servico.tag}</Etiqueta>
-                        ) : null}
-                      </div>
-                      <span className="num text-xs text-texto-suave">
-                        {servico.duracao_min} min
-                      </span>
-                    </div>
-                    <span className="num font-titulo text-lg font-bold text-acao">
-                      {moedaCentavos(servico.preco_centavos)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          );
-        })}
-      </div>
+      <Vitrine
+        servicos={servicos.map((s) => ({
+          id: s.id,
+          nome: s.nome,
+          categoria: s.categoria,
+          duracaoMin: s.duracao_min,
+          precoCentavos: s.preco_centavos,
+          tag: s.tag,
+        }))}
+      />
     </Secao>
   );
 }
