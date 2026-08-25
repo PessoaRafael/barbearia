@@ -7,7 +7,11 @@ import { moedaCentavos } from "@/lib/formato";
 import { enfileirar } from "@/lib/notify/whatsapp";
 import { linkDoValor } from "@/lib/payments/links";
 import { provedorAtual } from "@/lib/payments/provider";
-import { cartaoLigado, sessaoDoClube } from "@/lib/payments/stripe";
+import {
+  cartaoLigado,
+  sessaoDeAssinatura,
+  sessaoDoClube,
+} from "@/lib/payments/stripe";
 import { svgDoBrcode } from "@/lib/pix/qr";
 import { clienteServico } from "@/lib/supabase/servidor";
 
@@ -58,7 +62,7 @@ export async function pedirClube(
   // navegador é preço que o cliente escolhe.
   const { data: plano } = await supabase
     .from("club_plans")
-    .select("id, nome, preco_centavos")
+    .select("id, nome, preco_centavos, stripe_price_id")
     .eq("id", analise.data.planoId)
     .eq("barbershop_id", barbearia.id)
     .eq("ativo", true)
@@ -154,7 +158,7 @@ export async function assinarNoCartao(dados: z.input<typeof entrada>) {
 
   const { data: plano } = await supabase
     .from("club_plans")
-    .select("id, nome, preco_centavos")
+    .select("id, nome, preco_centavos, stripe_price_id")
     .eq("id", analise.data.planoId)
     .eq("barbershop_id", barbearia.id)
     .eq("ativo", true)
@@ -174,17 +178,34 @@ export async function assinarNoCartao(dados: z.input<typeof entrada>) {
   if (!cliente) return { erro: "Não consegui te cadastrar agora." };
 
   try {
-    const sessao = await sessaoDoClube({
-      barbeariaId: barbearia.id,
-      clienteId: cliente.id,
-      planoId: plano.id,
-      planoNome: plano.nome,
-      valorCentavos: plano.preco_centavos,
-      clienteNome: analise.data.nome,
-      siteUrl: site,
-    });
+    /**
+     * Com preço recorrente cadastrado, a assinatura se cobra sozinha a cada
+     * 30 dias. Sem ele, cai na cobrança avulsa de sempre — que funciona, só
+     * exige o cliente voltar todo mês.
+     *
+     * A escolha é do plano, não da tela: assim dá para ligar a recorrência em
+     * um plano de cada vez, sem tocar em código.
+     */
+    const sessao = plano.stripe_price_id
+      ? await sessaoDeAssinatura({
+          barbeariaId: barbearia.id,
+          clienteId: cliente.id,
+          planoId: plano.id,
+          precoStripe: plano.stripe_price_id,
+          clienteNome: analise.data.nome,
+          siteUrl: site,
+        })
+      : await sessaoDoClube({
+          barbeariaId: barbearia.id,
+          clienteId: cliente.id,
+          planoId: plano.id,
+          planoNome: plano.nome,
+          valorCentavos: plano.preco_centavos,
+          clienteNome: analise.data.nome,
+          siteUrl: site,
+        });
 
-    return { ok: true, url: sessao.url };
+    return { ok: true, url: sessao.url, recorrente: Boolean(plano.stripe_price_id) };
   } catch (erro) {
     console.error("stripe clube:", (erro as Error).message);
     // Cai no pix, que continua funcionando: ninguém fica sem como assinar.

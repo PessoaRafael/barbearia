@@ -9,6 +9,7 @@ import { lerSessao } from "@/lib/auth/sessao";
 import { diasEmTexto } from "@/lib/dados/casa";
 import { moedaCentavos, telefoneBonito } from "@/lib/formato";
 import { Aniversario } from "@/componentes/clube/Aniversario";
+import { Assinatura } from "@/componentes/clube/Assinatura";
 import { clienteServico } from "@/lib/supabase/servidor";
 
 /**
@@ -33,6 +34,8 @@ type Area = {
   nome: string;
   telefone: string;
   nascimento: string | null;
+  recorrente: boolean;
+  cancela_no_fim: boolean;
   total_cortes: number;
   assinante: boolean;
   vencida: boolean;
@@ -148,7 +151,9 @@ export default async function AreaDoClube() {
               ) : null}
               {area.ciclo_fim ? (
                 <p className="num text-sm text-texto-suave">
-                  Sua mensalidade vale até {dia(area.ciclo_fim)}.
+                  {area.recorrente && !area.cancela_no_fim
+                    ? `Renova sozinho em ${dia(area.ciclo_fim)}.`
+                    : `Sua mensalidade vale até ${dia(area.ciclo_fim)}.`}
                 </p>
               ) : null}
             </>
@@ -178,6 +183,12 @@ export default async function AreaDoClube() {
 
         {/* Só para quem é do clube: quem não assina não tem por que dar a
             data, e pedir mesmo assim seria coletar dado à toa. */}
+        {/* Só para quem paga no cartão: quem está no pix não tem renovação
+            automática para desligar, e o botão só confundiria. */}
+        {area.assinante && area.recorrente ? (
+          <Assinatura ate={area.ciclo_fim} cancelando={area.cancela_no_fim} />
+        ) : null}
+
         {area.assinante ? <Aniversario atual={area.nascimento} /> : null}
 
         <Link

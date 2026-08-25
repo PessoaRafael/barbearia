@@ -38,6 +38,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ erro: "corpo" }, { status: 400 });
   }
 
+  /**
+   * Assinatura recorrente: três avisos que chegam sem ninguém pedir.
+   *
+   * Não passam pela conferência de sessão porque não são sessão — vêm da
+   * fatura e da assinatura. O corpo já está assinado, e o id que a gente usa
+   * para achar a assinatura é o da Stripe, que só ela conhece.
+   */
+  if (
+    evento.type === "invoice.paid" ||
+    evento.type === "invoice.payment_failed" ||
+    evento.type === "customer.subscription.deleted"
+  ) {
+    return await tratarAssinatura(evento.type, evento.data?.object ?? {});
+  }
+
   if (evento.type !== "checkout.session.completed") {
     return NextResponse.json({ ignorado: evento.type });
   }
@@ -48,7 +63,7 @@ export async function POST(req: Request) {
 
   // Pergunta de volta em vez de acreditar no que veio no corpo. As marcas
   // vêm da mesma consulta: é o metadata da Stripe, não o do corpo recebido.
-  let marcas: { paga: boolean; metadata: Record<string, string> };
+  let marcas: Awaited<ReturnType<typeof marcasDaSessao>>;
   try {
     marcas = await marcasDaSessao(sessaoId);
   } catch (erro) {
@@ -69,7 +84,7 @@ export async function POST(req: Request) {
    * O carimbo vem da consulta à Stripe, não do corpo do aviso — o corpo até
    * está assinado, mas quem decide ligar assinatura tem que ler da fonte.
    */
-  if (marcas.metadata.tipo === "clube") {
+  if (marcas.metadata.tipo === "clube" || marcas.metadata.tipo === "assinatura") {
     const r = await ativarAssinatura({
       barbeariaId: marcas.metadata.barbearia,
       clienteId: marcas.metadata.cliente,
@@ -81,7 +96,31 @@ export async function POST(req: Request) {
       return NextResponse.json({ erro: "assinatura" }, { status: 500 });
     }
 
-    return NextResponse.json({ ok: true, clube: true, ate: r.ate });
+    /**
+     * Recorrente: guarda o vínculo com a Stripe.
+     *
+     * É por esse id que as renovações dos próximos meses vão encontrar a
+     * assinatura. Sem ele, daqui a 30 dias chegaria uma fatura paga que o
+     * sistema não saberia de quem é.
+     */
+    if (marcas.assinatura) {
+      await clienteServico()
+        .from("subscriptions")
+        .update({
+          stripe_subscription_id: marcas.assinatura,
+          stripe_customer_id: marcas.clienteStripe,
+          cancela_no_fim: false,
+        })
+        .eq("client_id", marcas.metadata.cliente)
+        .neq("status", "cancelada");
+    }
+
+    return NextResponse.json({
+      ok: true,
+      clube: true,
+      ate: r.ate,
+      recorrente: Boolean(marcas.assinatura),
+    });
   }
 
   const supabase = clienteServico();
@@ -114,4 +153,72 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ ok: true, agendamento });
+}
+
+/**
+ * Os avisos da assinatura recorrente.
+ *
+ * Cada um mexe em uma coisa só, e nenhum deles cancela por conta própria:
+ *
+ *   invoice.paid                  empurra o ciclo
+ *   invoice.payment_failed        marca vencida, e a Stripe segue tentando
+ *   customer.subscription.deleted encerra, que é quando ela desistiu de vez
+ *
+ * Falha de cartão não cancela de propósito: quem só trocou de cartão perderia
+ * o clube por um problema de banco. Vencido paga o corte no valor normal até
+ * acertar, que é a mesma regra do pix atrasado.
+ */
+async function tratarAssinatura(tipo: string, objeto: Record<string, unknown>) {
+  const supabase = clienteServico();
+
+  if (tipo === "customer.subscription.deleted") {
+    const id = objeto.id as string | undefined;
+    if (!id) return NextResponse.json({ ignorado: "sem id" });
+
+    const { error } = await supabase.rpc("encerrar_assinatura", {
+      p_stripe_id: id,
+    });
+    if (error) {
+      console.error("stripe: não consegui encerrar", id, error.message);
+      return NextResponse.json({ erro: "encerrar" }, { status: 500 });
+    }
+    return NextResponse.json({ ok: true, encerrada: id });
+  }
+
+  // Nas faturas, a assinatura vem no campo `subscription`.
+  const assinatura = objeto.subscription as string | undefined;
+  if (!assinatura) return NextResponse.json({ ignorado: "fatura sem assinatura" });
+
+  if (tipo === "invoice.payment_failed") {
+    const { error } = await supabase.rpc("falhou_cobranca", {
+      p_stripe_id: assinatura,
+    });
+    if (error) {
+      console.error("stripe: falha ao marcar vencida", assinatura, error.message);
+      return NextResponse.json({ erro: "vencida" }, { status: 500 });
+    }
+    return NextResponse.json({ ok: true, vencida: assinatura });
+  }
+
+  /**
+   * Até quando o período pago vale, vindo da própria fatura. Sem isso a gente
+   * chutaria trinta dias a partir de hoje, e o ciclo iria escorregando um
+   * pouco todo mês até não bater mais com a cobrança.
+   */
+  const linha = (objeto.lines as { data?: { period?: { end?: number } }[] } | undefined)
+    ?.data?.[0];
+  const fim = linha?.period?.end;
+  const ate = fim ? new Date(fim * 1000).toISOString().slice(0, 10) : null;
+
+  const { data, error } = await supabase.rpc("renovar_assinatura", {
+    p_stripe_id: assinatura,
+    p_ate: ate,
+  });
+
+  if (error) {
+    console.error("stripe: não consegui renovar", assinatura, error.message);
+    return NextResponse.json({ erro: "renovar" }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true, renovacao: data });
 }

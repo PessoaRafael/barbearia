@@ -154,12 +154,117 @@ export async function sessaoDoClube(entrada: {
   return { id: s.id as string, url: s.url as string };
 }
 
+
+/**
+ * Assinatura recorrente do clube.
+ *
+ * Diferente da cobrança avulsa em uma coisa que muda tudo: a Stripe guarda o
+ * cartão e cobra sozinha a cada 30 dias. O Johny para de perseguir 49 pessoas
+ * por mês, e o cliente para de receber cobrança no WhatsApp.
+ *
+ * `customer_creation` não entra aqui: em modo assinatura a Stripe cria o
+ * cliente sempre, porque precisa dele para cobrar de novo.
+ */
+export async function sessaoDeAssinatura(entrada: {
+  barbeariaId: string;
+  clienteId: string;
+  planoId: string;
+  precoStripe: string;
+  clienteNome: string;
+  clienteEmail?: string | null;
+  siteUrl: string;
+}): Promise<SessaoCartao> {
+  const site = entrada.siteUrl.replace(/\/$/, "");
+
+  const corpo: Record<string, string> = {
+    ...SEMPRE,
+    mode: "subscription",
+    "payment_method_types[0]": "card",
+    client_reference_id: entrada.clienteId,
+    "metadata[tipo]": "assinatura",
+    "metadata[barbearia]": entrada.barbeariaId,
+    "metadata[cliente]": entrada.clienteId,
+    "metadata[plano]": entrada.planoId,
+    // O mesmo carimbo vai na assinatura criada, senão o webhook de renovação
+    // chegaria daqui a 30 dias sem saber de quem é.
+    "subscription_data[metadata][barbearia]": entrada.barbeariaId,
+    "subscription_data[metadata][cliente]": entrada.clienteId,
+    "subscription_data[metadata][plano]": entrada.planoId,
+    success_url: `${site}/?clube=ok`,
+    cancel_url: `${site}/?clube=voltou`,
+    "line_items[0][quantity]": "1",
+    "line_items[0][price]": entrada.precoStripe,
+  };
+
+  if (entrada.clienteEmail) corpo.customer_email = entrada.clienteEmail;
+
+  const s = await chamar("checkout/sessions", corpo);
+  return { id: s.id as string, url: s.url as string };
+}
+
+/**
+ * Cancelar no fim do período pago, nunca na hora.
+ *
+ * Ele pagou 30 dias; tirar o acesso no dia do clique seria ficar com dinheiro
+ * dele. Até lá continua entrando normalmente, e se mudar de ideia é só voltar
+ * atrás — por isso `cancel_at_period_end` e não o cancelamento imediato.
+ */
+export async function cancelarNoFimDoCiclo(assinaturaId: string) {
+  const s = await chamar(`subscriptions/${assinaturaId}`, {
+    cancel_at_period_end: "true",
+  });
+  return {
+    ate: s.current_period_end
+      ? new Date((s.current_period_end as number) * 1000)
+      : null,
+  };
+}
+
+/** Desistiu de cancelar: volta a renovar. */
+export async function voltarAtrasNoCancelamento(assinaturaId: string) {
+  await chamar(`subscriptions/${assinaturaId}`, {
+    cancel_at_period_end: "false",
+  });
+}
+
+/**
+ * Página da Stripe onde ele troca o cartão.
+ *
+ * Trocar cartão tem que ser lá: número de cartão não passa pelo nosso
+ * servidor, e não queremos que passe. Cancelar, ao contrário, fica na nossa
+ * área — mandar alguém para fora do site para cancelar parece que ele saiu da
+ * barbearia.
+ */
+export async function portalDoCliente(clienteStripe: string, voltarPara: string) {
+  const s = await chamar("billing_portal/sessions", {
+    customer: clienteStripe,
+    return_url: voltarPara,
+  });
+  return s.url as string;
+}
+
+/** Dados da assinatura na Stripe: usado para conferir antes de agir. */
+export async function verAssinatura(assinaturaId: string) {
+  const s = await chamar(`subscriptions/${assinaturaId}`);
+  return {
+    status: s.status as string,
+    cancelaNoFim: Boolean(s.cancel_at_period_end),
+    ate: s.current_period_end
+      ? new Date((s.current_period_end as number) * 1000)
+      : null,
+  };
+}
+
 /** O que a Stripe carimbou na cobrança: serve para saber o que confirmar. */
 export async function marcasDaSessao(sessaoId: string) {
   const s = await chamar(`checkout/sessions/${sessaoId}`);
   return {
-    paga: s.payment_status === "paid",
+    // Em assinatura o pagamento entra pela primeira fatura, e o campo vem
+    // como "no_payment_required" nos casos em que a Stripe já resolveu.
+    paga: s.payment_status === "paid" || s.status === "complete",
     metadata: (s.metadata ?? {}) as Record<string, string>,
+    assinatura: (s.subscription ?? null) as string | null,
+    clienteStripe: (s.customer ?? null) as string | null,
   };
 }
 
