@@ -213,11 +213,27 @@ export async function cancelarNoFimDoCiclo(assinaturaId: string) {
   const s = await chamar(`subscriptions/${assinaturaId}`, {
     cancel_at_period_end: "true",
   });
-  return {
-    ate: s.current_period_end
-      ? new Date((s.current_period_end as number) * 1000)
-      : null,
-  };
+  return { ate: fimDoPeriodo(s) };
+}
+
+/**
+ * Até quando o período pago vale.
+ *
+ * Nas versões novas da API isso saiu da assinatura e foi para o item — a
+ * assinatura passou a poder ter itens com ciclos diferentes. Ler só do lugar
+ * antigo devolvia `undefined` silenciosamente, e a data virava null sem
+ * ninguém perceber.
+ */
+function fimDoPeriodo(s: Record<string, unknown>): Date | null {
+  const item = (s.items as { data?: { current_period_end?: number }[] })
+    ?.data?.[0];
+
+  const fim =
+    (s.current_period_end as number | undefined) ??
+    item?.current_period_end ??
+    (s.trial_end as number | undefined);
+
+  return fim ? new Date(fim * 1000) : null;
 }
 
 /** Desistiu de cancelar: volta a renovar. */
@@ -249,9 +265,7 @@ export async function verAssinatura(assinaturaId: string) {
   return {
     status: s.status as string,
     cancelaNoFim: Boolean(s.cancel_at_period_end),
-    ate: s.current_period_end
-      ? new Date((s.current_period_end as number) * 1000)
-      : null,
+    ate: fimDoPeriodo(s),
   };
 }
 
