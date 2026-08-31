@@ -18,6 +18,7 @@ import { Clube } from "@/componentes/painel/Clube";
 import { Configuracoes } from "@/componentes/painel/Configuracoes";
 import { LinksDePagamento } from "@/componentes/painel/LinksDePagamento";
 import { FilaWhatsapp } from "@/componentes/painel/FilaWhatsapp";
+import { Vencendo } from "@/componentes/painel/Vencendo";
 import { linksDaCasa, valoresCobrados } from "@/lib/payments/links";
 import { Servicos } from "@/componentes/painel/Servicos";
 import { crachaDoCookie, lerSessao } from "@/lib/auth/sessao";
@@ -33,6 +34,7 @@ import type { Escopo } from "@/lib/dados/painel";
 import {
   assinantes,
   avisosPendentes,
+  mensalidadesVencendo,
   caixaDoDia,
   clientes,
   equipe,
@@ -158,10 +160,26 @@ export default async function Painel({
       </Suspense>
 
       <Suspense fallback={null}>
+        <MensalidadesVencendo escopo={escopo} />
+      </Suspense>
+
+      <Suspense fallback={null}>
         <AvisosNaFila escopo={escopo} />
       </Suspense>
     </>
   );
+}
+
+/**
+ * Aviso de mensalidade vencendo.
+ *
+ * Fora das abas de propósito: é dinheiro a receber, e some sozinho quando não
+ * há nada vencendo. Aba com badge exigiria ele lembrar de olhar.
+ */
+async function MensalidadesVencendo({ escopo }: { escopo: Escopo }) {
+  const lista = await mensalidadesVencendo(escopo);
+  if (!lista.length) return null;
+  return <Vencendo lista={lista} />;
 }
 
 /** Links de cartão, um por valor cobrado. Carrega depois dos ajustes. */

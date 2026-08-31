@@ -465,3 +465,52 @@ export const avisosPendentes = cache(async (escopo: Escopo) => {
 
   return { itens: data ?? [], total: count ?? data?.length ?? 0 };
 });
+
+/**
+ * Mensalidades vencendo, para o Johny cobrar antes de vencer.
+ *
+ * Sete dias de antecedência porque o cadastro em lote deixou 43 assinaturas
+ * caindo no mesmo dia: sem aviso, ele acordaria com quase sete mil reais para
+ * cobrar de uma vez, e cada dia de atraso é um assinante pagando corte cheio
+ * e reclamando na cadeira.
+ *
+ * Quem paga no cartão fica de fora: a Stripe cobra sozinha, e cutucar essas
+ * pessoas seria pedir dinheiro que já está a caminho.
+ */
+export const mensalidadesVencendo = cache(async (escopo: Escopo) => {
+  const limite = new Date();
+  limite.setDate(limite.getDate() + 7);
+
+  const { data } = await clienteServico()
+    .from("subscriptions")
+    .select(
+      "id, ciclo_fim, preco_centavos, status, clients(nome, telefone), club_plans(nome)",
+    )
+    .eq("barbershop_id", escopo.barbeariaId)
+    .neq("status", "cancelada")
+    .is("stripe_subscription_id", null)
+    .lte("ciclo_fim", limite.toISOString().slice(0, 10))
+    .order("ciclo_fim");
+
+  const hoje = new Date(`${hojeNaCasa()}T12:00:00-03:00`).getTime();
+  const um = <T,>(v: T | T[] | null): T | null =>
+    Array.isArray(v) ? (v[0] ?? null) : v;
+
+  return (data ?? []).map((s) => {
+    const c = um(s.clients as never) as { nome: string; telefone: string } | null;
+    const p = um(s.club_plans as never) as { nome: string } | null;
+    const fim = new Date(`${s.ciclo_fim}T12:00:00-03:00`).getTime();
+
+    return {
+      id: s.id as string,
+      nome: c?.nome ?? "",
+      telefone: c?.telefone ?? "",
+      plano: p?.nome ?? "Clube",
+      precoCentavos: s.preco_centavos as number,
+      cicloFim: s.ciclo_fim as string,
+      /** Negativo quer dizer que já venceu. */
+      dias: Math.round((fim - hoje) / 86400000),
+      vencida: s.status === "vencida",
+    };
+  });
+});
