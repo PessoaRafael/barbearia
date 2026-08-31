@@ -15,6 +15,7 @@ import { cartaoLigado, sessaoDeCartao } from "@/lib/payments/stripe";
 import { duracaoJunta } from "@/lib/regras";
 import { pixManual, provedorAtual } from "@/lib/payments/provider";
 import { svgDoBrcode } from "@/lib/pix/qr";
+import { telefoneChave } from "@/lib/formato";
 import { clienteServico } from "@/lib/supabase/servidor";
 
 /**
@@ -73,7 +74,7 @@ export async function entrarNaFila(entrada: z.input<typeof fila>) {
   if (!analise.success) return { erro: "Confira nome e WhatsApp." };
 
   const d = analise.data;
-  const telefone = d.telefone.replace(/\D/g, "");
+  const telefone = telefoneChave(d.telefone);
   const { id } = await casa();
   const supabase = clienteServico();
 
@@ -160,7 +161,7 @@ export async function reconhecerCliente(
     cpf: null,
   };
 
-  const telefone = telefoneBruto.replace(/\D/g, "");
+  const telefone = telefoneChave(telefoneBruto);
   if (telefone.length < 10) return vazio;
 
   const { id } = await casa();
@@ -398,7 +399,7 @@ export async function reservar(
       p_barbeiro: barbeiroId,
       p_servicos: dados.servicoIds,
       p_nome: dados.nome,
-      p_telefone: dados.telefone.replace(/\D/g, ""),
+      p_telefone: telefoneChave(dados.telefone),
       p_inicio: instante(dados.data, dados.hora).toISOString(),
       p_usar_clube: dados.usarClube,
       p_origem: origem,

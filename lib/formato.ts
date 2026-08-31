@@ -13,6 +13,32 @@ export function moedaCentavos(centavos: number) {
 }
 
 /** (84) 99983-5180 */
+/**
+ * O telefone como identidade do cliente.
+ *
+ * Não existe cadastro nem senha: o telefone é quem diz quem é a pessoa. Então
+ * dois jeitos de escrever o mesmo número viram duas pessoas — e foi o que
+ * aconteceu com o Denilson, que remarcou digitando +55 e o sistema cobrou de
+ * novo por não reconhecê-lo.
+ *
+ * Para um assinante isso é pior: ele digita o código do país, deixa de ser
+ * reconhecido e paga por um corte que a mensalidade dele já cobre.
+ *
+ * Tira o 55 só quando sobra um número brasileiro plausível. Número de 12 ou 13
+ * dígitos que não comece com 55 fica como está: melhor guardar estranho do que
+ * mutilar o telefone de alguém.
+ */
+export function telefoneChave(bruto: string) {
+  const digitos = (bruto ?? "").replace(/\D/g, "");
+
+  if (digitos.length >= 12 && digitos.startsWith("55")) {
+    const sem = digitos.slice(2);
+    if (sem.length === 10 || sem.length === 11) return sem;
+  }
+
+  return digitos;
+}
+
 export function telefoneBonito(bruto: string) {
   const d = bruto.replace(/\D/g, "").replace(/^55/, "");
   if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;

@@ -3,7 +3,7 @@
 import { z } from "zod";
 
 import { casa } from "@/lib/dados/casa";
-import { moedaCentavos } from "@/lib/formato";
+import { moedaCentavos, telefoneChave } from "@/lib/formato";
 import { enfileirar } from "@/lib/notify/whatsapp";
 import { linkDoValor } from "@/lib/payments/links";
 import { provedorAtual } from "@/lib/payments/provider";
@@ -55,7 +55,7 @@ export async function pedirClube(
     return { ok: false, erro: "O clube está fechado no momento." };
   }
 
-  const telefone = analise.data.telefone.replace(/\D/g, "");
+  const telefone = telefoneChave(analise.data.telefone);
   const supabase = clienteServico();
 
   // O valor sai do plano no banco, nunca do que a tela mandou: preço vindo do
@@ -154,7 +154,7 @@ export async function assinarNoCartao(dados: z.input<typeof entrada>) {
 
   const barbearia = await casa();
   const supabase = clienteServico();
-  const telefone = analise.data.telefone.replace(/\D/g, "");
+  const telefone = telefoneChave(analise.data.telefone);
 
   const { data: plano } = await supabase
     .from("club_plans")

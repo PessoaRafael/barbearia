@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { exigirDono, exigirEquipe } from "@/lib/auth/sessao";
 import { gerarChave, hashChave, prefixoDe } from "@/lib/auth/chaves";
+import { telefoneChave } from "@/lib/formato";
 import { clienteServico } from "@/lib/supabase/servidor";
 
 /**
@@ -231,7 +232,7 @@ export async function inscreverNoClube(entrada: z.input<typeof assinante>) {
   if (!analise.success) return { erro: "Confira nome e WhatsApp." };
 
   const sessao = await exigirDono();
-  const telefone = analise.data.telefone.replace(/\D/g, "");
+  const telefone = telefoneChave(analise.data.telefone);
   const supabase = clienteServico();
 
   // Preço e duração saem do plano, não do que a tela mandou.
