@@ -21,6 +21,7 @@ import {
 import { AvisoWhatsapp } from "./Acoes";
 import { BotaoCopiar } from "@/componentes/BotaoCopiar";
 import { moedaCentavos, telefoneBonito } from "@/lib/formato";
+import { abrirZap, linkWa } from "@/lib/notify/zap";
 import { textoDe } from "@/lib/notify/textos";
 
 export type PlanoDoPainel = {
@@ -499,7 +500,8 @@ Dá para ver seus horários e marcar sem pagar nada. Guarda essa mensagem, o lin
         <div className="flex flex-col gap-2 sm:flex-row">
           <BotaoCopiar valor={link} rotulo="Copiar link" destaque />
           <a
-            href={`https://wa.me/${telefone.replace(/\D/g, "").replace(/^(?!55)/, "55")}?text=${encodeURIComponent(recado)}`}
+            href={linkWa(telefone, recado)}
+            onClick={(e) => abrirZap(e, telefone, recado)}
             target="_blank"
             rel="noreferrer"
             className={`${pill} border border-borda-forte text-texto hover:border-acao`}

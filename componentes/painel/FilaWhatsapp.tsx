@@ -9,6 +9,7 @@ import {
   descartarTodosAvisos,
 } from "@/app/painel/acoes";
 import { CampoBusca, POR_VEZ, VerMais, achatar } from "./Lista";
+import { abrirZap, linkWa } from "@/lib/notify/zap";
 
 export type AvisoNaFila = {
   id: string;
@@ -112,10 +113,15 @@ export function FilaWhatsapp({
             <div className="flex shrink-0 flex-wrap gap-2">
               {a.telefone ? (
                 <a
-                  href={`https://wa.me/${numero(a.telefone)}?text=${encodeURIComponent(a.texto)}`}
+                  href={linkWa(a.telefone, a.texto)}
                   target="_blank"
                   rel="noreferrer"
-                  onClick={() => tirar(a.id, darBaixaNoAviso)}
+                  onClick={(e) => {
+                    // Dá baixa e abre o Business na mesma ação: quem abriu a
+                    // conversa já mandou.
+                    tirar(a.id, darBaixaNoAviso);
+                    abrirZap(e, a.telefone!, a.texto);
+                  }}
                   className="inline-flex min-h-toque items-center gap-1.5 rounded-pill border border-borda-forte px-3 font-titulo text-sm font-semibold text-texto transition-colors hover:border-acao"
                 >
                   <Copy className="h-4 w-4" strokeWidth={2} />
@@ -197,7 +203,3 @@ export function FilaWhatsapp({
   );
 }
 
-function numero(telefone: string) {
-  const digitos = telefone.replace(/\D/g, "");
-  return digitos.startsWith("55") ? digitos : `55${digitos}`;
-}

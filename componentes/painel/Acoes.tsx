@@ -19,6 +19,7 @@ import {
   revogarChaveDe,
 } from "@/app/painel/acoes";
 import { BotaoCopiar } from "@/componentes/BotaoCopiar";
+import { abrirZap, linkWa } from "@/lib/notify/zap";
 
 const pill =
   "inline-flex min-h-toque items-center justify-center gap-2 rounded-pill px-4 font-titulo text-sm font-semibold transition-colors";
@@ -60,7 +61,8 @@ export function DecidirPix({
           Confirmado. Falta avisar o cliente, que o sistema não manda sozinho.
         </span>
         <a
-          href={`https://wa.me/${numero}?text=${encodeURIComponent(aviso)}`}
+          href={linkWa(numero, aviso)}
+        onClick={(e) => abrirZap(e, numero, aviso)}
           target="_blank"
           rel="noreferrer"
           className={`${pill} bg-acao text-acao-sobre hover:bg-acao-hover`}
@@ -320,7 +322,8 @@ export function AvisoWhatsapp({
 
   return (
     <a
-      href={`https://wa.me/${numero}?text=${encodeURIComponent(texto)}`}
+      href={linkWa(numero, texto)}
+        onClick={(e) => abrirZap(e, numero, texto)}
       target="_blank"
       rel="noreferrer"
       className={`${pill} border border-borda-forte text-texto hover:border-acao`}

@@ -6,6 +6,7 @@ import { Check, MessageCircle } from "lucide-react";
 import { registrarMensalidade } from "@/app/painel/acoes";
 import { moedaCentavos, telefoneBonito } from "@/lib/formato";
 import { CampoBusca, POR_VEZ, VerMais, achatar } from "./Lista";
+import { abrirZap, linkWa } from "@/lib/notify/zap";
 
 export type Vencendo = {
   id: string;
@@ -129,7 +130,8 @@ export function Vencendo({ lista }: { lista: Vencendo[] }) {
               <div className="flex shrink-0 flex-wrap gap-2">
                 {a.telefone ? (
                   <a
-                    href={`https://wa.me/${numero(a.telefone)}?text=${encodeURIComponent(recado)}`}
+                    href={linkWa(a.telefone, recado)}
+                    onClick={(e) => abrirZap(e, a.telefone, recado)}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex min-h-toque items-center gap-1.5 rounded-pill border border-borda-forte px-3 font-titulo text-sm font-semibold text-texto transition-colors hover:border-acao"
@@ -170,7 +172,3 @@ export function Vencendo({ lista }: { lista: Vencendo[] }) {
   );
 }
 
-function numero(telefone: string) {
-  const digitos = telefone.replace(/\D/g, "");
-  return digitos.startsWith("55") ? digitos : `55${digitos}`;
-}
