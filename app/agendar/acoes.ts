@@ -1,5 +1,6 @@
 "use server";
 
+import { after } from "next/server";
 import { z } from "zod";
 
 import {
@@ -9,6 +10,7 @@ import {
 } from "@/lib/agenda/disponibilidade";
 import { lerSessao } from "@/lib/auth/sessao";
 import { casa } from "@/lib/dados/casa";
+import { avisarNoCelular } from "@/lib/notify/push";
 import { enfileirar } from "@/lib/notify/whatsapp";
 import { linkDoValor } from "@/lib/payments/links";
 import { cartaoLigado, sessaoDeCartao } from "@/lib/payments/stripe";
@@ -561,6 +563,30 @@ export async function reservar(
   // "Corte + Barba" na mensagem, não só o mais caro.
   const nomeDosServicos =
     (oQue ?? []).map((s) => s.nome).join(" + ") || "seu horário";
+
+  /**
+   * O celular do barbeiro toca antes de o cliente sair da tela.
+   *
+   * Fora do caminho crítico: o horário já está gravado, e falha de aviso não
+   * pode segurar a resposta nem derrubar a reserva. Se não chegar, o painel
+   * mostra do mesmo jeito — o aviso é conveniência, não a fonte da verdade.
+   */
+  after(async () => {
+    await avisarNoCelular({
+      barbeariaId: casaAtual.id,
+      barbeiroId,
+      aviso: {
+        titulo: "Novo horário marcado",
+        corpo: `${dados.nome.split(" ")[0]} · ${nomeDosServicos} · ${dados.data
+          .split("-")
+          .reverse()
+          .slice(0, 2)
+          .join("/")} às ${dados.hora}`,
+        url: `/painel?aba=agenda&dia=${dados.data}`,
+        grupo: "agenda",
+      },
+    }).catch(() => {});
+  });
 
   await enfileirar({
     barbeariaId: casaAtual.id,

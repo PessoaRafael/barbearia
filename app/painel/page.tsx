@@ -19,6 +19,7 @@ import { Configuracoes } from "@/componentes/painel/Configuracoes";
 import { LinksDePagamento } from "@/componentes/painel/LinksDePagamento";
 import { FilaWhatsapp } from "@/componentes/painel/FilaWhatsapp";
 import { Vencendo } from "@/componentes/painel/Vencendo";
+import { Avisos } from "@/componentes/painel/Avisos";
 import { linksDaCasa, valoresCobrados } from "@/lib/payments/links";
 import { Servicos } from "@/componentes/painel/Servicos";
 import { crachaDoCookie, lerSessao } from "@/lib/auth/sessao";
@@ -144,6 +145,9 @@ export default async function Painel({
           <AbaEquipe escopo={escopo} />
         ) : (
           <div className="flex flex-col gap-4">
+            {/* Primeiro de tudo em Ajustes: e o que cada barbeiro precisa
+                ligar no proprio celular, e o resto da aba e coisa do dono. */}
+            <Avisos />
             <Configuracoes
               pixKey={barbearia.pix_key ?? ""}
               pixTitular={barbearia.pix_titular ?? ""}

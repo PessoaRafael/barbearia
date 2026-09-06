@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 
 import { casa } from "@/lib/dados/casa";
+import { avisarNoCelular } from "@/lib/notify/push";
 import { enfileirar } from "@/lib/notify/whatsapp";
 import { cartaoLigado, sessaoDeCartao, sessaoFoiPaga } from "@/lib/payments/stripe";
 import { HORAS_LIMITE_CANCELAMENTO } from "@/lib/regras";
@@ -129,6 +131,31 @@ export async function cancelar(
   });
 
   await avisarFila(id, agendamento.inicio);
+
+  /**
+   * O barbeiro precisa saber que a cadeira abriu, e rápido: horário
+   * desmarcado que ninguém percebe é uma hora parada. Fora do caminho
+   * crítico — o cancelamento já valeu, e falha de aviso não pode desfazê-lo.
+   */
+  after(async () => {
+    await avisarNoCelular({
+      barbeariaId: id,
+      aviso: {
+        titulo: "Horário desmarcado",
+        corpo: `${agendamento.cliente.split(" ")[0]} desmarcou ${new Date(
+          agendamento.inicio,
+        ).toLocaleString("pt-BR", {
+          timeZone: "America/Fortaleza",
+          day: "2-digit",
+          month: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        })}. A cadeira voltou para a agenda.`,
+        url: `/painel?aba=agenda&dia=${agendamento.inicio.slice(0, 10)}`,
+        grupo: "agenda",
+      },
+    }).catch(() => {});
+  });
 
   revalidatePath(`/meu-agendamento/${analise.data.token}`);
   // A área do clube lista os próximos horários da mesma pessoa: sem isso ela

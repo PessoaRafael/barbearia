@@ -17,6 +17,12 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Johny",
+  },
   title: "Johny Barbearia",
   description:
     "Sua cadeira marcada em menos de um minuto. Agendamento, Clube Johny e painel da barbearia.",
