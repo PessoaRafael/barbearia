@@ -197,8 +197,8 @@ export function Avisos() {
         </p>
       ) : null}
 
-      {estado === "precisa_instalar" ? <ComoInstalar iphone /> : null}
-      {estado === "sem_suporte" ? <ComoInstalar iphone={false} /> : null}
+      {estado === "precisa_instalar" ? <ComoInstalar aparelho="iphone" /> : null}
+      {estado === "sem_suporte" ? <ComoInstalar aparelho="android" /> : null}
 
       {erro ? <p className="text-sm text-alerta">{erro}</p> : null}
 
@@ -208,7 +208,7 @@ export function Avisos() {
             Deixar na tela inicial, como um aplicativo
           </summary>
           <div className="pt-3">
-            <ComoInstalar iphone={ehIphone} />
+            <ComoInstalar aparelho={ehIphone ? "iphone" : "android"} podeTrocar />
           </div>
         </details>
       ) : null}
@@ -222,7 +222,23 @@ export function Avisos() {
  * Um caminho por sistema, com o nome do botão como ele aparece de verdade.
  * "Adicione à tela inicial" sozinho não ajuda ninguém a achar o menu.
  */
-function ComoInstalar({ iphone }: { iphone: boolean }) {
+function ComoInstalar({
+  aparelho,
+  podeTrocar = false,
+}: {
+  aparelho: "android" | "iphone";
+  /**
+   * Deixa ver o caminho do outro sistema.
+   *
+   * O Johny vai ensinar o Anderson e o Davi olhando o celular dele. Sem isto
+   * ele só enxergaria o passo a passo do próprio aparelho, e teria que
+   * adivinhar o do outro.
+   */
+  podeTrocar?: boolean;
+}) {
+  const [vendo, setVendo] = useState(aparelho);
+  const iphone = vendo === "iphone";
+
   const passos = iphone
     ? [
         "Abra este site no Safari (no iPhone só funciona nele).",
@@ -241,10 +257,30 @@ function ComoInstalar({ iphone }: { iphone: boolean }) {
 
   return (
     <div className="flex flex-col gap-3 rounded-card border border-borda bg-superficie-ativa px-4 py-4">
-      <span className="flex items-center gap-2 font-titulo text-sm font-semibold text-texto">
-        <Share className="h-4 w-4 shrink-0 text-acao" strokeWidth={2} />
-        {iphone ? "No iPhone" : "No Android"}
-      </span>
+      {podeTrocar ? (
+        <div className="flex flex-wrap gap-2">
+          {(["android", "iphone"] as const).map((a) => (
+            <button
+              key={a}
+              type="button"
+              onClick={() => setVendo(a)}
+              aria-pressed={vendo === a}
+              className={`inline-flex min-h-toque items-center rounded-pill border px-4 font-titulo text-sm font-semibold transition-colors ${
+                vendo === a
+                  ? "border-acao bg-acao text-acao-sobre"
+                  : "border-borda text-texto-suave hover:border-borda-forte"
+              }`}
+            >
+              {a === "android" ? "Android" : "iPhone"}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <span className="flex items-center gap-2 font-titulo text-sm font-semibold text-texto">
+          <Share className="h-4 w-4 shrink-0 text-acao" strokeWidth={2} />
+          {iphone ? "No iPhone" : "No Android"}
+        </span>
+      )}
 
       <ol className="flex flex-col gap-2">
         {passos.map((p, i) => (
