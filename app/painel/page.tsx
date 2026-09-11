@@ -20,6 +20,8 @@ import { LinksDePagamento } from "@/componentes/painel/LinksDePagamento";
 import { FilaWhatsapp } from "@/componentes/painel/FilaWhatsapp";
 import { Vencendo } from "@/componentes/painel/Vencendo";
 import { Avisos } from "@/componentes/painel/Avisos";
+import { Mural } from "@/componentes/painel/Mural";
+import { clienteServico } from "@/lib/supabase/servidor";
 import { linksDaCasa, valoresCobrados } from "@/lib/payments/links";
 import { Servicos } from "@/componentes/painel/Servicos";
 import { crachaDoCookie, lerSessao } from "@/lib/auth/sessao";
@@ -148,6 +150,9 @@ export default async function Painel({
             {/* Primeiro de tudo em Ajustes: e o que cada barbeiro precisa
                 ligar no proprio celular, e o resto da aba e coisa do dono. */}
             <Avisos />
+            <Suspense fallback={null}>
+              <AbaMural escopo={escopo} />
+            </Suspense>
             <Configuracoes
               pixKey={barbearia.pix_key ?? ""}
               pixTitular={barbearia.pix_titular ?? ""}
@@ -184,6 +189,21 @@ async function MensalidadesVencendo({ escopo }: { escopo: Escopo }) {
   const lista = await mensalidadesVencendo(escopo);
   if (!lista.length) return null;
   return <Vencendo lista={lista} />;
+}
+
+/** O endereço do mural, lido na hora: ele nasce com a casa e nunca muda. */
+async function AbaMural({ escopo }: { escopo: Escopo }) {
+  const { data } = await clienteServico()
+    .from("barbershops")
+    .select("mural_token")
+    .eq("id", escopo.barbeariaId)
+    .maybeSingle();
+
+  const token = data?.mural_token as string | undefined;
+  if (!token) return null;
+
+  const site = (process.env.SITE_URL ?? "").replace(/\/$/, "");
+  return <Mural url={`${site}/mural/${token}`} />;
 }
 
 /** Links de cartão, um por valor cobrado. Carrega depois dos ajustes. */
