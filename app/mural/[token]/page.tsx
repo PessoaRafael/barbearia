@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { notFound } from "next/navigation";
 
 import { Relogio } from "@/componentes/mural/Relogio";
@@ -54,6 +55,22 @@ export default async function Mural({
         {dados.colunas.map((c) => (
           <section key={c.barbeiroId} className="flex flex-col gap-3 bg-fundo p-4 sm:p-5">
             <div className="flex items-center gap-3 border-b border-borda pb-3">
+              {/* O rosto vale mais que o nome numa tela lida de longe: o
+                  barbeiro acha a própria coluna sem ler. */}
+              {c.foto ? (
+                <Image
+                  src={c.foto}
+                  alt={c.nome}
+                  width={48}
+                  height={48}
+                  className="h-12 w-12 shrink-0 rounded-pill border border-borda object-cover object-top"
+                />
+              ) : (
+                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-pill border border-borda bg-superficie-ativa font-titulo text-base font-bold text-texto-suave">
+                  {c.nome.slice(0, 2).toUpperCase()}
+                </span>
+              )}
+
               <span className="font-titulo text-lg font-bold sm:text-xl">
                 {c.nome}
               </span>
