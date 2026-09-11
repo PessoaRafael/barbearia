@@ -37,7 +37,7 @@ export function Relogio({ dia }: { dia: string }) {
   }, [router, dia]);
 
   return (
-    <span className="num font-titulo text-3xl font-bold tabular-nums text-acao sm:text-4xl">
+    <span className="num font-titulo text-2xl font-bold tabular-nums text-acao sm:text-4xl">
       {agora ?? "--:--"}
     </span>
   );
