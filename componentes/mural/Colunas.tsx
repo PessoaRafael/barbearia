@@ -63,13 +63,26 @@ export function Colunas({ colunas }: { colunas: Coluna[] }) {
         {atual ? <Lista marcados={atual.marcados} /> : null}
       </div>
 
-      {/* Tablet e computador: as três de uma vez, que é o uso da bancada. */}
-      <div className="hidden gap-px bg-borda sm:grid sm:grid-cols-2 lg:grid-cols-3">
+      {/**
+        * Tablet e computador: todas de uma vez, que é o uso da bancada.
+        *
+        * O número de colunas segue o número de barbeiros, e não um ponto de
+        * corte fixo. Com `sm:grid-cols-2 lg:grid-cols-3`, o tablet de 712px
+        * caía em duas colunas e o terceiro barbeiro quebrava para baixo,
+        * deixando um quadrado vazio ao lado — a tela ficava dividida em quatro
+        * para mostrar três.
+        */}
+      <div
+        className="hidden gap-px bg-borda sm:grid"
+        style={{
+          gridTemplateColumns: `repeat(${Math.min(colunas.length, 4)}, minmax(0, 1fr))`,
+        }}
+      >
         {colunas.map((c) => (
-          <section key={c.barbeiroId} className="flex flex-col gap-3 bg-fundo p-4 sm:p-5">
+          <section key={c.barbeiroId} className="flex flex-col gap-3 bg-fundo p-3 sm:p-4 lg:p-5">
             <div className="flex items-center gap-3 border-b border-borda pb-3">
-              <Rosto coluna={c} tamanho={48} />
-              <span className="font-titulo text-lg font-bold sm:text-xl">
+              <Rosto coluna={c} tamanho={40} />
+              <span className="truncate font-titulo text-base font-bold sm:text-lg lg:text-xl">
                 {c.nome}
               </span>
               <span className="num ml-auto text-sm text-texto-apagado">
@@ -124,7 +137,7 @@ function Lista({ marcados }: { marcados: LinhaMural[] }) {
       {marcados.map((m) => (
         <li
           key={m.id}
-          className={`flex items-center gap-3 rounded-card border px-3 py-3 sm:gap-4 sm:px-4 ${
+          className={`flex items-center gap-2.5 rounded-card border px-3 py-3 sm:gap-3 sm:px-3.5 lg:gap-4 lg:px-4 ${
             m.naCadeira
               ? "border-acao bg-acao/10"
               : m.passou
@@ -133,7 +146,7 @@ function Lista({ marcados }: { marcados: LinhaMural[] }) {
           }`}
         >
           <span
-            className={`num shrink-0 font-titulo text-xl font-bold tabular-nums sm:text-3xl ${
+            className={`num shrink-0 font-titulo text-xl font-bold tabular-nums sm:text-2xl lg:text-3xl ${
               m.naCadeira ? "text-acao" : "text-texto"
             }`}
           >
@@ -141,7 +154,7 @@ function Lista({ marcados }: { marcados: LinhaMural[] }) {
           </span>
 
           <span className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate font-titulo text-base font-semibold leading-tight sm:text-xl">
+            <span className="truncate font-titulo text-base font-semibold leading-tight sm:text-lg lg:text-xl">
               {m.cliente}
             </span>
             <span className="truncate text-xs text-texto-suave sm:text-sm">
