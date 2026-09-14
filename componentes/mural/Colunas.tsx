@@ -39,7 +39,7 @@ export function Colunas({ colunas }: { colunas: Coluna[] }) {
   return (
     <>
       {/* Celular: escolhe de quem é a coluna. */}
-      <div className="flex flex-col gap-3 p-4 sm:hidden">
+      <div className="flex flex-col gap-3 p-4 min-[480px]:hidden">
         <div className="flex gap-2">
           {colunas.map((c, i) => (
             <button
@@ -73,16 +73,16 @@ export function Colunas({ colunas }: { colunas: Coluna[] }) {
         * para mostrar três.
         */}
       <div
-        className="hidden gap-px bg-borda sm:grid"
+        className="hidden gap-px bg-borda min-[480px]:grid"
         style={{
           gridTemplateColumns: `repeat(${Math.min(colunas.length, 4)}, minmax(0, 1fr))`,
         }}
       >
         {colunas.map((c) => (
-          <section key={c.barbeiroId} className="flex flex-col gap-3 bg-fundo p-3 sm:p-4 lg:p-5">
+          <section key={c.barbeiroId} className="flex flex-col gap-3 bg-fundo p-2.5 md:p-4 lg:p-5">
             <div className="flex items-center gap-3 border-b border-borda pb-3">
-              <Rosto coluna={c} tamanho={40} />
-              <span className="truncate font-titulo text-base font-bold sm:text-lg lg:text-xl">
+              <Rosto coluna={c} tamanho={32} />
+              <span className="truncate font-titulo text-sm font-bold md:text-lg lg:text-xl">
                 {c.nome}
               </span>
               <span className="num ml-auto text-sm text-texto-apagado">
@@ -137,7 +137,14 @@ function Lista({ marcados }: { marcados: LinhaMural[] }) {
       {marcados.map((m) => (
         <li
           key={m.id}
-          className={`flex items-center gap-2.5 rounded-card border px-3 py-3 sm:gap-3 sm:px-3.5 lg:gap-4 lg:px-4 ${
+          /**
+           * Coluna estreita empilha, coluna larga alinha.
+           *
+           * Com três colunas num tablet de 600px, sobram 200px para cada uma:
+           * hora e nome na mesma linha não cabem, e o nome do cliente vira
+           * reticências. A partir de `md` há largura para os dois lado a lado.
+           */
+          className={`flex flex-col gap-0.5 rounded-card border px-3 py-2.5 md:flex-row md:items-center md:gap-3 md:px-3.5 md:py-3 lg:gap-4 lg:px-4 ${
             m.naCadeira
               ? "border-acao bg-acao/10"
               : m.passou
@@ -146,7 +153,7 @@ function Lista({ marcados }: { marcados: LinhaMural[] }) {
           }`}
         >
           <span
-            className={`num shrink-0 font-titulo text-xl font-bold tabular-nums sm:text-2xl lg:text-3xl ${
+            className={`num shrink-0 font-titulo text-lg font-bold tabular-nums md:text-2xl lg:text-3xl ${
               m.naCadeira ? "text-acao" : "text-texto"
             }`}
           >
@@ -154,10 +161,10 @@ function Lista({ marcados }: { marcados: LinhaMural[] }) {
           </span>
 
           <span className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate font-titulo text-base font-semibold leading-tight sm:text-lg lg:text-xl">
+            <span className="truncate font-titulo text-sm font-semibold leading-tight md:text-lg lg:text-xl">
               {m.cliente}
             </span>
-            <span className="truncate text-xs text-texto-suave sm:text-sm">
+            <span className="truncate text-xs text-texto-suave lg:text-sm">
               {m.servico}
             </span>
           </span>
@@ -167,7 +174,7 @@ function Lista({ marcados }: { marcados: LinhaMural[] }) {
               faltou
             </span>
           ) : m.clube ? (
-            <span className="shrink-0 rounded-pill bg-clube px-2 py-0.5 font-titulo text-[11px] font-bold uppercase tracking-wide text-fundo sm:px-2.5 sm:py-1 sm:text-xs">
+            <span className="shrink-0 self-start rounded-pill bg-clube px-2 py-0.5 font-titulo text-[10px] font-bold uppercase tracking-wide text-fundo md:self-auto md:px-2.5 md:py-1 md:text-xs">
               clube
             </span>
           ) : null}
