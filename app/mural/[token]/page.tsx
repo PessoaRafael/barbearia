@@ -18,6 +18,24 @@ import { muralDoDia } from "@/lib/dados/mural";
  */
 export const dynamic = "force-dynamic";
 
+/**
+ * Sobrescreve o manifesto do site nesta tela.
+ *
+ * O do site aponta para /painel; este aponta para o próprio mural. É o que faz
+ * o ícone do tablet abrir a agenda em vez de pedir a chave.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}) {
+  const { token } = await params;
+  return {
+    title: "Agenda do dia",
+    manifest: `/mural/${token}/manifest.webmanifest`,
+  };
+}
+
 export default async function Mural({
   params,
 }: {
