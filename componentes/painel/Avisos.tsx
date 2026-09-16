@@ -52,13 +52,30 @@ export function Avisos() {
 
   useEffect(() => {
     (async () => {
+      if (typeof window === "undefined") return;
+
+      /**
+       * No iPhone, push só existe quando o site está aberto pelo ícone.
+       *
+       * O Safari comum expõe `PushManager` mesmo assim, então checar só a
+       * existência da API dava o botão para o Davi e a inscrição falhava
+       * calada. O que separa os dois casos é o modo de exibição.
+       */
+      const comoAplicativo =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        (navigator as { standalone?: boolean }).standalone === true;
+
+      if (ehIphone && !comoAplicativo) {
+        setEstado("precisa_instalar");
+        return;
+      }
+
       if (
-        typeof window === "undefined" ||
         !("serviceWorker" in navigator) ||
-        !("PushManager" in window)
+        !("PushManager" in window) ||
+        typeof Notification === "undefined"
       ) {
-        // iPhone só ganha notificação depois de o site virar aplicativo.
-        setEstado(ehIphone ? "precisa_instalar" : "sem_suporte");
+        setEstado("sem_suporte");
         return;
       }
 
@@ -102,7 +119,11 @@ export function Avisos() {
         }
         setEstado("ligado");
       } catch (e) {
-        setErro("Não consegui ligar aqui. Tente pelo Chrome ou Safari.");
+        setErro(
+          ehIphone
+            ? "Não consegui ligar. Confira se você abriu pelo ícone do Johny na tela inicial, e não pelo Safari."
+            : "Não consegui ligar aqui. Tente pelo Chrome.",
+        );
         console.error(e);
       }
     });
@@ -198,7 +219,9 @@ export function Avisos() {
       ) : null}
 
       {estado === "precisa_instalar" ? <ComoInstalar aparelho="iphone" /> : null}
-      {estado === "sem_suporte" ? <ComoInstalar aparelho="android" /> : null}
+      {estado === "sem_suporte" ? (
+        <ComoInstalar aparelho={ehIphone ? "iphone" : "android"} />
+      ) : null}
 
       {erro ? <p className="text-sm text-alerta">{erro}</p> : null}
 

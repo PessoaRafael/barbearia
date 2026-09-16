@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { Logo } from "@/componentes/base";
+import { Avisos } from "@/componentes/painel/Avisos";
 import { EncerrarAtendimento, SoltarBloqueio } from "@/componentes/painel/Acoes";
 import { Bloquear } from "@/componentes/painel/Bloquear";
 import { sair } from "@/app/entrar/acoes";
@@ -82,6 +83,18 @@ export default async function AgendaDoBarbeiro({
       </header>
 
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-5 px-5 py-6 sm:px-8">
+        {/**
+          * Ligar os avisos mora aqui, e não só no painel.
+          *
+          * O botão estava em Ajustes, dentro de /painel — e /painel é do dono.
+          * O Davi e o Anderson nunca chegaram nessa tela, então nunca viram o
+          * botão: eram zero aparelhos inscritos com os dois entrando todo dia.
+          *
+          * Fica no topo porque é a primeira coisa que cada um precisa fazer no
+          * próprio celular, uma vez só.
+          */}
+        <Avisos />
+
         <dl className="grid grid-cols-2 gap-2 sm:gap-3">
           <div className="flex flex-col gap-1 rounded-card border border-borda bg-superficie px-4 py-3">
             <dt className="text-xs text-texto-suave">Seus atendimentos</dt>
