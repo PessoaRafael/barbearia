@@ -9,8 +9,11 @@ export const CASA = {
    * História da casa, contada pelo Johny. Não sai do banco de propósito: o
    * sistema nasceu agora e só conhece os clientes cadastrados nele, mas a
    * barbearia é bem mais velha que isso.
+   *
+   * É atendimento, não cliente: a mesma pessoa volta todo mês, e o número que
+   * o Johny tem na cabeça é o de cadeiras ocupadas ao longo dos anos.
    */
-  clientesAtendidos: "+500",
+  atendimentos: "+10.000",
   linkAgendamento: "johnybarbearia.com.br/agendar",
   instagram: "https://www.instagram.com/barbeariajohny/",
   /** Só dígitos, com o 55 na frente: serve para o wa.me. */

@@ -39,7 +39,7 @@ export default async function Landing() {
   ]);
 
   const numeros = [
-    { valor: CASA.clientesAtendidos, rotulo: "clientes atendidos" },
+    { valor: CASA.atendimentos, rotulo: "atendimentos" },
     { valor: barbeiros.length, rotulo: "barbeiros na casa" },
     { valor: servicos.length, rotulo: "serviços na régua" },
   ];
@@ -345,7 +345,7 @@ function Rodape() {
             chegue na hora: a cadeira já está no seu nome.
           </p>
           <p className="num text-sm text-texto-apagado">
-            {CASA.clientesAtendidos} clientes atendidos
+            {CASA.atendimentos} atendimentos
           </p>
           <Redes />
         </div>
