@@ -14,6 +14,7 @@ import {
 } from "./Lista";
 import {
   cancelarAssinatura,
+  desfazerRenovacao,
   gerarChaveCliente,
   inscreverNoClube,
   registrarMensalidade,
@@ -45,6 +46,12 @@ export type Assinante = {
   nascimento: string | null;
   planoDias: number[];
   chave: { id: string; prefixo: string; ultimoAcesso: string | null } | null;
+  /** A última renovação na mão, quando ainda dá para voltar atrás. */
+  desfazer: {
+    cicloAnteriorFim: string;
+    renovadaEm: string;
+    recente: boolean;
+  } | null;
 };
 
 const pill =
@@ -302,7 +309,12 @@ export function Clube({
                   chave={a.chave}
                 />
 
-                <Recebi assinaturaId={a.id} vencida={a.status === "vencida"} />
+                <Recebi
+                  assinaturaId={a.id}
+                  vencida={a.status === "vencida"}
+                  cicloFim={a.cicloFim}
+                  desfazer={a.desfazer}
+                />
 
                 {a.status === "vencida" ? (
                   <AvisoWhatsapp
@@ -583,31 +595,126 @@ Dá para ver seus horários e marcar sem pagar nada. Guarda essa mensagem, o lin
   );
 }
 
-/** Recebeu a mensalidade no pix ou na mão: empurra o ciclo um mês. */
+/**
+ * Recebeu a mensalidade no pix ou na mão: empurra o ciclo um mês.
+ *
+ * Dois freios, porque isso é dinheiro e o botão fica encostado nos outros:
+ *
+ *   - quem ainda não venceu pergunta antes. O erro que aconteceu foi esse:
+ *     um toque no assinante errado adiantou um mês que ninguém pagou.
+ *   - depois de renovar, fica um "Desfazer" do lado por alguns dias. Pedir
+ *     confirmação em todo mundo seria um toque a mais dezenas de vezes por
+ *     mês; voltar atrás custa uma vez só, quando erra.
+ */
 function Recebi({
   assinaturaId,
   vencida,
+  cicloFim,
+  desfazer,
 }: {
   assinaturaId: string;
   vencida: boolean;
+  cicloFim: string;
+  desfazer: Assinante["desfazer"];
 }) {
   const [rodando, comecar] = useTransition();
+  const [confirmando, setConfirmando] = useState(false);
+  const [renovou, setRenovou] = useState(false);
+  const [desfez, setDesfez] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const temDesfazer = !desfez && (renovou || Boolean(desfazer?.recente));
+
+  const renovar = () =>
+    comecar(async () => {
+      setErro(null);
+      setConfirmando(false);
+      const r = await registrarMensalidade(assinaturaId);
+      if (r?.erro) setErro(r.erro);
+      else {
+        setDesfez(false);
+        setRenovou(true);
+      }
+    });
+
+  const voltar = () =>
+    comecar(async () => {
+      setErro(null);
+      const r = await desfazerRenovacao(assinaturaId);
+      if (r?.erro) setErro(r.erro);
+      else {
+        setRenovou(false);
+        setDesfez(true);
+      }
+    });
+
+  if (confirmando) {
+    return (
+      <div className="flex w-full flex-col gap-2 rounded-card border border-alerta/50 bg-superficie p-3">
+        <span className="text-xs text-texto">
+          Essa mensalidade só vence <b className="num">{dia(cicloFim)}</b>.
+          Registrar agora empurra o ciclo um mês para frente.
+        </span>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={rodando}
+            onClick={renovar}
+            className={`${pill} bg-acao text-acao-sobre hover:bg-acao-hover disabled:opacity-60`}
+          >
+            {rodando ? "..." : "Recebi mesmo"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirmando(false)}
+            className={`${pill} border border-borda-forte text-texto`}
+          >
+            Deixa
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (temDesfazer) {
+    return (
+      <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <span className="inline-flex min-h-toque items-center gap-1.5 rounded-pill border border-clube/50 px-3 font-titulo text-sm font-semibold text-clube">
+          <Check className="h-4 w-4" strokeWidth={2.5} />
+          Mês recebido
+        </span>
+        <button
+          type="button"
+          disabled={rodando}
+          onClick={voltar}
+          title="Volta o ciclo para a data que estava antes"
+          className="font-titulo text-xs font-semibold text-texto-apagado underline underline-offset-4 hover:text-alerta disabled:opacity-60"
+        >
+          {rodando ? "..." : "Desfazer"}
+        </button>
+        {erro ? <span className="text-xs text-alerta">{erro}</span> : null}
+      </div>
+    );
+  }
 
   return (
-    <button
-      type="button"
-      disabled={rodando}
-      onClick={() => comecar(() => registrarMensalidade(assinaturaId).then(() => {}))}
-      title="Registra o pagamento e renova o ciclo por um mês"
-      className={`${pill} shrink-0 ${
-        vencida
-          ? "bg-acao text-acao-sobre hover:bg-acao-hover"
-          : "border border-borda-forte text-texto hover:border-acao"
-      } disabled:opacity-60`}
-    >
-      <Check className="h-4 w-4" strokeWidth={2.5} />
-      {rodando ? "..." : "Recebi o mês"}
-    </button>
+    <div className="flex shrink-0 items-center gap-2">
+      <button
+        type="button"
+        disabled={rodando}
+        onClick={() => (vencida ? renovar() : setConfirmando(true))}
+        title="Registra o pagamento e renova o ciclo por um mês"
+        className={`${pill} shrink-0 ${
+          vencida
+            ? "bg-acao text-acao-sobre hover:bg-acao-hover"
+            : "border border-borda-forte text-texto hover:border-acao"
+        } disabled:opacity-60`}
+      >
+        <Check className="h-4 w-4" strokeWidth={2.5} />
+        {rodando ? "..." : "Recebi o mês"}
+      </button>
+      {erro ? <span className="text-xs text-alerta">{erro}</span> : null}
+    </div>
   );
 }
 

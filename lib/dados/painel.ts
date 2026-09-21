@@ -320,6 +320,9 @@ export const equipe = cache(async (escopo: Escopo) => {
   });
 });
 
+/** Sete dias para desfazer uma renovação. Depois disso o mês já virou conta. */
+const JANELA_DO_DESFAZER = 7 * 24 * 60 * 60 * 1000;
+
 export const assinantes = cache(async (escopo: Escopo) => {
   const supabase = clienteServico();
 
@@ -327,7 +330,7 @@ export const assinantes = cache(async (escopo: Escopo) => {
     supabase
       .from("subscriptions")
       .select(
-        "id, client_id, status, preco_centavos, cortes_mes, ciclo_inicio, ciclo_fim, proxima_cobranca, clients(nome, telefone, nascimento), club_plans(nome, dias_semana)",
+        "id, client_id, status, preco_centavos, cortes_mes, ciclo_inicio, ciclo_fim, proxima_cobranca, ciclo_anterior_fim, renovada_em, clients(nome, telefone, nascimento), club_plans(nome, dias_semana)",
       )
       .eq("barbershop_id", escopo.barbeariaId)
       .neq("status", "cancelada"),
@@ -352,6 +355,23 @@ export const assinantes = cache(async (escopo: Escopo) => {
       cortesMes: s.cortes_mes,
       cicloFim: s.ciclo_fim as string,
       proximaCobranca: s.proxima_cobranca as string,
+      /**
+       * A renovação que dá para desfazer, se ainda for recente.
+       *
+       * Fora dessa janela o botão sai da tela: mês passado já foi contado, e
+       * desfazer ali seria mexer em dinheiro fechado, não corrigir erro de
+       * dedo.
+       */
+      desfazer:
+        s.ciclo_anterior_fim && s.renovada_em
+          ? {
+              cicloAnteriorFim: s.ciclo_anterior_fim as string,
+              renovadaEm: s.renovada_em as string,
+              recente:
+                Date.now() - new Date(s.renovada_em as string).getTime() <
+                JANELA_DO_DESFAZER,
+            }
+          : null,
       nome: (c as { nome?: string })?.nome ?? "",
       telefone: (c as { telefone?: string })?.telefone ?? "",
       nascimento: (c as { nascimento?: string | null })?.nascimento ?? null,

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Check, MessageCircle } from "lucide-react";
 
-import { registrarMensalidade } from "@/app/painel/acoes";
+import { desfazerRenovacao, registrarMensalidade } from "@/app/painel/acoes";
 import { moedaCentavos, telefoneBonito } from "@/lib/formato";
 import { CampoBusca, POR_VEZ, VerMais, achatar } from "./Lista";
 import { abrirZap, linkWa } from "@/lib/notify/zap";
@@ -32,29 +32,47 @@ export type Vencendo = {
 export function Vencendo({ lista }: { lista: Vencendo[] }) {
   const [busca, setBusca] = useState("");
   const [ate, setAte] = useState(POR_VEZ);
-  const [feitos, setFeitos] = useState<Set<string>>(new Set());
+  /**
+   * Quem foi renovado agora, guardado inteiro e não só pelo id.
+   *
+   * Renovar tira a pessoa da lista que vem do servidor — o vencimento pulou um
+   * mês. Se o desfazer dependesse dessa lista, ele sumiria junto com a linha,
+   * que é exatamente quando ele precisa existir.
+   */
+  const [feitos, setFeitos] = useState<Vencendo[]>([]);
+  const [erro, setErro] = useState<string | null>(null);
   const [, transicao] = useTransition();
 
   const alvo = achatar(busca);
   const vistos = lista.filter(
     (a) =>
-      !feitos.has(a.id) &&
+      !feitos.some((f) => f.id === a.id) &&
       (!alvo ||
         achatar(a.nome).includes(alvo) ||
         a.telefone.replace(/\D/g, "").includes(busca.replace(/\D/g, ""))),
   );
 
-  if (!vistos.length && !feitos.size) return null;
+  if (!vistos.length && !feitos.length) return null;
 
   const total = vistos.reduce((s, a) => s + a.precoCentavos, 0);
   const vencidas = vistos.filter((a) => a.dias < 0).length;
 
   // Some da tela na hora: esperar o servidor para um botão desses faz
   // parecer travado, e ele vai clicar dezenas de vezes seguidas.
-  const renovar = (id: string) => {
-    setFeitos((s) => new Set(s).add(id));
+  const renovar = (a: Vencendo) => {
+    setErro(null);
+    setFeitos((s) => [...s, a]);
     transicao(() => {
-      void registrarMensalidade(id);
+      void registrarMensalidade(a.id);
+    });
+  };
+
+  /** Errou o dedo: devolve o vencimento que estava lá antes do clique. */
+  const desfazer = (a: Vencendo) => {
+    setFeitos((s) => s.filter((f) => f.id !== a.id));
+    transicao(async () => {
+      const r = await desfazerRenovacao(a.id);
+      if (r?.erro) setErro(r.erro);
     });
   };
 
@@ -143,7 +161,7 @@ export function Vencendo({ lista }: { lista: Vencendo[] }) {
 
                 <button
                   type="button"
-                  onClick={() => renovar(a.id)}
+                  onClick={() => renovar(a)}
                   title="Registra o pagamento e empurra o ciclo por mais um mês"
                   className="inline-flex min-h-toque items-center gap-1.5 rounded-pill bg-acao px-4 font-titulo text-sm font-bold text-acao-sobre transition-colors hover:bg-acao-hover"
                 >
@@ -159,15 +177,36 @@ export function Vencendo({ lista }: { lista: Vencendo[] }) {
       <VerMais
         mostrando={Math.min(ate, vistos.length)}
         total={vistos.length}
-        geral={lista.length - feitos.size}
+        geral={lista.length - feitos.length}
         onMais={() => setAte((n) => n + POR_VEZ)}
       />
 
-      {feitos.size ? (
-        <p className="num text-xs text-clube">
-          {feitos.size} renovada{feitos.size > 1 ? "s" : ""} agora.
-        </p>
+      {/* O desfazer fica com o nome de cada um. Renovar é um toque só no meio
+          de uma pilha de botões, e sem isso o único jeito de voltar atrás era
+          me chamar. */}
+      {feitos.length ? (
+        <div className="flex flex-col gap-2 rounded-card border border-clube/40 bg-superficie-ativa px-4 py-3">
+          <span className="num text-xs text-clube">
+            {feitos.length} renovada{feitos.length > 1 ? "s" : ""} agora.
+          </span>
+          <ul className="flex flex-wrap gap-x-4 gap-y-1">
+            {feitos.map((a) => (
+              <li key={a.id} className="flex items-center gap-2 text-xs">
+                <span className="truncate text-texto-suave">{a.nome}</span>
+                <button
+                  type="button"
+                  onClick={() => desfazer(a)}
+                  className="font-titulo font-semibold text-texto-apagado underline underline-offset-4 hover:text-alerta"
+                >
+                  Desfazer
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : null}
+
+      {erro ? <p className="text-xs text-alerta">{erro}</p> : null}
     </section>
   );
 }

@@ -318,10 +318,14 @@ export async function registrarMensalidade(assinaturaId: string) {
   // A duração vem do plano: 30 dias, e não "um mês", que dá 28 em fevereiro.
   const { data: assinatura } = await supabase
     .from("subscriptions")
-    .select("club_plans(duracao_dias)")
+    .select(
+      "status, ciclo_inicio, ciclo_fim, club_plans(duracao_dias)",
+    )
     .eq("id", assinaturaId)
     .eq("barbershop_id", sessao.barbeariaId)
     .maybeSingle();
+
+  if (!assinatura) return { erro: "Não achei essa assinatura." };
 
   const p = Array.isArray(assinatura?.club_plans)
     ? assinatura?.club_plans[0]
@@ -340,6 +344,13 @@ export async function registrarMensalidade(assinaturaId: string) {
       ciclo_inicio: iso(hoje),
       ciclo_fim: iso(fim),
       proxima_cobranca: iso(fim),
+      // O ciclo de antes fica guardado para o "Desfazer". É um toque só, no
+      // meio de outros botões: encostar sem querer some com a cobrança da
+      // tela e ninguém lembra de cabeça a data que estava ali.
+      ciclo_anterior_inicio: assinatura.ciclo_inicio,
+      ciclo_anterior_fim: assinatura.ciclo_fim,
+      status_anterior: assinatura.status,
+      renovada_em: new Date().toISOString(),
     })
     .eq("id", assinaturaId)
     .eq("barbershop_id", sessao.barbeariaId);
@@ -348,6 +359,54 @@ export async function registrarMensalidade(assinaturaId: string) {
 
   revalidatePath("/painel");
   return { ok: true };
+}
+
+/**
+ * Desfaz a última renovação feita na mão: devolve o ciclo que estava antes.
+ *
+ * Um passo só para trás, e some depois de usado — desfazer duas vezes seguidas
+ * jogaria o cliente para um ciclo que nunca existiu.
+ *
+ * Quem paga no cartão não entra aqui: lá quem empurra o ciclo é a fatura paga,
+ * e voltar a data no nosso banco não desfaz cobrança nenhuma na Stripe.
+ */
+export async function desfazerRenovacao(assinaturaId: string) {
+  const sessao = await exigirDono();
+  const supabase = clienteServico();
+
+  const { data: a } = await supabase
+    .from("subscriptions")
+    .select(
+      "ciclo_anterior_inicio, ciclo_anterior_fim, status_anterior, stripe_subscription_id",
+    )
+    .eq("id", assinaturaId)
+    .eq("barbershop_id", sessao.barbeariaId)
+    .maybeSingle();
+
+  if (!a?.ciclo_anterior_fim) return { erro: "Não tem renovação para desfazer." };
+  if (a.stripe_subscription_id) {
+    return { erro: "Essa é cobrada no cartão. Cancele pela Stripe." };
+  }
+
+  const { error } = await supabase
+    .from("subscriptions")
+    .update({
+      status: a.status_anterior ?? "ativa",
+      ciclo_inicio: a.ciclo_anterior_inicio,
+      ciclo_fim: a.ciclo_anterior_fim,
+      proxima_cobranca: a.ciclo_anterior_fim,
+      ciclo_anterior_inicio: null,
+      ciclo_anterior_fim: null,
+      status_anterior: null,
+      renovada_em: null,
+    })
+    .eq("id", assinaturaId)
+    .eq("barbershop_id", sessao.barbeariaId);
+
+  if (error) return { erro: "Não consegui desfazer." };
+
+  revalidatePath("/painel");
+  return { ok: true, voltouPara: a.ciclo_anterior_fim as string };
 }
 
 export async function cancelarAssinatura(assinaturaId: string) {
