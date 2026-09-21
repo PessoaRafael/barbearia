@@ -63,7 +63,6 @@ function porQueNaoDeu(mensagem: string | undefined) {
   }
   if (mensagem.includes("nao_encerrado")) return "Esse atendimento não está encerrado.";
   if (mensagem.includes("nada_a_desfazer")) return "Esse pix ainda não foi decidido.";
-  if (mensagem.includes("nao_e_sua_agenda")) return "Esse horário é de outro barbeiro.";
   return "Não consegui desfazer agora.";
 }
 
@@ -71,11 +70,13 @@ function porQueNaoDeu(mensagem: string | undefined) {
  * Tira o check do "Concluir" ou do "Faltou".
  *
  * Devolve o horário ao estado anterior, tira do caixa o lançamento do corte e
- * desconta o que entrou na ficha do cliente. Barbeiro desfaz o dele; o dono,
- * o de qualquer um.
+ * desconta o que entrou na ficha do cliente.
+ *
+ * Só o Johny. O barbeiro conclui o corte dele, mas mexer no caixa depois é
+ * outra coisa — e some com um lançamento que o dono já pode ter conferido.
  */
 export async function desfazerEncerramento(agendamentoId: string) {
-  const sessao = await exigirEquipe();
+  const sessao = await exigirDono();
   const { error } = await clienteServico().rpc("desfazer_encerramento", {
     p_chave: sessao.chaveId,
     p_agendamento: agendamentoId,

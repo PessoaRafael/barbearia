@@ -3,11 +3,7 @@ import { redirect } from "next/navigation";
 
 import { Logo } from "@/componentes/base";
 import { Avisos } from "@/componentes/painel/Avisos";
-import {
-  EncerrarAtendimento,
-  ReabrirAtendimento,
-  SoltarBloqueio,
-} from "@/componentes/painel/Acoes";
+import { EncerrarAtendimento, SoltarBloqueio } from "@/componentes/painel/Acoes";
 import { Bloquear } from "@/componentes/painel/Bloquear";
 import { sair } from "@/app/entrar/acoes";
 import { lerSessao } from "@/lib/auth/sessao";
@@ -188,10 +184,11 @@ export default async function AgendaDoBarbeiro({
                     {m.cliente} · {telefoneBonito(m.telefone)}
                   </span>
                 </div>
+                {/* Desfazer não fica aqui. Concluir mexe no caixa, e caixa é
+                    assunto do Johny: se o Davi ou o Anderson encostarem no
+                    botão errado, quem corrige é ele, na área dele. */}
                 {m.status === "confirmado" ? (
                   <EncerrarAtendimento agendamentoId={m.id} />
-                ) : m.status === "concluido" || m.status === "faltou" ? (
-                  <ReabrirAtendimento agendamentoId={m.id} status={m.status} />
                 ) : (
                   <span className="shrink-0 text-xs text-texto-apagado">
                     {m.status === "pendente_pagamento" ? "aguardando pix" : m.status}

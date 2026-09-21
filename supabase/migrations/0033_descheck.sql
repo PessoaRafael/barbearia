@@ -23,6 +23,9 @@
  * Devolve o atendimento ao status que tinha antes — que sai do audit_log, não
  * de chute: encerrar já grava o `antes`, e nem todo encerrado vinha de
  * 'confirmado'.
+ *
+ * Só o dono. Encerrar é do barbeiro, que fecha o próprio corte; desfazer tira
+ * dinheiro do caixa, e caixa não aparece na tela deles.
  */
 create or replace function public.desfazer_encerramento(
   p_chave       uuid,
@@ -39,16 +42,11 @@ declare
   v_antes  text;
   v_ultimo timestamptz;
 begin
-  s := app.resolver(p_chave);
+  s := app.exigir_dono(p_chave);
 
   select * into v_ag from appointments where id = p_agendamento for update;
   if not found or v_ag.barbershop_id <> s.barbearia_id then
     raise exception 'agendamento_inexistente' using errcode = 'P0002';
-  end if;
-
-  -- Mesma regra do encerrar: barbeiro mexe na agenda dele, e só.
-  if s.papel = 'barber' and v_ag.barber_id <> s.barbeiro_id then
-    raise exception 'nao_e_sua_agenda' using errcode = '42501';
   end if;
 
   if v_ag.status not in ('concluido', 'faltou') then
@@ -123,7 +121,7 @@ begin
     barbershop_id, actor_id, actor_role, acao, entidade, entidade_id,
     antes, depois
   ) values (
-    s.barbearia_id, s.barbeiro_id, s.papel::text, 'desfazer_encerrar',
+    s.barbearia_id, s.barbeiro_id, 'owner', 'desfazer_encerrar',
     'appointments', p_agendamento,
     jsonb_build_object('status', v_ag.status),
     jsonb_build_object('status', v_antes)
