@@ -78,50 +78,6 @@ export const planosDoClube = cache(async (): Promise<PlanoClube[]> => {
   return (data ?? []) as PlanoClube[];
 });
 
-/**
- * Qual plano o pessoal daqui escolhe mais.
- *
- * Três cartões de preço com o mesmo peso não ajudam ninguém a decidir, e
- * eleger um "recomendado" no olho seria o site vendendo o que a gente quer
- * vender. Isto conta assinatura viva: o destaque é o que os clientes já
- * escolheram, e muda sozinho se a preferência virar.
- *
- * Devolve null quando ninguém se destaca de verdade — com dois ou três
- * assinantes no total, apontar um "mais escolhido" é ruído com cara de dado.
- */
-export const planoMaisEscolhido = cache(async (): Promise<string | null> => {
-  const supabase = clienteServico();
-  const { id } = await casa();
-  const { data } = await supabase
-    .from("subscriptions")
-    .select("plan_id")
-    .eq("barbershop_id", id)
-    .eq("status", "ativa");
-
-  /**
-   * Só conta plano que aparece na vitrine. Os planos antigos seguem vivos com
-   * gente dentro, mas ninguém pode assinar: eleger um deles seria destacar um
-   * cartão que não existe na tela.
-   */
-  const naVitrine = new Set((await planosDoClube()).map((p) => p.id));
-
-  const contas = new Map<string, number>();
-  for (const s of data ?? []) {
-    const plano = s.plan_id as string | null;
-    if (plano && naVitrine.has(plano)) {
-      contas.set(plano, (contas.get(plano) ?? 0) + 1);
-    }
-  }
-
-  const ranking = [...contas.entries()].sort((a, b) => b[1] - a[1]);
-  const [primeiro, segundo] = ranking;
-
-  if (!primeiro || primeiro[1] < 3) return null;
-  if (segundo && segundo[1] === primeiro[1]) return null;
-
-  return primeiro[0];
-});
-
 const SEMANA = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
 
 /**
