@@ -20,6 +20,7 @@ export function ModalClube({
   dias,
   beneficios,
   cartaoDisponivel = false,
+  destaque = false,
 }: {
   planoId: string;
   plano: string;
@@ -28,6 +29,13 @@ export function ModalClube({
   beneficios: string[];
   /** Stripe ligada: dá para assinar no cartão, e aí a liberação é na hora. */
   cartaoDisponivel?: boolean;
+  /**
+   * O plano em destaque na vitrine.
+   *
+   * Três botões amarelos lado a lado não escolhem nada por ninguém. Só o mais
+   * assinado fica cheio; os outros viram contorno e continuam clicáveis.
+   */
+  destaque?: boolean;
 }) {
   const [aberto, setAberto] = useState(false);
   const [nome, setNome] = useState("");
@@ -61,7 +69,11 @@ export function ModalClube({
       <button
         type="button"
         onClick={() => setAberto(true)}
-        className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-pill bg-acao px-6 font-titulo text-base font-bold text-acao-sobre transition-colors hover:bg-acao-hover sm:w-auto sm:self-start"
+        className={`inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-pill px-6 font-titulo text-base font-bold transition-colors ${
+          destaque
+            ? "bg-acao text-acao-sobre hover:bg-acao-hover"
+            : "border border-borda-forte text-texto hover:border-acao hover:text-acao"
+        }`}
       >
         <Crown className="h-5 w-5" strokeWidth={2.5} />
         Assinar por {preco}
