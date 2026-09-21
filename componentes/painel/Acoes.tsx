@@ -13,6 +13,8 @@ import {
 
 import {
   decidirPix,
+  desfazerEncerramento,
+  desfazerPix,
   encerrar,
   gerarChaveDe,
   liberarBloqueio,
@@ -42,17 +44,41 @@ export function DecidirPix({
 }) {
   const [rodando, comecar] = useTransition();
   const [erro, setErro] = useState<string | null>(null);
-  const [confirmado, setConfirmado] = useState(false);
+  const [decidido, setDecidido] = useState<"recebido" | "negado" | null>(null);
 
   const decidir = (recebido: boolean) =>
     comecar(async () => {
       const r = await decidirPix(pagamentoId, recebido);
       setErro(r.erro ?? null);
-      if (!r.erro && recebido) setConfirmado(true);
+      if (!r.erro) setDecidido(recebido ? "recebido" : "negado");
     });
 
-  if (confirmado && telefone && aviso) {
-    const digitos = telefone.replace(/\D/g, "");
+  /**
+   * Tirar o check.
+   *
+   * Confirmar lança no caixa e negar cancela o horário do cliente — os dois
+   * com um toque, e nenhum tinha volta. O Iuri perdeu a cadeira assim.
+   */
+  const desfazer = () =>
+    comecar(async () => {
+      const r = await desfazerPix(pagamentoId);
+      setErro(r.erro ?? null);
+      if (!r.erro) setDecidido(null);
+    });
+
+  const botaoDesfazer = (
+    <button
+      type="button"
+      disabled={rodando}
+      onClick={desfazer}
+      className="self-start font-titulo text-xs font-semibold text-texto-apagado underline underline-offset-4 hover:text-alerta disabled:opacity-60"
+    >
+      {rodando ? "..." : "Desfazer"}
+    </button>
+  );
+
+  if (decidido === "recebido") {
+    const digitos = (telefone ?? "").replace(/D/g, "");
     const numero = digitos.startsWith("55") ? digitos : `55${digitos}`;
 
     return (
@@ -60,16 +86,32 @@ export function DecidirPix({
         <span className="text-sm text-clube">
           Confirmado. Falta avisar o cliente, que o sistema não manda sozinho.
         </span>
-        <a
-          href={linkWa(numero, aviso)}
-        onClick={(e) => abrirZap(e, numero, aviso)}
-          target="_blank"
-          rel="noreferrer"
-          className={`${pill} bg-acao text-acao-sobre hover:bg-acao-hover`}
-        >
-          <MessageCircle className="h-4 w-4" strokeWidth={2.5} />
-          Avisar no WhatsApp
-        </a>
+        {digitos && aviso ? (
+          <a
+            href={linkWa(numero, aviso)}
+            onClick={(e) => abrirZap(e, numero, aviso)}
+            target="_blank"
+            rel="noreferrer"
+            className={`${pill} bg-acao text-acao-sobre hover:bg-acao-hover`}
+          >
+            <MessageCircle className="h-4 w-4" strokeWidth={2.5} />
+            Avisar no WhatsApp
+          </a>
+        ) : null}
+        {botaoDesfazer}
+        {erro ? <span className="text-xs text-alerta">{erro}</span> : null}
+      </div>
+    );
+  }
+
+  if (decidido === "negado") {
+    return (
+      <div className="flex flex-col gap-2 rounded-card border border-alerta/40 bg-superficie p-3">
+        <span className="text-sm text-texto">
+          Marcado como não recebido — <b>o horário foi cancelado</b>.
+        </span>
+        {botaoDesfazer}
+        {erro ? <span className="text-xs text-alerta">{erro}</span> : null}
       </div>
     );
   }
@@ -97,6 +139,59 @@ export function DecidirPix({
         </button>
       </div>
       {erro ? <span className="text-xs text-alerta">{erro}</span> : null}
+    </div>
+  );
+}
+
+/**
+ * O atendimento já fechado, com a volta do lado.
+ *
+ * "Concluir" lança o corte no caixa e soma na ficha do cliente; "Faltou"
+ * marca falta. Os dois ficam colados em outros botões numa tela que se usa
+ * com a máquina na mão, e antes disso a única saída era mexer no banco.
+ *
+ * Fica disponível enquanto o atendimento estiver assim — não é um desfazer de
+ * três segundos, porque o erro costuma aparecer quando o cliente reclama, e
+ * isso pode ser no dia seguinte.
+ */
+export function ReabrirAtendimento({
+  agendamentoId,
+  status,
+}: {
+  agendamentoId: string;
+  status: "concluido" | "faltou";
+}) {
+  const [rodando, comecar] = useTransition();
+  const [erro, setErro] = useState<string | null>(null);
+
+  return (
+    <div className="flex shrink-0 flex-col items-end gap-0.5">
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-texto-apagado">
+          {status === "concluido" ? "concluído" : "faltou"}
+        </span>
+        <button
+          type="button"
+          disabled={rodando}
+          onClick={() =>
+            comecar(async () => {
+              const r = await desfazerEncerramento(agendamentoId);
+              setErro(r.erro ?? null);
+            })
+          }
+          title={
+            status === "concluido"
+              ? "Tira o corte do caixa e devolve o horário para a régua"
+              : "Tira a falta da ficha do cliente e devolve o horário"
+          }
+          className="font-titulo text-xs font-semibold text-texto-apagado underline underline-offset-4 hover:text-alerta disabled:opacity-60"
+        >
+          {rodando ? "..." : "Desfazer"}
+        </button>
+      </div>
+      {erro ? (
+        <span className="max-w-[220px] text-right text-xs text-alerta">{erro}</span>
+      ) : null}
     </div>
   );
 }

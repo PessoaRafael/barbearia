@@ -7,6 +7,7 @@ import {
   AvisoWhatsapp,
   DecidirPix,
   EncerrarAtendimento,
+  ReabrirAtendimento,
   GerarChave,
   RevogarChave,
   SoltarBloqueio,
@@ -481,6 +482,8 @@ async function AbaAgenda({
                       </span>
                     ) : m.status === "confirmado" ? (
                       <EncerrarAtendimento agendamentoId={m.id} />
+                    ) : m.status === "concluido" || m.status === "faltou" ? (
+                      <ReabrirAtendimento agendamentoId={m.id} status={m.status} />
                     ) : (
                       <span className="shrink-0 text-xs text-texto-apagado">
                         {m.status}
