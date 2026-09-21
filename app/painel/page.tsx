@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import {
   AvisoWhatsapp,
   DecidirPix,
+  DevolverHorario,
   EncerrarAtendimento,
   ReabrirAtendimento,
   GerarChave,
@@ -46,6 +47,7 @@ import {
   marcarAgendaVista,
   novosNaAgenda,
   painelAgenda,
+  recusadosNoDia,
   pixParaConferir,
   resumoDoDia,
   servicos as listarServicos,
@@ -333,8 +335,12 @@ async function AbaAgenda({
   dia: string;
   dias: ReturnType<typeof proximosDias>;
 }) {
-  const [{ marcados, bloqueios, barbeiros: time, janela }, novos] =
-    await Promise.all([painelAgenda(escopo, dia), novosNaAgenda(escopo)]);
+  const [{ marcados, bloqueios, barbeiros: time, janela }, novos, recusados] =
+    await Promise.all([
+      painelAgenda(escopo, dia),
+      novosNaAgenda(escopo),
+      recusadosNoDia(escopo, dia),
+    ]);
 
   /**
    * Ele abriu a agenda: o contador zera a partir de agora.
@@ -484,6 +490,8 @@ async function AbaAgenda({
                       <EncerrarAtendimento agendamentoId={m.id} />
                     ) : m.status === "concluido" || m.status === "faltou" ? (
                       <ReabrirAtendimento agendamentoId={m.id} status={m.status} />
+                    ) : m.status === "cancelado" && recusados.has(m.id) ? (
+                      <DevolverHorario agendamentoId={m.id} />
                     ) : (
                       <span className="shrink-0 text-xs text-texto-apagado">
                         {m.status}

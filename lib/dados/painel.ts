@@ -286,6 +286,29 @@ export const pixParaConferir = cache(async (escopo: Escopo) => {
   });
 });
 
+/**
+ * Os horários que o "Não caiu" derrubou naquele dia.
+ *
+ * Existe para a agenda saber em quais cancelados vale oferecer a volta. A
+ * maioria dos cancelamentos é do próprio cliente, e ali desfazer não é da
+ * conta do Johny — o cliente desmarcou porque quis.
+ *
+ * Só o que ele recusou na mão aparece com o botão, que é o caso do Iuri:
+ * pagamento de cartão largado no meio, lido como pix não pago, e o cliente
+ * ficou sem a cadeira.
+ */
+export const recusadosNoDia = cache(async (escopo: Escopo, dia: string) => {
+  const { data } = await clienteServico()
+    .from("payments")
+    .select("appointment_id, appointments!inner(inicio)")
+    .eq("barbershop_id", escopo.barbeariaId)
+    .eq("status", "negado")
+    .gte("appointments.inicio", `${dia}T00:00:00-03:00`)
+    .lt("appointments.inicio", `${dia}T23:59:59-03:00`);
+
+  return new Set((data ?? []).map((p) => p.appointment_id as string));
+});
+
 /** Equipe com o estado da chave de cada um. */
 export const equipe = cache(async (escopo: Escopo) => {
   const supabase = clienteServico();

@@ -15,6 +15,7 @@ import {
   decidirPix,
   desfazerEncerramento,
   desfazerPix,
+  devolverHorario,
   encerrar,
   gerarChaveDe,
   liberarBloqueio,
@@ -187,6 +188,44 @@ export function ReabrirAtendimento({
           className="font-titulo text-xs font-semibold text-texto-apagado underline underline-offset-4 hover:text-alerta disabled:opacity-60"
         >
           {rodando ? "..." : "Desfazer"}
+        </button>
+      </div>
+      {erro ? (
+        <span className="max-w-[220px] text-right text-xs text-alerta">{erro}</span>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * O horário que o "Não caiu" cancelou, com a volta do lado.
+ *
+ * Fica na agenda do dia porque é lá que o Johny procura quando o cliente
+ * cobra: "marquei às 15h e sumiu". Aparece só em quem foi recusado por pix,
+ * não em todo cancelado — quem desmarcou por conta própria desmarcou porque
+ * quis.
+ */
+export function DevolverHorario({ agendamentoId }: { agendamentoId: string }) {
+  const [rodando, comecar] = useTransition();
+  const [erro, setErro] = useState<string | null>(null);
+
+  return (
+    <div className="flex shrink-0 flex-col items-end gap-0.5">
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-alerta">cancelado no pix</span>
+        <button
+          type="button"
+          disabled={rodando}
+          onClick={() =>
+            comecar(async () => {
+              const r = await devolverHorario(agendamentoId);
+              setErro(r.erro ?? null);
+            })
+          }
+          title="Você marcou que o pix não caiu, e isso cancelou o horário. Devolve a cadeira ao cliente."
+          className="font-titulo text-xs font-semibold text-texto-apagado underline underline-offset-4 hover:text-acao disabled:opacity-60"
+        >
+          {rodando ? "..." : "Devolver o horário"}
         </button>
       </div>
       {erro ? (

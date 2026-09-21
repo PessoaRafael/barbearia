@@ -109,6 +109,41 @@ export async function desfazerPix(pagamentoId: string) {
   return { ok: true };
 }
 
+/**
+ * Devolve o horário que o "Não caiu" cancelou.
+ *
+ * O desfazer do pix só existia no instante do clique, e o erro quase nunca
+ * aparece nesse instante: aparece quando o cliente liga perguntando cadê o
+ * horário dele. Aqui o Johny acha o cancelado na agenda do dia e devolve.
+ */
+export async function devolverHorario(agendamentoId: string) {
+  const sessao = await exigirDono();
+  const supabase = clienteServico();
+
+  const { data: pagamento } = await supabase
+    .from("payments")
+    .select("id")
+    .eq("appointment_id", agendamentoId)
+    .eq("barbershop_id", sessao.barbeariaId)
+    .eq("status", "negado")
+    .order("criado_em", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!pagamento) return { erro: "Esse horário não foi cancelado por pix." };
+
+  const { error } = await supabase.rpc("desfazer_pix", {
+    p_chave: sessao.chaveId,
+    p_pagamento: pagamento.id,
+  });
+
+  if (error) return { erro: porQueNaoDeu(error.message) };
+
+  revalidatePath("/painel");
+  revalidatePath("/agenda");
+  return { ok: true };
+}
+
 const bloqueio = z.object({
   data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   inicio: z.string().regex(/^\d{2}:\d{2}$/),
