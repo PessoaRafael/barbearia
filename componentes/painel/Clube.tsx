@@ -17,6 +17,8 @@ import {
   desfazerRenovacao,
   gerarChaveCliente,
   inscreverNoClube,
+  mudarAcessoSabado,
+  mudarVencimento,
   registrarMensalidade,
 } from "@/app/painel/acoes";
 import { AvisoWhatsapp } from "./Acoes";
@@ -269,11 +271,10 @@ export function Clube({
                     <span className="truncate text-xs text-texto-suave">
                       {a.plano}
                     </span>
-                    {ehAntigo(a.planoDias) ? (
-                      <span className="shrink-0 rounded-pill bg-clube px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-fundo">
-                        até sáb
-                      </span>
-                    ) : null}
+                    <AteSabado
+                      assinaturaId={a.id}
+                      liberado={ehAntigo(a.planoDias)}
+                    />
                     {a.nascimento ? (
                       <span
                         className={`num shrink-0 rounded-pill px-2 py-0.5 text-[11px] font-semibold ${
@@ -295,9 +296,12 @@ export function Clube({
                   }`}
                 >
                   {telefoneBonito(a.telefone)} ·{" "}
-                  {a.status === "vencida"
-                    ? `venceu ${dia(a.proximaCobranca)}`
-                    : `até ${dia(a.cicloFim)}`}
+                  <Vencimento
+                    assinaturaId={a.id}
+                    cicloFim={a.cicloFim}
+                    proximaCobranca={a.proximaCobranca}
+                    vencida={a.status === "vencida"}
+                  />
                 </span>
               </div>
 
@@ -592,6 +596,165 @@ Dá para ver seus horários e marcar sem pagar nada. Guarda essa mensagem, o lin
       <KeyRound className="h-4 w-4" strokeWidth={2} />
       {rodando ? "..." : erro ? "Deu erro" : chave ? "Novo link" : "Gerar link"}
     </button>
+  );
+}
+
+/**
+ * O sábado de cada assinante, ligado e desligado ali mesmo.
+ *
+ * O clube atende de segunda a quinta, mas sempre tem alguém de antes da regra,
+ * ou alguém a quem o Johny prometeu sábado na cadeira. Isso já deu confusão
+ * com o Bruno Gabriel: cortou num sábado, e no outro descobriu que não podia.
+ *
+ * Liberar é um toque, porque é um presente e se desfaz. Tirar pergunta antes:
+ * quem perde o sábado só descobre quando chega e não tem horário.
+ */
+function AteSabado({
+  assinaturaId,
+  liberado,
+}: {
+  assinaturaId: string;
+  liberado: boolean;
+}) {
+  const [rodando, comecar] = useTransition();
+  const [confirmando, setConfirmando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const mudar = (paraSabado: boolean) =>
+    comecar(async () => {
+      setErro(null);
+      setConfirmando(false);
+      const r = await mudarAcessoSabado(assinaturaId, paraSabado);
+      if (r?.erro) setErro(r.erro);
+    });
+
+  if (confirmando) {
+    return (
+      <span className="inline-flex items-center gap-2">
+        <span className="text-[11px] text-texto-suave">Tirar o sábado?</span>
+        <button
+          type="button"
+          disabled={rodando}
+          onClick={() => mudar(false)}
+          className="rounded-pill border border-alerta/60 px-2 py-0.5 text-[11px] font-semibold text-alerta hover:bg-alerta/10"
+        >
+          Tirar
+        </button>
+        <button
+          type="button"
+          onClick={() => setConfirmando(false)}
+          className="text-[11px] font-semibold text-texto-apagado underline underline-offset-2 hover:text-texto"
+        >
+          Deixa
+        </button>
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-2">
+      <button
+        type="button"
+        disabled={rodando}
+        onClick={() => (liberado ? setConfirmando(true) : mudar(true))}
+        title={
+          liberado
+            ? "Atende até sábado. Tocar para voltar ao segunda a quinta."
+            : "Atende de segunda a quinta. Tocar para liberar o sábado."
+        }
+        className={`shrink-0 rounded-pill px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide transition-colors disabled:opacity-60 ${
+          liberado
+            ? "bg-clube text-fundo"
+            : "border border-borda text-texto-apagado hover:border-acao hover:text-acao"
+        }`}
+      >
+        {rodando ? "..." : liberado ? "até sáb" : "+ sábado"}
+      </button>
+      {erro ? <span className="text-[11px] text-alerta">{erro}</span> : null}
+    </span>
+  );
+}
+
+/**
+ * A data de vencimento, que agora se edita no lugar onde ela aparece.
+ *
+ * O ciclo de 30 dias cobre o caso normal, e o Johny vive fora dele: quem pagou
+ * adiantado, quem combinou de pagar depois do dia 10, quem entrou no meio do
+ * mês. Antes a única saída era mexer no banco por fora.
+ *
+ * É a própria data que abre o campo, e não mais um botão na fileira: a linha
+ * já tem três, e o quarto empurraria "Excluir" para debaixo do dedo de quem
+ * só queria mudar uma data.
+ */
+function Vencimento({
+  assinaturaId,
+  cicloFim,
+  proximaCobranca,
+  vencida,
+}: {
+  assinaturaId: string;
+  cicloFim: string;
+  proximaCobranca: string;
+  vencida: boolean;
+}) {
+  const [abrindo, setAbrindo] = useState(false);
+  const [valor, setValor] = useState(cicloFim);
+  const [erro, setErro] = useState<string | null>(null);
+  const [rodando, comecar] = useTransition();
+
+  if (!abrindo) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setValor(cicloFim);
+          setErro(null);
+          setAbrindo(true);
+        }}
+        title="Tocar para mudar a data de vencimento"
+        className="underline decoration-dotted underline-offset-4 hover:text-acao"
+      >
+        {vencida ? `venceu ${dia(proximaCobranca)}` : `até ${dia(cicloFim)}`}
+      </button>
+    );
+  }
+
+  return (
+    <span className="mt-1 inline-flex flex-wrap items-center gap-2 align-middle">
+      <input
+        type="date"
+        value={valor}
+        onChange={(e) => setValor(e.target.value)}
+        aria-label="Data de vencimento"
+        className="num h-10 rounded-bloco border border-borda-forte bg-superficie px-2 text-sm text-texto"
+      />
+      <button
+        type="button"
+        disabled={rodando || valor === cicloFim}
+        onClick={() =>
+          comecar(async () => {
+            const r = await mudarVencimento(assinaturaId, valor);
+            if (r?.erro) setErro(r.erro);
+            else setAbrindo(false);
+          })
+        }
+        className={`inline-flex h-10 items-center rounded-pill px-4 font-titulo text-sm font-semibold ${
+          rodando || valor === cicloFim
+            ? "cursor-not-allowed border border-borda text-texto-apagado"
+            : "bg-acao text-acao-sobre hover:bg-acao-hover"
+        }`}
+      >
+        {rodando ? "..." : "Salvar"}
+      </button>
+      <button
+        type="button"
+        onClick={() => setAbrindo(false)}
+        className="font-titulo text-xs font-semibold text-texto-apagado underline underline-offset-4 hover:text-texto"
+      >
+        Deixa
+      </button>
+      {erro ? <span className="text-xs text-alerta">{erro}</span> : null}
+    </span>
   );
 }
 

@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { exigirDono, exigirEquipe } from "@/lib/auth/sessao";
 import { gerarChave, hashChave, prefixoDe } from "@/lib/auth/chaves";
+import { hojeNaCasa } from "@/lib/agenda/dias";
 import { telefoneChave } from "@/lib/formato";
 import { clienteServico } from "@/lib/supabase/servidor";
 
@@ -505,6 +506,151 @@ export async function desfazerRenovacao(assinaturaId: string) {
 
   revalidatePath("/painel");
   return { ok: true, voltouPara: a.ciclo_anterior_fim as string };
+}
+
+/**
+ * Muda a data de vencimento na mão.
+ *
+ * O ciclo de 30 dias serve para o caso normal, e o Johny vive fora dele: o
+ * cliente que pagou adiantado, o que combinou de pagar depois do dia 10, o que
+ * entrou no meio do mês. Sem isso, a única forma de acertar a data era eu
+ * mexer no banco — e ele ficava esperando.
+ *
+ * Não guarda "desfazer": a correção de uma data errada é digitar a data certa,
+ * e um botão de voltar aqui só brigaria com o do "Recebi o mês".
+ */
+export async function mudarVencimento(assinaturaId: string, data: string) {
+  const sessao = await exigirDono();
+  const supabase = clienteServico();
+
+  if (!/^d{4}-d{2}-d{2}$/.test(data)) return { erro: "Data inválida." };
+
+  /**
+   * Cerca larga, só para pegar dedo escorregado no teclado: 2030 em vez de
+   * 2026 empurraria a mensalidade quatro anos e ela sumiria da tela de
+   * cobrança sem ninguém entender por quê.
+   */
+  const limite = new Date();
+  limite.setFullYear(limite.getFullYear() + 2);
+  if (data < "2024-01-01" || data > limite.toISOString().slice(0, 10)) {
+    return { erro: "Essa data está fora do razoável. Confira o ano." };
+  }
+
+  const { data: a } = await supabase
+    .from("subscriptions")
+    .select("ciclo_inicio, stripe_subscription_id, club_plans(duracao_dias)")
+    .eq("id", assinaturaId)
+    .eq("barbershop_id", sessao.barbeariaId)
+    .maybeSingle();
+
+  if (!a) return { erro: "Não achei essa assinatura." };
+  if (a.stripe_subscription_id) {
+    return { erro: "Essa é cobrada no cartão. A data vem da Stripe." };
+  }
+
+  /**
+   * O banco não aceita ciclo que termina antes de começar. Quando a data nova
+   * cai antes do início, o ciclo inteiro anda para trás e passa a ser os dias
+   * do plano que terminam nela — em vez de recusar e deixar o Johny sem saída.
+   */
+  const p = Array.isArray(a.club_plans) ? a.club_plans[0] : a.club_plans;
+  const dias = (p as { duracao_dias?: number } | null)?.duracao_dias ?? 30;
+
+  let inicio = a.ciclo_inicio as string;
+  if (data < inicio) {
+    const recuado = new Date(`${data}T12:00:00-03:00`);
+    recuado.setDate(recuado.getDate() - dias);
+    inicio = recuado.toISOString().slice(0, 10);
+  }
+
+  const { error } = await supabase
+    .from("subscriptions")
+    .update({
+      ciclo_inicio: inicio,
+      ciclo_fim: data,
+      proxima_cobranca: data,
+      // Quem manda no status é a data nova: adiantar a data de quem estava
+      // vencido tem que liberar o corte na mesma hora.
+      status: data < hojeNaCasa() ? "vencida" : "ativa",
+    })
+    .eq("id", assinaturaId)
+    .eq("barbershop_id", sessao.barbeariaId);
+
+  if (error) return { erro: "Não consegui mudar a data." };
+
+  revalidatePath("/painel");
+  return { ok: true };
+}
+
+/**
+ * Libera (ou tira) o sábado de um assinante.
+ *
+ * O clube atende de segunda a quinta; sexta e sábado a cadeira é de quem paga
+ * avulso. Só que existe um punhado de gente de antes dessa regra, e de vez em
+ * quando o Johny promete sábado a alguém na cadeira — foi o caso do Bruno
+ * Gabriel, que cortou num sábado e no outro descobriu que não podia.
+ *
+ * Não existe uma chavinha de "sábado" na assinatura: quem manda nos dias é o
+ * plano. Então isto troca o plano pelo gêmeo dele, o que cobre as mesmas
+ * categorias e vai até sábado. O preço que o cliente paga não muda: fica o da
+ * assinatura, que é o combinado com ele.
+ */
+export async function mudarAcessoSabado(assinaturaId: string, liberar: boolean) {
+  const sessao = await exigirDono();
+  const supabase = clienteServico();
+
+  const { data: assinatura } = await supabase
+    .from("subscriptions")
+    .select("plan_id, club_plans(cobre_categorias, duracao_dias, nome)")
+    .eq("id", assinaturaId)
+    .eq("barbershop_id", sessao.barbeariaId)
+    .maybeSingle();
+
+  const atual = Array.isArray(assinatura?.club_plans)
+    ? assinatura?.club_plans[0]
+    : assinatura?.club_plans;
+
+  if (!assinatura || !atual) return { erro: "Não achei o plano dessa pessoa." };
+
+  const { data: planos } = await supabase
+    .from("club_plans")
+    .select("id, nome, cobre_categorias, dias_semana, duracao_dias")
+    .eq("barbershop_id", sessao.barbeariaId);
+
+  const assinaturaAtual = atual as {
+    cobre_categorias: string[];
+    duracao_dias: number;
+    nome: string;
+  };
+  const mesmaCobertura = (a: string[]) =>
+    [...a].sort().join("|") === [...assinaturaAtual.cobre_categorias].sort().join("|");
+
+  const destino = (planos ?? []).find(
+    (p) =>
+      p.id !== assinatura.plan_id &&
+      p.duracao_dias === assinaturaAtual.duracao_dias &&
+      mesmaCobertura(p.cobre_categorias as string[]) &&
+      (p.dias_semana as number[]).includes(6) === liberar,
+  );
+
+  if (!destino) {
+    return {
+      erro: liberar
+        ? `Não existe versão até sábado do ${assinaturaAtual.nome}.`
+        : `Não existe versão sem sábado do ${assinaturaAtual.nome}.`,
+    };
+  }
+
+  const { error } = await supabase
+    .from("subscriptions")
+    .update({ plan_id: destino.id })
+    .eq("id", assinaturaId)
+    .eq("barbershop_id", sessao.barbeariaId);
+
+  if (error) return { erro: "Não consegui mudar o plano." };
+
+  revalidatePath("/painel");
+  return { ok: true };
 }
 
 export async function cancelarAssinatura(assinaturaId: string) {
