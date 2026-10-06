@@ -523,7 +523,11 @@ export async function mudarVencimento(assinaturaId: string, data: string) {
   const sessao = await exigirDono();
   const supabase = clienteServico();
 
-  if (!/^d{4}-d{2}-d{2}$/.test(data)) return { erro: "Data inválida." };
+  // [0-9] e não \d: já veio escapado errado uma vez, e o Johny ficou olhando
+  // "Data inválida" numa data que estava certa.
+  if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(data)) {
+    return { erro: "Data inválida." };
+  }
 
   /**
    * Cerca larga, só para pegar dedo escorregado no teclado: 2030 em vez de

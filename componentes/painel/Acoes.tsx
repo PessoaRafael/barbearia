@@ -79,7 +79,7 @@ export function DecidirPix({
   );
 
   if (decidido === "recebido") {
-    const digitos = (telefone ?? "").replace(/D/g, "");
+    const digitos = (telefone ?? "").replace(/[^0-9]/g, "");
     const numero = digitos.startsWith("55") ? digitos : `55${digitos}`;
 
     return (
