@@ -88,6 +88,14 @@ export default async function MeuAgendamento({
     minute: "2-digit",
   });
 
+  /**
+   * "Quinta-feira, 08 de outubro": maiúscula só na primeira letra.
+   *
+   * O capitalize do CSS pegava palavra por palavra e escrevia "Quinta-Feira,
+   * 08 De Outubro", que é jeito de computador escrever data.
+   */
+  const diaEscrito = quando.charAt(0).toUpperCase() + quando.slice(1);
+
   const aguardando = agendamento.status === "pendente_pagamento";
   const encerrado = ["cancelado", "expirado"].includes(agendamento.status);
 
@@ -144,24 +152,47 @@ export default async function MeuAgendamento({
           </div>
         </div>
 
-        <dl className="flex flex-col gap-3 rounded-grande border border-borda bg-superficie p-4 sm:p-5">
-          <Linha rotulo="Quando" valor={`${quando}, às ${hora}`} />
-          <Linha
-            rotulo="Serviço"
-            valor={`${agendamento.servico} · ${duracaoLabel(agendamento.duracaoMin)}`}
-          />
-          <Linha rotulo="Quem corta" valor={agendamento.barbeiro} />
-          <Linha rotulo="No nome de" valor={agendamento.cliente} />
-
-          <div className="flex items-baseline justify-between gap-4 border-t border-borda pt-3">
-            <dt className="text-sm text-texto-suave">
-              {agendamento.usouCredito ? "Com crédito do clube" : "Total"}
-            </dt>
-            <dd className="num font-titulo text-xl font-bold text-acao">
-              {moedaCentavos(agendamento.valorCentavos)}
-            </dd>
+        <div className="flex flex-col gap-4 rounded-grande border border-borda bg-superficie p-4 sm:p-5">
+          {/**
+           * A hora fora da lista, e grande.
+           *
+           * Ela era uma linha como as outras, e "Quinta-feira, 08 de outubro,
+           * às 17:30" não cabe ao lado do rótulo em 360px: o corte do texto
+           * comia exatamente a hora, que é o que a pessoa abriu o link para
+           * ver. Um cliente reclamou disso.
+           */}
+          <div className="flex items-end justify-between gap-3">
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <span className="text-xs uppercase tracking-wide text-texto-apagado">
+                Seu horário
+              </span>
+              <span className="text-base leading-snug text-texto">
+                {diaEscrito}
+              </span>
+            </div>
+            <span className="num shrink-0 font-titulo text-4xl font-bold leading-none text-acao">
+              {hora}
+            </span>
           </div>
-        </dl>
+
+          <dl className="flex flex-col gap-3 border-t border-borda pt-4">
+            <Linha
+              rotulo="Serviço"
+              valor={`${agendamento.servico} · ${duracaoLabel(agendamento.duracaoMin)}`}
+            />
+            <Linha rotulo="Quem corta" valor={agendamento.barbeiro} />
+            <Linha rotulo="No nome de" valor={agendamento.cliente} />
+
+            <div className="flex items-baseline justify-between gap-4 border-t border-borda pt-3">
+              <dt className="text-sm text-texto-suave">
+                {agendamento.usouCredito ? "Com crédito do clube" : "Total"}
+              </dt>
+              <dd className="num font-titulo text-xl font-bold text-acao">
+                {moedaCentavos(agendamento.valorCentavos)}
+              </dd>
+            </div>
+          </dl>
+        </div>
 
         {aguardando && !voltouDoCartao && agendamento.pix?.status === "aguardando" ? (
           <>
@@ -233,7 +264,10 @@ function Linha({ rotulo, valor }: { rotulo: string; valor: string }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
       <dt className="shrink-0 text-sm text-texto-suave">{rotulo}</dt>
-      <dd className="truncate text-right text-sm font-medium capitalize text-texto">
+      {/* Quebra a linha em vez de cortar: "Máquina & tesoura + Barba · 45 min"
+          não cabe em 360px, e o que some no corte é sempre o fim — que é onde
+          mora a informação. */}
+      <dd className="min-w-0 text-right text-sm font-medium text-texto">
         {valor}
       </dd>
     </div>
