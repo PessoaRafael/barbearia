@@ -36,8 +36,9 @@ export async function buscarAgendamento(
   const { data } = await supabase
     .from("appointments")
     .select(
-      `id, inicio, fim, status, valor_centavos, usou_credito_clube,
+      `id, inicio, fim, status, valor_centavos, usou_credito_clube, service_id,
        services!service_id(nome, duracao_min), barbers(apelido), clients(nome, telefone),
+       appointment_services(service_id, services(nome)),
        payments(brcode, expira_em, status)`,
     )
     .eq("token_cliente", token)
@@ -59,6 +60,37 @@ export async function buscarAgendamento(
     | { brcode: string; expira_em: string | null; status: string }
     | null;
 
+  /**
+   * Tudo o que ele marcou, e não só o serviço principal.
+   *
+   * Quem marca cabelo e barba via "Máquina & tesoura · 30 min" nesta tela e
+   * achava que a barba tinha se perdido no caminho — a reserva estava certa, o
+   * bloco de 45 minutos também, só a confirmação é que mentia.
+   *
+   * O principal vem na frente porque é o que dá nome ao horário; o resto segue
+   * na ordem que o banco devolver. Agendamento de antes da 0024 não tem lista
+   * nenhuma, e aí o serviço principal responde sozinho.
+   */
+  const itens = (data.appointment_services ?? []) as {
+    service_id: string;
+    services: { nome: string } | { nome: string }[] | null;
+  }[];
+
+  const outros = itens
+    .filter((i) => i.service_id !== data.service_id)
+    .map((i) => (um(i.services as never) as { nome: string } | null)?.nome)
+    .filter((n): n is string => Boolean(n));
+
+  const nomes = [servico?.nome, ...outros].filter((n): n is string => Boolean(n));
+
+  /**
+   * A duração é a do bloco, não a da soma dos serviços: dois serviços juntos
+   * levam quinze minutos a menos, e é esse tempo que a cadeira fica ocupada.
+   */
+  const duracaoDoBloco = Math.round(
+    (new Date(data.fim).getTime() - new Date(data.inicio).getTime()) / 60000,
+  );
+
   const faltam = new Date(data.inicio).getTime() - Date.now();
   const vivo = ["confirmado", "pendente_pagamento"].includes(data.status);
 
@@ -69,8 +101,8 @@ export async function buscarAgendamento(
     status: data.status,
     valorCentavos: data.valor_centavos,
     usouCredito: data.usou_credito_clube,
-    servico: servico?.nome ?? "",
-    duracaoMin: servico?.duracao_min ?? 0,
+    servico: nomes.join(" + "),
+    duracaoMin: duracaoDoBloco || (servico?.duracao_min ?? 0),
     barbeiro: barbeiro?.apelido ?? "",
     cliente: cliente?.nome ?? "",
     telefone: cliente?.telefone ?? "",

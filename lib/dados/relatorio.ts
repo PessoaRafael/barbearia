@@ -75,7 +75,7 @@ export const relatorioDoDia = cache(
       supabase
         .from("appointments")
         .select(
-          "inicio, status, valor_centavos, usou_credito_clube, service_id, clients(nome), services!service_id(nome, preco_centavos), barbers!barber_id(apelido), payments(status)",
+          "inicio, status, valor_centavos, usou_credito_clube, service_id, clients(nome), services!service_id(nome, preco_centavos), barbers!barber_id(apelido), payments(status), appointment_services(service_id, services(nome, preco_centavos))",
         )
         .eq("barbershop_id", escopo.barbeariaId)
         .gte("inicio", inicio)
@@ -140,10 +140,38 @@ export const relatorioDoDia = cache(
         minute: "2-digit",
       });
 
+    /**
+     * O que foi feito naquele horário, inteiro.
+     *
+     * Quem marca cabelo e barba ocupa um bloco só e aparecia no relatório como
+     * se tivesse feito só o cabelo. A lista existe desde a 0024; o relatório é
+     * que continuou lendo só o serviço principal.
+     */
+    const itensDe = (a: (typeof lista)[number]) =>
+      ((a.appointment_services ?? []) as unknown as {
+        service_id: string;
+        services: unknown;
+      }[]).map((i) => ({
+        id: i.service_id,
+        ...(um<{ nome: string; preco_centavos: number }>(i.services as never) ?? {
+          nome: "",
+          preco_centavos: 0,
+        }),
+      }));
+
+    const servicosDe = (a: (typeof lista)[number]) => {
+      const principal = um<{ nome: string }>(a.services as never)?.nome;
+      const outros = itensDe(a)
+        .filter((i) => i.id !== a.service_id)
+        .map((i) => i.nome)
+        .filter(Boolean);
+      return [principal, ...outros].filter(Boolean).join(" + ") || "—";
+    };
+
     const linhas = avulsos.map((a) => ({
       hora: hora(a.inicio as string),
       cliente: um<{ nome: string }>(a.clients as never)?.nome ?? "—",
-      servico: um<{ nome: string }>(a.services as never)?.nome ?? "—",
+      servico: servicosDe(a),
       barbeiro: um<{ apelido: string }>(a.barbers as never)?.apelido ?? "—",
       centavos: a.valor_centavos as number,
       pago: pagoDe(a),
@@ -156,12 +184,24 @@ export const relatorioDoDia = cache(
       .filter((l) => !l.pago)
       .reduce((s, l) => s + l.centavos, 0);
 
-    // Quanto os cortes do clube custariam na tabela: é o valor que o assinante
-    // deixou de pagar hoje porque já paga por mês.
-    const valorDeTabela = doClube.reduce(
-      (s, a) => s + (um<{ preco_centavos: number }>(a.services as never)?.preco_centavos ?? 0),
-      0,
-    );
+    /**
+     * Quanto os cortes do clube custariam na tabela: é o valor que o assinante
+     * deixou de pagar hoje porque já paga por mês.
+     *
+     * Soma todos os serviços do bloco. Contando só o principal, o assinante que
+     * faz cabelo e barba aparecia economizando o preço do cabelo, e o número
+     * saía menor do que a verdade.
+     */
+    const valorDeTabela = doClube.reduce((s, a) => {
+      const itens = itensDe(a);
+      if (itens.length) {
+        return s + itens.reduce((n, i) => n + (i.preco_centavos ?? 0), 0);
+      }
+      // Agendamento de antes da 0024: só existe o serviço principal.
+      return (
+        s + (um<{ preco_centavos: number }>(a.services as never)?.preco_centavos ?? 0)
+      );
+    }, 0);
 
     const assinaturas_ = assinaturas.data ?? [];
     const porPlano = new Map<string, { quantos: number; centavos: number }>();

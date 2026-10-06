@@ -239,7 +239,7 @@ export const pixParaConferir = cache(async (escopo: Escopo) => {
   const { data } = await clienteServico()
     .from("payments")
     .select(
-      "id, valor_centavos, expira_em, criado_em, appointments(inicio, clients(nome, telefone), services!service_id(nome), barbers(apelido))",
+      "id, valor_centavos, expira_em, criado_em, appointments(inicio, service_id, clients(nome, telefone), services!service_id(nome), barbers(apelido), appointment_services(service_id, services(nome)))",
     )
     .eq("barbershop_id", escopo.barbeariaId)
     /**
@@ -262,9 +262,11 @@ export const pixParaConferir = cache(async (escopo: Escopo) => {
     const ag = um(p.appointments as never) as
       | {
           inicio: string;
+          service_id: string;
           clients: unknown;
           services: unknown;
           barbers: unknown;
+          appointment_services?: { service_id: string; services: unknown }[];
         }
       | null;
     const cliente = um(ag?.clients as never) as
@@ -279,7 +281,16 @@ export const pixParaConferir = cache(async (escopo: Escopo) => {
       expiraEm: p.expira_em as string | null,
       cliente: cliente?.nome ?? "",
       telefone: cliente?.telefone ?? "",
-      servico: servico?.nome ?? "",
+      // Tudo o que ele marcou: conferir pix de 45 minutos achando que é um
+      // corte de 30 faz o Johny estranhar o valor na tela.
+      servico: [
+        servico?.nome,
+        ...(ag?.appointment_services ?? [])
+          .filter((i) => i.service_id !== ag?.service_id)
+          .map((i) => (um(i.services as never) as { nome: string } | null)?.nome),
+      ]
+        .filter(Boolean)
+        .join(" + "),
       barbeiro: barbeiro?.apelido ?? "",
       inicio: ag?.inicio ?? "",
     };

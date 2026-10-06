@@ -38,7 +38,9 @@ export async function GET(requisicao: NextRequest) {
 
     const { data: proximos } = await supabase
       .from("appointments")
-      .select("id, inicio, clients(nome, telefone), services!service_id(nome), barbers(apelido)")
+      .select(
+        "id, inicio, service_id, clients(nome, telefone), services!service_id(nome), barbers(apelido), appointment_services(service_id, services(nome))",
+      )
       .eq("barbershop_id", casa.id)
       .eq("status", "confirmado")
       .gte("inicio", de.toISOString())
@@ -58,6 +60,23 @@ export async function GET(requisicao: NextRequest) {
       const servico = Array.isArray(item.services) ? item.services[0] : item.services;
       const barbeiro = Array.isArray(item.barbers) ? item.barbers[0] : item.barbers;
 
+      /**
+       * O lembrete fala de tudo o que ele marcou.
+       *
+       * Quem marcou cabelo e barba e recebe "seu Máquina & tesoura é amanhã"
+       * chega achando que a barba se perdeu — e liga para perguntar, que é
+       * justamente o que o lembrete existe para evitar.
+       */
+      const extras = ((item.appointment_services ?? []) as {
+        service_id: string;
+        services: { nome: string } | { nome: string }[] | null;
+      }[])
+        .filter((i) => i.service_id !== item.service_id)
+        .map((i) => (Array.isArray(i.services) ? i.services[0] : i.services)?.nome)
+        .filter((n): n is string => Boolean(n));
+
+      const servicos = [servico?.nome, ...extras].filter(Boolean).join(" + ");
+
       await supabase.from("notifications").insert({
         barbershop_id: casa.id,
         destino: "cliente",
@@ -66,7 +85,7 @@ export async function GET(requisicao: NextRequest) {
         payload: {
           agendamento: item.id,
           cliente: cliente?.nome?.split(" ")[0] ?? "",
-          servico: servico?.nome ?? "",
+          servico: servicos,
           barbeiro: barbeiro?.apelido ?? "",
           quando: new Date(item.inicio).toLocaleTimeString("pt-BR", {
             hour: "2-digit",
