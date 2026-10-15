@@ -262,6 +262,75 @@ export async function liberarBloqueio(ids: string | string[]) {
 }
 
 /**
+ * Fecha uma faixa só para quem é do clube. O avulso continua marcando.
+ *
+ * Toda quinta à tarde o Johny fechava a casa inteira "para organizar o Club",
+ * e o cliente que pagaria a tabela ia embora junto. Isto separa os dois.
+ *
+ * Só o dono: é decisão sobre o clube, e o barbeiro nem enxerga esses
+ * fechamentos. Fechar não desmarca assinante que já estava na régua.
+ */
+export async function fecharProClube(entrada: z.input<typeof bloqueio>) {
+  const analise = bloqueio.safeParse(entrada);
+  if (!analise.success) return { erro: "Horário inválido." };
+  if (analise.data.fim <= analise.data.inicio) {
+    return { erro: "A hora de fim tem que ser depois da de início." };
+  }
+
+  const sessao = await exigirDono();
+  const supabase = clienteServico();
+  const barbeiroId = analise.data.barbeiroId ?? null;
+
+  // O id veio do formulário: só vale barbeiro desta casa.
+  if (barbeiroId) {
+    const { data: daCasa } = await supabase
+      .from("barbers")
+      .select("id")
+      .eq("id", barbeiroId)
+      .eq("barbershop_id", sessao.barbeariaId)
+      .maybeSingle();
+    if (!daCasa) return { erro: "Barbeiro não encontrado." };
+  }
+
+  // Confere o que voltou: escrita recusada pelo banco não pode virar "feito"
+  // na tela do Johny enquanto o assinante continua marcando.
+  const { data: criado, error } = await supabase
+    .from("bloqueios_do_clube")
+    .insert({
+      barbershop_id: sessao.barbeariaId,
+      barber_id: barbeiroId,
+      data: analise.data.data,
+      inicio: analise.data.inicio,
+      fim: analise.data.fim,
+      motivo: analise.data.motivo || null,
+    })
+    .select("id")
+    .single();
+
+  if (error || !criado) return { erro: "Não consegui fechar para o clube." };
+
+  revalidatePath("/painel");
+  return { ok: true };
+}
+
+/** Reabre para o clube. Apaga só o fechamento clicado, nada além. */
+export async function liberarBloqueioDoClube(id: string) {
+  const sessao = await exigirDono();
+
+  const { data: apagados, error } = await clienteServico()
+    .from("bloqueios_do_clube")
+    .delete()
+    .eq("id", id)
+    .eq("barbershop_id", sessao.barbeariaId)
+    .select("id");
+
+  if (error || !apagados?.length) return { erro: "Não achei esse fechamento." };
+
+  revalidatePath("/painel");
+  return { ok: true };
+}
+
+/**
  * Gera a chave de um barbeiro. O texto puro existe só neste retorno: no banco
  * fica o hash, e a tela avisa que não mostra de novo.
  */

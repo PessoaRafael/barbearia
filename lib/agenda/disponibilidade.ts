@@ -68,6 +68,12 @@ export async function horariosLivres(entrada: {
   data: string;
   duracaoMin: number;
   barbeiroId?: string | null;
+  /**
+   * Quem pergunta é assinante: a faixa que o Johny fechou só para o clube sai
+   * da grade dele. Para todo o resto ela continua aberta. Quem recusa de
+   * verdade é o `reservar`; aqui é só para não oferecer o que vai falhar.
+   */
+  doClube?: boolean;
 }): Promise<Livre[]> {
   const { barbeariaId, data, duracaoMin } = entrada;
   const supabase = clienteServico();
@@ -95,27 +101,39 @@ export async function horariosLivres(entrada: {
 
   const ids = equipe.map((b) => b.id);
 
-  const [{ data: expediente }, { data: pausas }, { data: marcados }] =
-    await Promise.all([
-      supabase
-        .from("working_hours")
-        .select("barber_id, abre, fecha")
-        .in("barber_id", ids)
-        .eq("dia_semana", dow)
-        .eq("ativo", true),
-      supabase
-        .from("breaks")
-        .select("barber_id, inicio, fim, dia_semana, data")
-        .in("barber_id", ids)
-        .or(`dia_semana.eq.${dow},data.eq.${data}`),
-      supabase
-        .from("appointments")
-        .select("barber_id, inicio, fim")
-        .in("barber_id", ids)
-        .in("status", ["pendente_pagamento", "confirmado", "concluido"])
-        .gte("inicio", instante(data, "00:00").toISOString())
-        .lt("inicio", instante(data, "23:59").toISOString()),
-    ]);
+  const [
+    { data: expediente },
+    { data: pausas },
+    { data: marcados },
+    { data: soDoClube },
+  ] = await Promise.all([
+    supabase
+      .from("working_hours")
+      .select("barber_id, abre, fecha")
+      .in("barber_id", ids)
+      .eq("dia_semana", dow)
+      .eq("ativo", true),
+    supabase
+      .from("breaks")
+      .select("barber_id, inicio, fim, dia_semana, data")
+      .in("barber_id", ids)
+      .or(`dia_semana.eq.${dow},data.eq.${data}`),
+    supabase
+      .from("appointments")
+      .select("barber_id, inicio, fim")
+      .in("barber_id", ids)
+      .in("status", ["pendente_pagamento", "confirmado", "concluido"])
+      .gte("inicio", instante(data, "00:00").toISOString())
+      .lt("inicio", instante(data, "23:59").toISOString()),
+    // Avulso nem consulta: para ele essa faixa não existe.
+    entrada.doClube
+      ? supabase
+          .from("bloqueios_do_clube")
+          .select("barber_id, inicio, fim")
+          .eq("barbershop_id", barbeariaId)
+          .eq("data", data)
+      : { data: null },
+  ]);
 
   const agora = Date.now();
   const porHora = new Map<string, string[]>();
@@ -134,6 +152,15 @@ export async function horariosLivres(entrada: {
       ocupado.push([
         emMinutos(pausa.inicio.slice(0, 5)),
         emMinutos(pausa.fim.slice(0, 5)),
+      ]);
+    }
+
+    // Sem barbeiro é a casa toda.
+    for (const fecho of soDoClube ?? []) {
+      if (fecho.barber_id && fecho.barber_id !== barbeiro) continue;
+      ocupado.push([
+        emMinutos(fecho.inicio.slice(0, 5)),
+        emMinutos(fecho.fim.slice(0, 5)),
       ]);
     }
 

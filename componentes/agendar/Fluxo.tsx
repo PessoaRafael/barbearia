@@ -177,6 +177,14 @@ export function Fluxo({
   }, [reconhecido, data, diasDisponiveis]);
 
   /**
+   * Faixa que o Johny fechou só para o clube some da grade de quem é do
+   * clube. Quem entra pela área do clube já chega reconhecido e nem vê. Quem
+   * só se revela no passo 4 pode já ter escolhido um desses: o `reservar`
+   * recusa, e a volta ao passo 2 cai nesta grade já sem a faixa.
+   */
+  const doClube = Boolean(reconhecido?.assinante);
+
+  /**
    * Uma consulta por (serviço, dia) traz o mapa inteiro: quem está livre em
    * cada horário. Com ele a tela monta a contagem por barbeiro e a grade,
    * sem voltar ao servidor a cada clique.
@@ -187,7 +195,7 @@ export function Fluxo({
     let valeu = true;
     setCarregando(true);
 
-    buscarHorarios({ data, servicoIds })
+    buscarHorarios({ data, servicoIds, doClube })
       .then((lista) => {
         if (valeu) setHorarios(lista);
       })
@@ -204,7 +212,7 @@ export function Fluxo({
     // A lista vira texto de propósito: array novo a cada render dispararia o
     // efeito para sempre.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [servicoIds.join(","), data]);
+  }, [servicoIds.join(","), data, doClube]);
 
   /**
    * Usar o clube depende de três coisas ao mesmo tempo: a assinatura estar em
@@ -404,7 +412,7 @@ export function Fluxo({
       if (!saida.ok) {
         setErro(saida.erro);
         // O horário pode ter sido tomado: recarrega a grade e volta ao passo 3.
-        buscarHorarios({ data, servicoIds }).then(setHorarios);
+        buscarHorarios({ data, servicoIds, doClube }).then(setHorarios);
         setHora(null);
         setPassoAberto(2);
         return;

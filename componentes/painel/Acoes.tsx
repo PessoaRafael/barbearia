@@ -19,6 +19,7 @@ import {
   encerrar,
   gerarChaveDe,
   liberarBloqueio,
+  liberarBloqueioDoClube,
   revogarChaveDe,
 } from "@/app/painel/acoes";
 import { BotaoCopiar } from "@/componentes/BotaoCopiar";
@@ -263,16 +264,26 @@ export function EncerrarAtendimento({ agendamentoId }: { agendamentoId: string }
 /** Um id, ou vários quando o mesmo horário foi fechado para a casa toda. */
 export function SoltarBloqueio({
   bloqueioId,
+  doClube = false,
 }: {
   bloqueioId: string | string[];
+  /** Fechamento só do clube: mora noutra tabela e só o dono solta. */
+  doClube?: boolean;
 }) {
   const [rodando, comecar] = useTransition();
+
+  const soltar = () =>
+    doClube
+      ? liberarBloqueioDoClube(
+          Array.isArray(bloqueioId) ? bloqueioId[0] : bloqueioId,
+        )
+      : liberarBloqueio(bloqueioId);
 
   return (
     <button
       type="button"
       disabled={rodando}
-      onClick={() => comecar(() => liberarBloqueio(bloqueioId).then(() => {}))}
+      onClick={() => comecar(() => soltar().then(() => {}))}
       className="inline-flex min-h-toque items-center gap-2 rounded-pill border border-borda-forte px-3 font-titulo text-sm font-semibold text-texto-suave transition-colors hover:border-acao hover:text-texto disabled:opacity-60"
     >
       <Trash2 className="h-4 w-4" strokeWidth={2} />

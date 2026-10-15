@@ -219,6 +219,30 @@ export async function janelaDoDia(sessao: Sessao, data = hojeNaCasa()) {
   return { abre: cedo[0], fecha: tarde[tarde.length - 1] };
 }
 
+export type BloqueioDoClube = {
+  id: string;
+  /** Nulo é a casa toda. */
+  barber_id: string | null;
+  inicio: string;
+  fim: string;
+  motivo: string | null;
+};
+
+/**
+ * Faixas fechadas só para o clube. Só o painel do dono lê: o barbeiro não vê
+ * nem solta, e por isso isto não passa pelo painel_agenda.
+ */
+export async function bloqueiosDoClube(escopo: Escopo, data = hojeNaCasa()) {
+  const { data: linhas } = await clienteServico()
+    .from("bloqueios_do_clube")
+    .select("id, barber_id, inicio, fim, motivo")
+    .eq("barbershop_id", escopo.barbeariaId)
+    .eq("data", data)
+    .order("inicio");
+
+  return (linhas ?? []) as BloqueioDoClube[];
+}
+
 /** Bloqueios pontuais do dia, os que dá para soltar com um clique. */
 export async function bloqueiosDoDia(sessao: Sessao, data = hojeNaCasa()) {
   const supabase = clienteServico();

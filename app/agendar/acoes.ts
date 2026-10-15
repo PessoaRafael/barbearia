@@ -8,6 +8,7 @@ import {
   instante,
   menosOcupado,
 } from "@/lib/agenda/disponibilidade";
+import { hojeNaCasa } from "@/lib/agenda/dias";
 import { lerSessao } from "@/lib/auth/sessao";
 import { casa } from "@/lib/dados/casa";
 import { avisarNoCelular } from "@/lib/notify/push";
@@ -34,10 +35,15 @@ const consulta = z.object({
   /** Corte, barba, sobrancelha: a grade tem que caber tudo junto. */
   servicoIds: z.array(z.string().uuid()).min(1).max(4),
   barbeiroId: z.string().uuid().nullable().optional(),
+  /**
+   * A tela já reconheceu o assinante. Mentir aqui não abre nada: só mostra
+   * horário que o `reservar` vai recusar na hora de fechar.
+   */
+  doClube: z.boolean().optional(),
 });
 
 export async function buscarHorarios(entrada: z.input<typeof consulta>) {
-  const { data, servicoIds, barbeiroId } = consulta.parse(entrada);
+  const { data, servicoIds, barbeiroId, doClube } = consulta.parse(entrada);
   const { id } = await casa();
 
   const supabase = clienteServico();
@@ -56,7 +62,26 @@ export async function buscarHorarios(entrada: z.input<typeof consulta>) {
     data,
     duracaoMin: duracaoJunta(servicos.map((s) => s.duracao_min)),
     barbeiroId: barbeiroId ?? null,
+    doClube: doClube ?? false,
   });
+}
+
+/**
+ * Mesma régua de assinante do `reservar` no Postgres: assinatura ativa e
+ * dentro do ciclo. Fica fora das exportações de propósito — num arquivo
+ * "use server", exportar viraria um endpoint para consultar telefone alheio.
+ */
+async function ehDoClube(barbeariaId: string, telefone: string) {
+  const { data } = await clienteServico()
+    .from("subscriptions")
+    .select("id, clients!inner(barbershop_id, telefone)")
+    .eq("clients.barbershop_id", barbeariaId)
+    .eq("clients.telefone", telefone)
+    .eq("status", "ativa")
+    .gte("ciclo_fim", hojeNaCasa())
+    .limit(1);
+
+  return Boolean(data?.length);
 }
 
 const fila = z.object({
@@ -327,6 +352,8 @@ const RECADOS: Record<string, string> = {
   servico_fora_do_clube: "Esse serviço não entra no seu plano do clube.",
   dia_fora_do_clube:
     "Quem é do clube marca de segunda a quinta. Escolha um desses dias.",
+  fechado_pro_clube:
+    "Esse horário não está aberto para o clube. Escolha outro na grade.",
   plano_inexistente: "Não achei o plano da sua assinatura. Fale com o Johny.",
   creditos_esgotados: "Seus cortes do clube acabaram neste ciclo.",
   servico_indisponivel: "Esse serviço não está mais na régua.",
@@ -380,9 +407,16 @@ export async function reservar(
   // "Tanto faz" vira um barbeiro concreto antes de entrar na transação.
   let barbeiroId = dados.barbeiroId;
   if (!barbeiroId) {
+    /**
+     * Com o clube fechado só para o Davi, o assinante via 16h livre por causa
+     * do Anderson — mas o sorteio aqui ainda podia cair no Davi, e o banco
+     * recusava um horário que a tela tinha oferecido. Decide aqui, pelo
+     * telefone, e não pelo que a tela disser.
+     */
     const livres = await buscarHorarios({
       data: dados.data,
       servicoIds: dados.servicoIds,
+      doClube: await ehDoClube(casaAtual.id, telefoneChave(dados.telefone)),
     });
     const nesteHorario = livres.find((l) => l.hora === dados.hora);
     if (!nesteHorario?.barbeiros.length) {

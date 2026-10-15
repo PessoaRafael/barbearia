@@ -39,6 +39,7 @@ import type { Escopo } from "@/lib/dados/painel";
 import {
   assinantes,
   avisosPendentes,
+  bloqueiosDoClube,
   mensalidadesVencendo,
   caixaDoDia,
   clientes,
@@ -335,12 +336,17 @@ async function AbaAgenda({
   dia: string;
   dias: ReturnType<typeof proximosDias>;
 }) {
-  const [{ marcados, bloqueios, barbeiros: time, janela }, novos, recusados] =
-    await Promise.all([
-      painelAgenda(escopo, dia),
-      novosNaAgenda(escopo),
-      recusadosNoDia(escopo, dia),
-    ]);
+  const [
+    { marcados, bloqueios, barbeiros: time, janela },
+    novos,
+    recusados,
+    soDoClube,
+  ] = await Promise.all([
+    painelAgenda(escopo, dia),
+    novosNaAgenda(escopo),
+    recusadosNoDia(escopo, dia),
+    bloqueiosDoClube(escopo, dia),
+  ]);
 
   /**
    * Ele abriu a agenda: o contador zera a partir de agora.
@@ -366,6 +372,7 @@ async function AbaAgenda({
     motivo: string | null;
     ids: string[];
     quem: string[];
+    doClube?: boolean;
   };
 
   const apelidoDe = new Map(time.map((b) => [b.id, b.apelido]));
@@ -385,9 +392,29 @@ async function AbaAgenda({
     faixas.set(chave, atual);
   }
 
-  const fechados = [...faixas.values()].sort((a, b) =>
+  // Já vêm uma linha por faixa: fechar o clube da casa toda grava uma só.
+  const doClube: Faixa[] = soDoClube.map((c) => ({
+    inicio: c.inicio,
+    fim: c.fim,
+    motivo: c.motivo,
+    ids: [c.id],
+    quem: c.barber_id ? [apelidoDe.get(c.barber_id) ?? ""] : [],
+    doClube: true,
+  }));
+
+  const fechados = [...faixas.values(), ...doClube].sort((a, b) =>
     a.inicio.localeCompare(b.inicio),
   );
+
+  const rotulo = (f: Faixa) =>
+    f.doClube
+      ? [f.motivo, "só pro clube"].filter(Boolean).join(" · ")
+      : (f.motivo ?? "fechado");
+
+  const casaToda = (f: Faixa) =>
+    f.doClube
+      ? f.quem.length === 0
+      : f.ids.length >= time.length && time.length > 0;
 
   return (
     <Cartao titulo="Agenda do dia">
@@ -430,12 +457,10 @@ async function AbaAgenda({
                 {f.inicio.slice(0, 5)}–{f.fim.slice(0, 5)}
               </span>
               <span className="flex-1 text-sm text-texto-suave">
-                {f.motivo ?? "fechado"} ·{" "}
-                {f.ids.length >= time.length && time.length > 0
-                  ? "a casa toda"
-                  : f.quem.filter(Boolean).join(", ")}
+                {rotulo(f)} ·{" "}
+                {casaToda(f) ? "a casa toda" : f.quem.filter(Boolean).join(", ")}
               </span>
-              <SoltarBloqueio bloqueioId={f.ids} />
+              <SoltarBloqueio bloqueioId={f.ids} doClube={f.doClube} />
             </li>
           ))}
         </ul>

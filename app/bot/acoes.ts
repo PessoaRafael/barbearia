@@ -476,12 +476,14 @@ export async function conversar(
     };
   }
 
-  // A partir daqui precisa da grade real.
+  // A partir daqui precisa da grade real. Antes do telefone ninguém é do
+  // clube; depois dele, a faixa que o Johny fechou para o clube sai daqui.
   const livres = await horariosLivres({
     barbeariaId: barbearia.id,
     data: estado.data,
     duracaoMin: servico.duracao_min,
     barbeiroId: estado.barbeiroId ?? null,
+    doClube: Boolean(estado.assinante),
   });
 
   const dia = dias.find((d) => d.data === estado.data);
@@ -796,6 +798,7 @@ export async function conversar(
       data: estado.data,
       duracaoMin: servico.duracao_min,
       barbeiroId: estado.barbeiroId ?? null,
+      doClube: Boolean(estado.assinante),
     });
     return {
       estado,

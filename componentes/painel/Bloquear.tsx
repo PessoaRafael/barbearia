@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Lock, X } from "lucide-react";
 
-import { bloquear } from "@/app/painel/acoes";
+import { bloquear, fecharProClube } from "@/app/painel/acoes";
 
 export type Janela = { abre: string; fecha: string } | null;
 
@@ -15,6 +15,9 @@ export type Janela = { abre: string; fecha: string } | null;
  * para a casa toda, antes que entre gente que ninguém vai conseguir atender.
  *
  * Fechar não desmarca ninguém. Quem já pagou continua com a cadeira.
+ *
+ * O dono ainda escolhe fechar só para o clube: toda quinta à tarde ele fechava
+ * a casa inteira "para organizar o Club" e perdia junto o avulso.
  */
 export function Bloquear({
   data,
@@ -36,6 +39,7 @@ export function Bloquear({
   const [inicio, setInicio] = useState("");
   const [fim, setFim] = useState("");
   const [quem, setQuem] = useState("todos");
+  const [soClube, setSoClube] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [rodando, comecar] = useTransition();
@@ -51,9 +55,12 @@ export function Bloquear({
     apartirDe && janela && apartirDe < janela.fecha,
   );
 
+  /** Só o dono escolhe; o barbeiro nem recebe a opção. */
+  const doClube = escolhe && soClube;
+
   const enviar = (de: string, ate: string, texto?: string) =>
     comecar(async () => {
-      const r = await bloquear({
+      const pedido = {
         data,
         inicio: de,
         fim: ate,
@@ -63,7 +70,8 @@ export function Bloquear({
             ? null
             : quem
           : barbeiroId,
-      });
+      };
+      const r = doClube ? await fecharProClube(pedido) : await bloquear(pedido);
 
       if (r.erro) {
         setErro(r.erro);
@@ -73,6 +81,7 @@ export function Bloquear({
       setInicio("");
       setFim("");
       setMotivo("");
+      setSoClube(false);
       setErro(null);
     });
 
@@ -105,9 +114,34 @@ export function Bloquear({
         </button>
       </div>
 
+      {escolhe ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-texto-suave">Fechar para</span>
+          {[
+            { valor: false, rotulo: "Todo mundo" },
+            { valor: true, rotulo: "Só o clube" },
+          ].map((o) => (
+            <button
+              key={o.rotulo}
+              type="button"
+              aria-pressed={soClube === o.valor}
+              onClick={() => setSoClube(o.valor)}
+              className={`inline-flex min-h-toque items-center rounded-pill border px-4 font-titulo text-sm font-semibold transition-colors ${
+                soClube === o.valor
+                  ? "border-acao bg-acao text-acao-sobre"
+                  : "border-borda bg-superficie-ativa text-texto-suave hover:border-borda-forte"
+              }`}
+            >
+              {o.rotulo}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
       <p className="text-xs text-texto-suave">
-        Isso só impede horário novo. Quem já está marcado continua na régua e
-        precisa ser avisado por você, se for o caso.
+        {doClube
+          ? "Quem é do clube não consegue marcar nessa faixa. Quem paga avulso marca normal. Assinante que já estava marcado continua na régua."
+          : "Isso só impede horário novo. Quem já está marcado continua na régua e precisa ser avisado por você, se for o caso."}
       </p>
 
       {/* O atalho que resolve o caso do dia: um toque e não entra mais
@@ -118,7 +152,9 @@ export function Bloquear({
             <button
               type="button"
               disabled={rodando}
-              onClick={() => enviar(apartirDe!, janela.fecha, "agenda cheia")}
+              onClick={() =>
+                enviar(apartirDe!, janela.fecha, doClube ? undefined : "agenda cheia")
+              }
               className="inline-flex min-h-toque items-center gap-2 rounded-pill border border-alerta/50 px-4 font-titulo text-sm font-semibold text-alerta transition-colors hover:bg-alerta/10 disabled:opacity-60"
             >
               <Lock className="h-4 w-4" strokeWidth={2} />
@@ -200,7 +236,11 @@ export function Bloquear({
             : "cursor-not-allowed border border-borda bg-superficie-apagada text-texto-apagado"
         }`}
       >
-        {rodando ? "Fechando..." : "Fechar esse horário"}
+        {rodando
+          ? "Fechando..."
+          : doClube
+            ? "Fechar para o clube"
+            : "Fechar esse horário"}
       </button>
     </div>
   );
