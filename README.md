@@ -152,6 +152,16 @@ atrás da interface `ProvedorPagamento` (`criarCobranca`, `consultarStatus`,
 com essa interface e devolva ele em `provedorAtual()`. O resto do sistema não
 muda: ninguém fora desse arquivo sabe como a cobrança nasce.
 
+### InfinitePay
+
+`lib/payments/infinitepay.ts`. Com `INFINITEPAY_ATIVO=true` e
+`INFINITEPAY_HANDLE` (a InfiniteTag), quem escolhe pix ou cartão no site vai
+para a página da InfinitePay, e o horário confirma sozinho: pelo aviso em
+`/api/webhook/infinitepay` ou pela volta em `/meu-agendamento/<token>`, os dois
+conferindo no `payment_check`. A cobrança grava o método `infinitepay` (0035)
+para não cair na aba "Pix a conferir". Falhou, o cliente cai no pix de sempre.
+O bot continua no pix de sempre.
+
 ## Clube
 
 Cobrança manual, sem recorrência e sem cartão. O Johny recebe por pix ou

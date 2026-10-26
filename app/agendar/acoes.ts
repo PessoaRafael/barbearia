@@ -14,6 +14,7 @@ import { casa } from "@/lib/dados/casa";
 import { avisarNoCelular } from "@/lib/notify/push";
 import { enfileirar } from "@/lib/notify/whatsapp";
 import { linkDoValor } from "@/lib/payments/links";
+import { cobrarNaInfinitepay, infinitepayLigado } from "@/lib/payments/infinitepay";
 import { cartaoLigado, sessaoDeCartao } from "@/lib/payments/stripe";
 import { duracaoJunta } from "@/lib/regras";
 import { pixManual, provedorAtual } from "@/lib/payments/provider";
@@ -373,7 +374,10 @@ export type Pix = {
    * cadastrado um. É por onde sai o cartão; null significa só pix.
    */
   linkCartao: string | null;
-  /** Stripe ligada: a tela pode criar a cobrança de cartão na hora. */
+  /**
+   * InfinitePay ou Stripe ligada: a tela pode criar a cobrança de cartão na
+   * hora, e ela confirma sozinha.
+   */
   cartaoAutomatico: boolean;
 };
 
@@ -386,11 +390,11 @@ export type ResultadoReserva =
       barbeiro: string;
       pix: Pix | null;
       /**
-       * Escolheu cartão: a tela manda ele para esta página da Stripe em vez
-       * de mostrar o QR. Vem null quando a cobrança não pôde ser criada, e aí
-       * a tela cai no pix, que continua pronto.
+       * A tela manda o cliente para esta página em vez de mostrar o QR: a da
+       * InfinitePay (pix ou cartão) ou a da Stripe (cartão). Vem null quando
+       * a cobrança não pôde ser criada, e aí a tela cai no pix de sempre.
        */
-      cartaoUrl?: string | null;
+      pagamentoUrl?: string | null;
     }
   | { ok: false; erro: string };
 
@@ -469,6 +473,17 @@ export async function reservar(
     valor_centavos: number;
   };
 
+  // Nome do barbeiro e do serviço antes de escrever a mensagem: eles ficavam
+  // vazios, e o cliente recebia "está marcado: com , 07/08 às 08:30".
+  const [{ data: quem }, { data: oQue }] = await Promise.all([
+    supabase.from("barbers").select("apelido").eq("id", barbeiroId).maybeSingle(),
+    supabase.from("services").select("nome").in("id", dados.servicoIds),
+  ]);
+
+  // "Corte + Barba" na mensagem, não só o mais caro.
+  const nomeDosServicos =
+    (oQue ?? []).map((s) => s.nome).join(" + ") || "seu horário";
+
   // Pix nasce quando há valor a pagar. Se a reserva está segurando o slot,
   // ele também carrega o prazo; se o pagamento é opcional, é só a comodidade
   // de pagar antes.
@@ -476,7 +491,44 @@ export async function reservar(
   const querPix =
     dados.formaPagamento === "pix" || agendamento.status === "pendente_pagamento";
 
-  if (querPix && agendamento.valor_centavos > 0 && casaAtual.pix_key) {
+  /** Página de pagamento de fora (InfinitePay ou Stripe) para onde a tela manda. */
+  let pagamentoUrl: string | null = null;
+
+  /**
+   * InfinitePay ligada: pix e cartão saem pela página dela, e o horário
+   * confirma sozinho quando o pagamento passa, sem o Johny conferir extrato.
+   * Por isso o pix de sempre nem nasce: com os dois na tela, o cliente podia
+   * pagar o QR antigo e voltar a depender do "Recebi".
+   *
+   * O bot fica no pix de sempre. Ele mostra o QR dentro da conversa, e mandar
+   * o cliente para outra página no meio do chat é outra conversa.
+   *
+   * Falhou a InfinitePay, segue para o pix de sempre logo abaixo: provedor
+   * fora do ar não pode custar o agendamento.
+   */
+  if (
+    infinitepayLigado() &&
+    dados.origem === "link" &&
+    (querPix || dados.formaPagamento === "cartao") &&
+    agendamento.valor_centavos > 0
+  ) {
+    try {
+      pagamentoUrl = await cobrarNaInfinitepay({
+        barbeariaId: casaAtual.id,
+        agendamentoId: agendamento.id,
+        tokenCliente: agendamento.token_cliente,
+        valorCentavos: agendamento.valor_centavos,
+        descricao: nomeDosServicos,
+        clienteNome: dados.nome,
+        clienteEmail: dados.email ?? null,
+        expiraEm: new Date(Date.now() + casaAtual.reserva_minutos * 60 * 1000),
+      });
+    } catch (erro) {
+      console.error("infinitepay: link nao criado, vai no pix:", (erro as Error).message);
+    }
+  }
+
+  if (!pagamentoUrl && querPix && agendamento.valor_centavos > 0 && casaAtual.pix_key) {
     const cpf = (dados.cpf ?? "").replace(/\D/g, "");
 
     // Guarda para a próxima vez: quem já pagou uma vez não redigita.
@@ -583,20 +635,9 @@ export async function reservar(
         casaAtual.id,
         agendamento.valor_centavos,
       ),
-      cartaoAutomatico: cartaoLigado(),
+      cartaoAutomatico: cartaoLigado() || infinitepayLigado(),
     };
   }
-
-  // Nome do barbeiro e do serviço antes de escrever a mensagem: eles ficavam
-  // vazios, e o cliente recebia "está marcado: com , 07/08 às 08:30".
-  const [{ data: quem }, { data: oQue }] = await Promise.all([
-    supabase.from("barbers").select("apelido").eq("id", barbeiroId).maybeSingle(),
-    supabase.from("services").select("nome").in("id", dados.servicoIds),
-  ]);
-
-  // "Corte + Barba" na mensagem, não só o mais caro.
-  const nomeDosServicos =
-    (oQue ?? []).map((s) => s.nome).join(" + ") || "seu horário";
 
   /**
    * O celular do barbeiro toca antes de o cliente sair da tela.
@@ -642,8 +683,6 @@ export async function reservar(
    * Stripe não responder, o cliente cai na tela do QR em vez de ficar sem
    * caminho nenhum, e o horário dele já está reservado de qualquer jeito.
    */
-  let cartaoUrl: string | null = null;
-
   if (dados.formaPagamento === "cartao" && cartaoLigado() && pix) {
     try {
       const site = process.env.SITE_URL?.replace(/\/$/, "");
@@ -671,7 +710,7 @@ export async function reservar(
         expira_em: pix.expiraEm,
       });
 
-      cartaoUrl = sessao.url;
+      pagamentoUrl = sessao.url;
     } catch (erro) {
       console.error("stripe: sessao nao criada:", (erro as Error).message);
     }
@@ -684,6 +723,6 @@ export async function reservar(
     valorCentavos: agendamento.valor_centavos,
     barbeiro: quem?.apelido ?? "",
     pix,
-    cartaoUrl,
+    pagamentoUrl,
   };
 }

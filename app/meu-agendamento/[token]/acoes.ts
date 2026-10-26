@@ -7,6 +7,7 @@ import { z } from "zod";
 import { casa } from "@/lib/dados/casa";
 import { avisarNoCelular } from "@/lib/notify/push";
 import { enfileirar } from "@/lib/notify/whatsapp";
+import { cobrarNaInfinitepay, infinitepayLigado } from "@/lib/payments/infinitepay";
 import { cartaoLigado, sessaoDeCartao, sessaoFoiPaga } from "@/lib/payments/stripe";
 import { HORAS_LIMITE_CANCELAMENTO } from "@/lib/regras";
 import { clienteServico } from "@/lib/supabase/servidor";
@@ -39,7 +40,7 @@ export async function buscarAgendamento(
       `id, inicio, fim, status, valor_centavos, usou_credito_clube, service_id,
        services!service_id(nome, duracao_min), barbers(apelido), clients(nome, telefone),
        appointment_services(service_id, services(nome)),
-       payments(brcode, expira_em, status)`,
+       payments(brcode, expira_em, status, metodo)`,
     )
     .eq("token_cliente", token)
     .maybeSingle();
@@ -56,9 +57,18 @@ export async function buscarAgendamento(
   const cliente = um(data.clients as never) as
     | { nome: string; telefone: string }
     | null;
-  const pagamento = um(data.payments as never) as
-    | { brcode: string; expira_em: string | null; status: string }
-    | null;
+  /**
+   * Só o pix tem QR. Pegar a primeira cobrança de qualquer método punha na
+   * tela o "QR" de uma cobrança de cartão ou da InfinitePay, que não tem
+   * código nenhum.
+   */
+  const pagamento =
+    ((data.payments ?? []) as {
+      brcode: string;
+      expira_em: string | null;
+      status: string;
+      metodo: string;
+    }[]).find((p) => p.metodo === "pix") ?? null;
 
   /**
    * Tudo o que ele marcou, e não só o serviço principal.
@@ -253,7 +263,9 @@ async function avisarFila(barbeariaId: string, inicio: string) {
  */
 export async function pagarComCartao(token: string) {
   if (!/^[a-f0-9]{32}$/i.test(token)) return { erro: "Link inválido." };
-  if (!cartaoLigado()) return { erro: "Cartão não está disponível agora." };
+  if (!cartaoLigado() && !infinitepayLigado()) {
+    return { erro: "Cartão não está disponível agora." };
+  }
 
   const site = process.env.SITE_URL?.replace(/\/$/, "");
   if (!site) return { erro: "Cartão não está disponível agora." };
@@ -277,6 +289,41 @@ export async function pagarComCartao(token: string) {
   const um = <T,>(v: T | T[] | null) => (Array.isArray(v) ? (v[0] ?? null) : v);
   const cliente = um(ag.clients as never) as { nome: string; email: string | null } | null;
   const servico = um(ag.services as never) as { nome: string } | null;
+
+  /**
+   * InfinitePay na frente: pix ou cartão na mesma página, e confirma sozinho.
+   * É o caminho de quem marcou, foi para a página dela e voltou sem pagar.
+   */
+  if (infinitepayLigado()) {
+    // Herda o prazo da reserva: a cobrança morre junto com ela.
+    const { data: ultima } = await supabase
+      .from("payments")
+      .select("expira_em")
+      .eq("appointment_id", ag.id)
+      .order("criado_em", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    try {
+      const url = await cobrarNaInfinitepay({
+        barbeariaId: ag.barbershop_id as string,
+        agendamentoId: ag.id as string,
+        tokenCliente: token,
+        valorCentavos: ag.valor_centavos as number,
+        descricao: servico?.nome ?? "Horário na barbearia",
+        clienteNome: cliente?.nome ?? "cliente",
+        clienteEmail: cliente?.email ?? null,
+        expiraEm: ultima?.expira_em ?? null,
+      });
+      return { ok: true, url };
+    } catch (erro) {
+      console.error("infinitepay: link nao criado:", (erro as Error).message);
+      // Com a Stripe ligada, ela ainda tenta logo abaixo.
+      if (!cartaoLigado()) {
+        return { erro: "Não consegui abrir o pagamento agora. Chame a barbearia no WhatsApp." };
+      }
+    }
+  }
 
   // Já existe uma sessão de cartão aberta? Reaproveita, senão cada toque no
   // botão criaria uma cobrança nova e o cliente veria várias no extrato.

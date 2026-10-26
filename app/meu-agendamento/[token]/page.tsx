@@ -9,6 +9,11 @@ import { OutrasFormas } from "@/componentes/agendar/OutrasFormas";
 import { PagamentoAprovado } from "@/componentes/agendar/PagamentoAprovado";
 import { casa } from "@/lib/dados/casa";
 import { linkDoValor } from "@/lib/payments/links";
+import {
+  confirmarPelaInfinitepay,
+  infinitepayLigado,
+  lerVolta,
+} from "@/lib/payments/infinitepay";
 import { cartaoLigado } from "@/lib/payments/stripe";
 import { moedaCentavos } from "@/lib/formato";
 import { duracaoLabel } from "@/componentes/agendar/tipos";
@@ -61,11 +66,25 @@ export default async function MeuAgendamento({
   searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ pago?: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
 }) {
-  const [{ token }, { pago }] = await Promise.all([params, searchParams]);
+  const [{ token }, busca] = await Promise.all([params, searchParams]);
+
+  /**
+   * A InfinitePay devolve o cliente aqui com o pedido na URL. O aviso dela
+   * pode chegar depois do navegador, então a própria volta confere e
+   * confirma: no payment_check, nunca pelo que veio na URL. Quem chegar em
+   * segundo sai sem fazer nada.
+   */
+  const volta = lerVolta(busca);
+  if (volta) {
+    await confirmarPelaInfinitepay(volta).catch((erro) =>
+      console.error("infinitepay na volta:", (erro as Error).message),
+    );
+  }
+
   // A Stripe devolve o cliente com ?pago=1 depois da página de cartão.
-  const voltouDoCartao = pago === "1";
+  const voltouDoCartao = busca.pago === "1" || Boolean(volta);
   const [agendamento, barbearia] = await Promise.all([
     buscarAgendamento(token),
     casa(),
@@ -107,7 +126,17 @@ export default async function MeuAgendamento({
   // Com a Stripe ligada, a cobrança nasce na hora com o valor deste horário e
   // confirma sozinha. O link fixo do painel vira reserva para quando ela não
   // estiver disponível.
-  const cartaoAutomatico = aguardando && cartaoLigado();
+  const cartaoAutomatico = aguardando && (cartaoLigado() || infinitepayLigado());
+
+  /**
+   * Marcou pela InfinitePay e voltou sem pagar: não existe pix de sempre para
+   * mostrar, então o pagar fica sozinho na tela, e abre a página dela de novo.
+   */
+  const pagarNaInfinitepay =
+    aguardando &&
+    !voltouDoCartao &&
+    agendamento.pix?.status !== "aguardando" &&
+    infinitepayLigado();
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -220,6 +249,15 @@ export default async function MeuAgendamento({
               mensagem={`Oi! Sou ${agendamento.cliente}, acabei de pagar o pix de ${moedaCentavos(agendamento.valorCentavos)} do meu horário de ${quando}, às ${hora}.`}
             />
           </>
+        ) : null}
+
+        {pagarNaInfinitepay ? (
+          <OutrasFormas
+            token={token}
+            valor={moedaCentavos(agendamento.valorCentavos)}
+            whatsapp={barbearia.telefone}
+            semPix
+          />
         ) : null}
 
         {agendamento.podeCancelar ? (

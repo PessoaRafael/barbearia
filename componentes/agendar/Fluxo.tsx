@@ -59,6 +59,7 @@ export function Fluxo({
   pagamentoObrigatorio,
   pedeCpf,
   cartaoDisponivel,
+  naInfinitepay,
   reservaMinutos,
 }: {
   servicos: Servico[];
@@ -70,6 +71,8 @@ export function Fluxo({
   pedeCpf: boolean;
   /** Stripe ligada: o cartão vira opção no passo de pagamento. */
   cartaoDisponivel: boolean;
+  /** Pix e cartão saem pela página da InfinitePay e confirmam sozinhos. */
+  naInfinitepay: boolean;
   reservaMinutos: number;
 }) {
   const primeiroAberto = dias.find((d) => !d.fechado) ?? dias[0];
@@ -419,12 +422,13 @@ export function Fluxo({
       }
 
       /**
-       * Cartão: a página é da Stripe, então a tela sai daqui. O horário já
-       * está reservado e o pix já existe — se ele desistir e voltar, cai no
-       * QR normalmente, sem perder a cadeira.
+       * A página de pagamento é de fora (InfinitePay, ou Stripe no cartão),
+       * então a tela sai daqui. O horário já está reservado: se ele desistir
+       * e voltar, o link do horário oferece pagar de novo, sem perder a
+       * cadeira até a reserva vencer.
        */
-      if (saida.cartaoUrl) {
-        window.location.href = saida.cartaoUrl;
+      if (saida.pagamentoUrl) {
+        window.location.href = saida.pagamentoUrl;
         return;
       }
 
@@ -658,6 +662,7 @@ export function Fluxo({
                       reconhecido={reconhecido}
                       obrigatorio={pagamentoObrigatorio}
                       cartaoDisponivel={cartaoDisponivel}
+                      naInfinitepay={naInfinitepay}
                       forma={forma}
                       onEscolher={escolherForma}
                     >
@@ -841,6 +846,7 @@ function Pagamento({
   servico,
   podeClube,
   cartaoDisponivel,
+  naInfinitepay,
   planoCobre,
   quando,
   reconhecido,
@@ -852,6 +858,7 @@ function Pagamento({
   servico: Servico;
   podeClube: boolean;
   cartaoDisponivel: boolean;
+  naInfinitepay: boolean;
   planoCobre: boolean;
   quando: string;
   reconhecido: Reconhecido | null;
@@ -920,9 +927,11 @@ function Pagamento({
                 : "Pagar no pix agora"
             }
             apoio={
-              obrigatorio
-                ? "A cadeira fica reservada enquanto o pix não cai. O QR aparece ao confirmar."
-                : "O QR e o código copia e cola aparecem assim que você confirmar."
+              naInfinitepay
+                ? "O QR abre na página da InfinitePay ao confirmar. Quando o pix cai, seu horário confirma sozinho."
+                : obrigatorio
+                  ? "A cadeira fica reservada enquanto o pix não cai. O QR aparece ao confirmar."
+                  : "O QR e o código copia e cola aparecem assim que você confirmar."
             }
             valor={cheio}
             ativo={forma === "pix"}
@@ -945,7 +954,7 @@ function Pagamento({
             <Opcao
               icone={<CreditCard className="h-5 w-5" strokeWidth={2} />}
               titulo="Pagar no cartão"
-              apoio="Crédito ou débito, na página segura da Stripe. Seu horário confirma na hora, sem esperar ninguém."
+              apoio={`Crédito ou débito, na página segura da ${naInfinitepay ? "InfinitePay" : "Stripe"}. Seu horário confirma na hora, sem esperar ninguém.`}
               valor={cheio}
               ativo={forma === "cartao"}
               onClick={() => onEscolher("cartao")}

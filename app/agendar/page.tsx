@@ -5,6 +5,7 @@ import { Logo } from "@/componentes/base";
 import { Fluxo } from "@/componentes/agendar/Fluxo";
 import { proximosDias } from "@/lib/agenda/dias";
 import { barbeirosAtivos, casa, servicosAtivos } from "@/lib/dados/casa";
+import { infinitepayLigado } from "@/lib/payments/infinitepay";
 import { provedorAtual } from "@/lib/payments/provider";
 import { cartaoLigado } from "@/lib/payments/stripe";
 
@@ -72,7 +73,8 @@ export default async function Agendar() {
         }}
         pagamentoObrigatorio={barbearia.pagamento_modalidade === "obrigatorio"}
         pedeCpf={provedorAtual().pedeCpf}
-        cartaoDisponivel={cartaoLigado()}
+        cartaoDisponivel={cartaoLigado() || infinitepayLigado()}
+        naInfinitepay={infinitepayLigado()}
         reservaMinutos={barbearia.reserva_minutos}
       />
     </div>

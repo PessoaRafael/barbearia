@@ -14,23 +14,29 @@ import { pagarComCartao } from "@/app/meu-agendamento/[token]/acoes";
  *
  * Dois caminhos, e o componente aceita os dois:
  *
- *   token  — cobrança criada na hora pela Stripe, com o valor deste horário.
- *            Confirma sozinho na agenda quando o cliente termina de pagar.
+ *   token  — cobrança criada na hora pela InfinitePay (ou pela Stripe), com
+ *            o valor deste horário. Confirma sozinho na agenda quando o
+ *            cliente termina de pagar.
  *   url    — link fixo colado no painel, sem integração. Confirmação na mão.
  *
  * Se nenhum dos dois vier, o componente não aparece: o pix acima continua
  * inteiro, e nenhum caminho novo pode deixar alguém sem conseguir pagar.
+ *
+ * `semPix`: marcou pela InfinitePay e voltou sem pagar. Não há pix acima, e
+ * a página dela tem o pix e o cartão, então este vira o único caminho.
  */
 export function OutrasFormas({
   token,
   url,
   valor,
   whatsapp,
+  semPix = false,
 }: {
   token?: string | null;
   url?: string | null;
   valor: string;
   whatsapp?: string | null;
+  semPix?: boolean;
 }) {
   const [erro, setErro] = useState<string | null>(null);
   const [indo, comecar] = useTransition();
@@ -53,7 +59,7 @@ export function OutrasFormas({
       <div className="flex items-center gap-2">
         <CreditCard className="h-4 w-4 shrink-0 text-texto-suave" strokeWidth={2} />
         <span className="font-titulo text-sm font-semibold text-texto">
-          Prefere cartão?
+          {semPix ? "Falta pagar" : "Prefere cartão?"}
         </span>
       </div>
 
@@ -64,7 +70,9 @@ export function OutrasFormas({
           disabled={indo}
           className="inline-flex min-h-toque items-center justify-center gap-2 rounded-pill border border-borda-forte px-5 font-titulo text-sm font-semibold text-texto transition-colors hover:border-acao hover:text-acao disabled:opacity-60"
         >
-          {indo ? "Abrindo..." : `Pagar ${valor} no cartão`}
+          {indo
+            ? "Abrindo..."
+            : `Pagar ${valor} ${semPix ? "no pix ou cartão" : "no cartão"}`}
           <ExternalLink className="h-4 w-4 shrink-0" strokeWidth={2} />
         </button>
       ) : (
@@ -88,14 +96,22 @@ export function OutrasFormas({
 
       <p className="text-xs text-texto-suave">
         {token
-          ? "Abre a página segura da Stripe. Assim que o pagamento passa, seu horário confirma sozinho — não precisa avisar ninguém."
+          ? "Abre a página segura de pagamento. Assim que o pagamento passa, seu horário confirma sozinho — não precisa avisar ninguém."
           : "Abre a página do PagBank, onde dá para parcelar no crédito, pagar no débito ou no pix. O barbeiro confirma quando o pagamento cair."}
       </p>
 
-      <p className="text-xs text-texto-apagado">
-        Se a página não abrir, use o pix aqui de cima
-        {whatsapp ? ` ou chame no ${whatsapp}` : ""}.
-      </p>
+      {semPix ? (
+        whatsapp ? (
+          <p className="text-xs text-texto-apagado">
+            Se a página não abrir, chame no {whatsapp}.
+          </p>
+        ) : null
+      ) : (
+        <p className="text-xs text-texto-apagado">
+          Se a página não abrir, use o pix aqui de cima
+          {whatsapp ? ` ou chame no ${whatsapp}` : ""}.
+        </p>
+      )}
     </div>
   );
 }
