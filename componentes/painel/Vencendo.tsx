@@ -17,6 +17,7 @@ export type Vencendo = {
   cicloFim: string;
   dias: number;
   vencida: boolean;
+  linkPagar: string | null;
 };
 
 /**
@@ -111,7 +112,11 @@ export function Vencendo({ lista }: { lista: Vencendo[] }) {
               : a.dias === 0
                 ? "vence hoje"
                 : `vence em ${a.dias} dia${a.dias > 1 ? "s" : ""}`
-          }. São ${moedaCentavos(a.precoCentavos)} no pix. Assim que cair eu já libero seus cortes.`;
+          }. ${
+            a.linkPagar
+              ? `São ${moedaCentavos(a.precoCentavos)}, no pix ou cartão por aqui: ${a.linkPagar} Assim que pagar, seus cortes liberam sozinhos.`
+              : `São ${moedaCentavos(a.precoCentavos)} no pix. Assim que cair eu já libero seus cortes.`
+          }`;
 
           return (
             <li

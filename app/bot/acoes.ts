@@ -90,6 +90,11 @@ export type Resposta = {
     linkCartao: string | null;
     cartaoAutomatico: boolean;
   } | null;
+  /**
+   * Com a InfinitePay, o lugar do QR é um botão para a página dela: o pix e
+   * o cartão estão lá, e o horário confirma sozinho quando o pagamento passa.
+   */
+  pagamento?: { url: string; valor: string } | null;
 };
 
 /**
@@ -813,14 +818,23 @@ export async function conversar(
     "";
 
   const aguardando = saida.status === "pendente_pagamento";
+  const naInfinitepay = Boolean(saida.pagamentoUrl);
 
   falas.push(
     aguardando
-      ? `Reservei ${quando} às ${estado.hora} com ${barbeiroFinal}. Ainda não está confirmado: o Johny confere o pix e dá o ok.`
+      ? naInfinitepay
+        ? `Reservei ${quando} às ${estado.hora} com ${barbeiroFinal}. Falta só pagar: quando o pagamento passa, o horário confirma sozinho.`
+        : `Reservei ${quando} às ${estado.hora} com ${barbeiroFinal}. Ainda não está confirmado: o Johny confere o pix e dá o ok.`
       : `Pronto! ${servico.nome} ${quando} às ${estado.hora} com ${barbeiroFinal}.`,
   );
 
-  if (saida.pix) {
+  if (naInfinitepay) {
+    falas.push(
+      aguardando
+        ? `São ${moedaCentavos(saida.valorCentavos)}, no pix ou no cartão pelo botão aqui embaixo. O horário fica seguro por ${barbearia.reserva_minutos} minutos.`
+        : `São ${moedaCentavos(saida.valorCentavos)}. Se quiser adiantar, é só pagar pelo botão aqui embaixo.`,
+    );
+  } else if (saida.pix) {
     falas.push(
       aguardando
         ? `São ${moedaCentavos(saida.valorCentavos)}. Aponta a câmera do banco no QR ou copia o código, o horário fica seguro por ${barbearia.reserva_minutos} minutos.`
@@ -853,6 +867,9 @@ export async function conversar(
           linkCartao: saida.pix.linkCartao,
           cartaoAutomatico: saida.pix.cartaoAutomatico,
         }
+      : null,
+    pagamento: saida.pagamentoUrl
+      ? { url: saida.pagamentoUrl, valor: moedaCentavos(saida.valorCentavos) }
       : null,
   };
 }

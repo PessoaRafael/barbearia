@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 
-import { ChevronLeft, Lightbulb, SendHorizontal, X } from "lucide-react";
+import { ChevronLeft, ExternalLink, Lightbulb, SendHorizontal, X } from "lucide-react";
 
 import {
   conversar,
@@ -38,6 +38,7 @@ export function Conversa({
   const [texto, setTexto] = useState("");
   const [token, setToken] = useState<string | null>(null);
   const [pix, setPix] = useState<Resposta["pix"]>(null);
+  const [pagamento, setPagamento] = useState<Resposta["pagamento"]>(null);
   const [pensando, comecar] = useTransition();
 
   const fim = useRef<HTMLDivElement>(null);
@@ -74,6 +75,7 @@ export function Conversa({
       setOpcoes(r.opcoes);
       if (r.token) setToken(r.token);
       if (r.pix) setPix(r.pix);
+      if (r.pagamento) setPagamento(r.pagamento);
     });
   }
 
@@ -205,6 +207,27 @@ export function Conversa({
                   />
                 </div>
               ) : null}
+            </div>
+          </div>
+        ) : null}
+
+        {/* Pagar pela InfinitePay sai da conversa, e é o único jeito: o pix e
+            o cartão moram na página dela. A volta cai no link do horário,
+            que já mostra se confirmou. */}
+        {pagamento ? (
+          <div className="flex justify-start">
+            <div className="flex w-full max-w-[92%] flex-col gap-3 rounded-card border border-borda bg-superficie p-4">
+              <a
+                href={pagamento.url}
+                className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-pill bg-acao px-6 font-titulo text-base font-bold text-acao-sobre transition-colors hover:bg-acao-hover"
+              >
+                Pagar {pagamento.valor} no pix ou cartão
+                <ExternalLink className="h-4 w-4 shrink-0" strokeWidth={2} />
+              </a>
+              <p className="text-xs text-texto-suave">
+                Abre a página segura da InfinitePay. Quando o pagamento passa,
+                seu horário confirma sozinho, sem precisar avisar ninguém.
+              </p>
             </div>
           </div>
         ) : null}

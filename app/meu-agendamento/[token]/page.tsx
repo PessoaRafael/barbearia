@@ -59,6 +59,18 @@ const APARENCIA: Record<
     texto: "Se foi engano, fale com a barbearia.",
     tom: "alerta",
   },
+  falta_pagar: {
+    titulo: "Reservado, falta pagar",
+    texto:
+      "A cadeira está no seu nome. Assim que o pagamento passa, o horário confirma sozinho.",
+    tom: "alerta",
+  },
+  pago_sem_horario: {
+    titulo: "Seu pagamento entrou, mas o horário foi ocupado",
+    texto:
+      "A reserva tinha vencido quando o pagamento caiu, e outro cliente já tinha marcado esse horário. O Johny vai te chamar no WhatsApp para te encaixar em outro horário sem pagar de novo, ou devolver o valor.",
+    tom: "alerta",
+  },
 };
 
 export default async function MeuAgendamento({
@@ -83,8 +95,6 @@ export default async function MeuAgendamento({
     );
   }
 
-  // A Stripe devolve o cliente com ?pago=1 depois da página de cartão.
-  const voltouDoCartao = busca.pago === "1" || Boolean(volta);
   const [agendamento, barbearia] = await Promise.all([
     buscarAgendamento(token),
     casa(),
@@ -92,7 +102,25 @@ export default async function MeuAgendamento({
 
   if (!agendamento) notFound();
 
-  const visual = APARENCIA[agendamento.status] ?? APARENCIA.confirmado;
+  // A Stripe devolve o cliente com ?pago=1 depois da página de cartão. Pago
+  // sem horário não ganha o "aprovado, confirmando...": não vai confirmar.
+  const voltouDoCartao =
+    (busca.pago === "1" || Boolean(volta)) && !agendamento.pagoSemHorario;
+
+  /**
+   * Na InfinitePay quem confirma é o pagamento, não o Johny. "Esperando o ok
+   * do Johny" mandava o cliente cobrar uma conferência que não existe mais.
+   * Só vale quando não há pix de sempre esperando: se a InfinitePay falhou na
+   * hora de marcar, o pix ainda é o dele.
+   */
+  const pelaInfinitepay =
+    infinitepayLigado() && agendamento.pix?.status !== "aguardando";
+
+  const visual = agendamento.pagoSemHorario
+    ? APARENCIA.pago_sem_horario
+    : agendamento.status === "pendente_pagamento" && pelaInfinitepay
+      ? APARENCIA.falta_pagar
+      : (APARENCIA[agendamento.status] ?? APARENCIA.confirmado);
   const inicio = new Date(agendamento.inicio);
 
   const quando = inicio.toLocaleString("pt-BR", {
@@ -132,11 +160,7 @@ export default async function MeuAgendamento({
    * Marcou pela InfinitePay e voltou sem pagar: não existe pix de sempre para
    * mostrar, então o pagar fica sozinho na tela, e abre a página dela de novo.
    */
-  const pagarNaInfinitepay =
-    aguardando &&
-    !voltouDoCartao &&
-    agendamento.pix?.status !== "aguardando" &&
-    infinitepayLigado();
+  const pagarNaInfinitepay = aguardando && !voltouDoCartao && pelaInfinitepay;
 
   return (
     <div className="flex min-h-screen flex-col">

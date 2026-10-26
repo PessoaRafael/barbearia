@@ -10,6 +10,9 @@ import { diasEmTexto } from "@/lib/dados/casa";
 import { moedaCentavos, telefoneBonito } from "@/lib/formato";
 import { Aniversario } from "@/componentes/clube/Aniversario";
 import { Assinatura } from "@/componentes/clube/Assinatura";
+import { PagarMensalidade } from "@/componentes/clube/PagarMensalidade";
+import { tokenDaMensalidade } from "@/lib/clube/link";
+import { infinitepayLigado } from "@/lib/payments/infinitepay";
 import { clienteServico } from "@/lib/supabase/servidor";
 
 /**
@@ -167,11 +170,21 @@ export default async function AreaDoClube() {
                   Até acertar, o corte sai no valor normal.
                 </span>
               </p>
-              <p className="num text-sm text-texto-suave">
-                São {moedaCentavos(area.mensalidade)} no pix{" "}
-                {telefoneBonito(barbearia.pix_key ?? "")}. Depois de pagar, avise
-                o Johny que ele libera.
-              </p>
+              {/* Com a InfinitePay, paga aqui e o clube volta a valer
+                  sozinho. A chave pix sai da tela, senão ele paga nela e
+                  volta a esperar o Johny conferir. */}
+              {infinitepayLigado() && sessao.clienteId ? (
+                <PagarMensalidade
+                  token={tokenDaMensalidade(sessao.clienteId)}
+                  rotulo={`Pagar ${moedaCentavos(area.mensalidade)} no pix ou cartão`}
+                />
+              ) : (
+                <p className="num text-sm text-texto-suave">
+                  São {moedaCentavos(area.mensalidade)} no pix{" "}
+                  {telefoneBonito(barbearia.pix_key ?? "")}. Depois de pagar, avise
+                  o Johny que ele libera.
+                </p>
+              )}
             </>
           ) : (
             <p className="text-texto-medio">

@@ -25,6 +25,8 @@ export type Agendamento = {
   cliente: string;
   telefone: string;
   pix: { brcode: string; expiraEm: string | null; status: string } | null;
+  /** Pagou pela InfinitePay depois de a reserva vencer, e a cadeira já era de outro. */
+  pagoSemHorario: boolean;
   podeCancelar: boolean;
 };
 
@@ -62,13 +64,13 @@ export async function buscarAgendamento(
    * tela o "QR" de uma cobrança de cartão ou da InfinitePay, que não tem
    * código nenhum.
    */
-  const pagamento =
-    ((data.payments ?? []) as {
-      brcode: string;
-      expira_em: string | null;
-      status: string;
-      metodo: string;
-    }[]).find((p) => p.metodo === "pix") ?? null;
+  const cobrancas = (data.payments ?? []) as {
+    brcode: string;
+    expira_em: string | null;
+    status: string;
+    metodo: string;
+  }[];
+  const pagamento = cobrancas.find((p) => p.metodo === "pix") ?? null;
 
   /**
    * Tudo o que ele marcou, e não só o serviço principal.
@@ -123,6 +125,7 @@ export async function buscarAgendamento(
           status: pagamento.status,
         }
       : null,
+    pagoSemHorario: cobrancas.some((p) => p.status === "pago_sem_horario"),
     podeCancelar:
       vivo && faltam > HORAS_LIMITE_CANCELAMENTO * 60 * 60 * 1000,
   };

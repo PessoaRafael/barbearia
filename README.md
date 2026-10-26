@@ -160,7 +160,17 @@ para a página da InfinitePay, e o horário confirma sozinho: pelo aviso em
 `/api/webhook/infinitepay` ou pela volta em `/meu-agendamento/<token>`, os dois
 conferindo no `payment_check`. A cobrança grava o método `infinitepay` (0035)
 para não cair na aba "Pix a conferir". Falhou, o cliente cai no pix de sempre.
-O bot continua no pix de sempre.
+O bot também cobra por ela, com um botão no lugar do QR.
+
+A mensalidade do clube também (0036). Cada assinante tem um link fixo,
+`/mensalidade/<token>`, assinado com o `SESSION_SECRET`, que vai sozinho no
+"Cobrar" do painel. Pagou, `ativarAssinatura` empurra o ciclo; pago antes de
+vencer, o mês novo começa onde o atual termina. `cobrancas_do_clube` garante
+que aviso repetido não renove duas vezes.
+
+Pagou depois de a reserva vencer e a cadeira já era de outro: o pagamento vira
+`pago_sem_horario`, a tela do cliente explica, e a mensagem para remarcar ou
+devolver entra na fila do Johny. A API de link da InfinitePay não tem estorno.
 
 ## Clube
 

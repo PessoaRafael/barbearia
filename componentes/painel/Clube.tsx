@@ -48,6 +48,8 @@ export type Assinante = {
   nascimento: string | null;
   planoDias: number[];
   chave: { id: string; prefixo: string; ultimoAcesso: string | null } | null;
+  /** O link da mensalidade na InfinitePay, quando ela está ligada. */
+  linkPagar: string | null;
   /** A última renovação na mão, quando ainda dá para voltar atrás. */
   desfazer: {
     cicloAnteriorFim: string;
@@ -328,6 +330,7 @@ export function Clube({
                       quando: dia(a.proximaCobranca),
                       valor: moedaCentavos(a.precoCentavos),
                       pix: pixKey,
+                      link: a.linkPagar ?? "",
                     })}
                   />
                 ) : null}

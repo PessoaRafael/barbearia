@@ -500,15 +500,14 @@ export async function reservar(
    * Por isso o pix de sempre nem nasce: com os dois na tela, o cliente podia
    * pagar o QR antigo e voltar a depender do "Recebi".
    *
-   * O bot fica no pix de sempre. Ele mostra o QR dentro da conversa, e mandar
-   * o cliente para outra página no meio do chat é outra conversa.
+   * Vale para o bot também: lá a conversa mostra o botão de pagar no lugar
+   * do QR.
    *
    * Falhou a InfinitePay, segue para o pix de sempre logo abaixo: provedor
    * fora do ar não pode custar o agendamento.
    */
   if (
     infinitepayLigado() &&
-    dados.origem === "link" &&
     (querPix || dados.formaPagamento === "cartao") &&
     agendamento.valor_centavos > 0
   ) {

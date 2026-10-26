@@ -10,8 +10,10 @@ import { PainelPix } from "@/componentes/agendar/PainelPix";
 /**
  * Assinar o clube sem sair da landing.
  *
- * O pix nasce na hora, mas a assinatura só vale quando o Johny confirma no
- * painel, igual ao pix de agendamento: a palavra do cliente nunca ativa nada.
+ * Com a InfinitePay, o cliente paga na página dela e o clube liga sozinho
+ * quando o pagamento passa. Sem ela, o pix nasce na hora, mas a assinatura só
+ * vale quando o Johny confirma no painel: a palavra do cliente nunca ativa
+ * nada.
  */
 export function ModalClube({
   planoId,
@@ -20,6 +22,7 @@ export function ModalClube({
   dias,
   beneficios,
   cartaoDisponivel = false,
+  naInfinitepay = false,
 }: {
   planoId: string;
   plano: string;
@@ -28,12 +31,14 @@ export function ModalClube({
   beneficios: string[];
   /** Stripe ligada: dá para assinar no cartão, e aí a liberação é na hora. */
   cartaoDisponivel?: boolean;
+  /** Pix e cartão pela página da InfinitePay, e o clube libera sozinho. */
+  naInfinitepay?: boolean;
 }) {
   const [aberto, setAberto] = useState(false);
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [erro, setErro] = useState<string | null>(null);
-  const [pago, setPago] = useState<Extract<PedidoClube, { ok: true }> | null>(null);
+  const [pago, setPago] = useState<Extract<PedidoClube, { brcode: string }> | null>(null);
   const [rodando, comecar] = useTransition();
 
   // Esc fecha, e a página atrás para de rolar enquanto o modal está aberto.
@@ -187,6 +192,9 @@ export function ModalClube({
                       comecar(async () => {
                         const r = await pedirClube({ nome, telefone, planoId });
                         if (!r.ok) setErro(r.erro);
+                        // InfinitePay: sai para a página dela. Se ela falhou,
+                        // o servidor já devolveu o pix de sempre.
+                        else if ("pagamentoUrl" in r) window.location.href = r.pagamentoUrl;
                         else setPago(r);
                       })
                     }
@@ -196,14 +204,20 @@ export function ModalClube({
                         : "cursor-not-allowed border border-borda bg-superficie-apagada text-texto-apagado"
                     }`}
                   >
-                    {rodando ? "Gerando o pix..." : `Gerar pix de ${preco}`}
+                    {rodando
+                      ? naInfinitepay
+                        ? "Abrindo o pagamento..."
+                        : "Gerando o pix..."
+                      : naInfinitepay
+                        ? `Pagar ${preco} no pix ou cartão`
+                        : `Gerar pix de ${preco}`}
                   </button>
 
                   {/* Cartão libera o clube na hora, porque a confirmação
                       chega sozinha. No pix quem libera é o Johny depois de
                       conferir, e é por isso que os dois textos são
                       diferentes: a espera não é a mesma. */}
-                  {cartaoDisponivel ? (
+                  {cartaoDisponivel && !naInfinitepay ? (
                     <button
                       type="button"
                       disabled={!valido || rodando}
@@ -234,9 +248,11 @@ export function ModalClube({
 
                   <p className="text-xs text-texto-suave">
                     Cancela quando quiser, sem multa.{" "}
-                    {cartaoDisponivel
-                      ? "No cartão o clube libera na hora; no pix o Johny confirma e libera."
-                      : "O Johny confirma o pagamento e libera seus cortes."}
+                    {naInfinitepay
+                      ? "No pix ou no cartão, o clube libera assim que o pagamento passa."
+                      : cartaoDisponivel
+                        ? "No cartão o clube libera na hora; no pix o Johny confirma e libera."
+                        : "O Johny confirma o pagamento e libera seus cortes."}
                   </p>
                 </div>
               </div>

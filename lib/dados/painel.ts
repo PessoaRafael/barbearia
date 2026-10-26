@@ -8,6 +8,8 @@ import { lerSessao, type Sessao } from "@/lib/auth/sessao";
 export type Escopo = { chaveId: string; barbeariaId: string };
 import { clienteServico } from "@/lib/supabase/servidor";
 import { hojeNaCasa } from "@/lib/agenda/dias";
+import { linkDaMensalidade } from "@/lib/clube/link";
+import { infinitepayLigado } from "@/lib/payments/infinitepay";
 import { diaDaSemana } from "@/lib/agenda/disponibilidade";
 
 /**
@@ -444,6 +446,7 @@ export const assinantes = cache(async (escopo: Escopo) => {
             ultimoAcesso: chave.ultimo_acesso as string | null,
           }
         : null,
+      linkPagar: infinitepayLigado() ? linkDaMensalidade(s.client_id as string) : null,
     };
   });
 });
@@ -562,7 +565,7 @@ export const mensalidadesVencendo = cache(async (escopo: Escopo) => {
   const { data } = await clienteServico()
     .from("subscriptions")
     .select(
-      "id, ciclo_fim, preco_centavos, status, clients(nome, telefone), club_plans(nome)",
+      "id, client_id, ciclo_fim, preco_centavos, status, clients(nome, telefone), club_plans(nome)",
     )
     .eq("barbershop_id", escopo.barbeariaId)
     .neq("status", "cancelada")
@@ -589,6 +592,11 @@ export const mensalidadesVencendo = cache(async (escopo: Escopo) => {
       /** Negativo quer dizer que já venceu. */
       dias: Math.round((fim - hoje) / 86400000),
       vencida: s.status === "vencida",
+      /**
+       * Com a InfinitePay, a cobrança leva o link da mensalidade em vez da
+       * chave pix: o assinante paga e o ciclo anda sozinho, sem o "Renovar".
+       */
+      linkPagar: infinitepayLigado() ? linkDaMensalidade(s.client_id as string) : null,
     };
   });
 });

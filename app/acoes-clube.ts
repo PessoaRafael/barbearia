@@ -2,9 +2,14 @@
 
 import { z } from "zod";
 
+import { linkDaMensalidade } from "@/lib/clube/link";
 import { casa } from "@/lib/dados/casa";
 import { moedaCentavos, telefoneChave } from "@/lib/formato";
 import { enfileirar } from "@/lib/notify/whatsapp";
+import {
+  cobrarMensalidadeNaInfinitepay,
+  infinitepayLigado,
+} from "@/lib/payments/infinitepay";
 import { linkDoValor } from "@/lib/payments/links";
 import { provedorAtual } from "@/lib/payments/provider";
 import {
@@ -18,9 +23,10 @@ import { clienteServico } from "@/lib/supabase/servidor";
 /**
  * Entrada no clube pela landing.
  *
- * Gera o pix da mensalidade na hora, mas NÃO ativa a assinatura: quem confirma
- * que o dinheiro caiu continua sendo o Johny, no painel, igual ao pix de
- * agendamento. O cliente entra na fila de cobrança com o pedido registrado.
+ * Com a InfinitePay ligada, manda para a página dela e o clube liga sozinho
+ * quando o pagamento passa. Sem ela, gera o pix da mensalidade na hora, mas
+ * NÃO ativa a assinatura: quem confirma que o dinheiro caiu é o Johny, no
+ * painel, igual ao pix de agendamento.
  */
 
 const entrada = z.object({
@@ -42,6 +48,8 @@ export type PedidoClube =
       /** Link de cartão do PagBank para a mensalidade, se houver. */
       linkCartao: string | null;
     }
+  /** A página da InfinitePay, para onde a tela manda o cliente. */
+  | { ok: true; pagamentoUrl: string }
   | { ok: false; erro: string };
 
 export async function pedirClube(
@@ -91,6 +99,30 @@ export async function pedirClube(
     .eq("client_id", cliente.id)
     .eq("status", "ativa")
     .maybeSingle();
+
+  /**
+   * O pix de sempre nem nasce com a InfinitePay ligada: com os dois na tela,
+   * o cliente podia pagar o QR antigo e voltar a esperar o Johny conferir.
+   *
+   * Quem já é do clube e paga aqui adianta o próximo mês, que começa onde o
+   * atual termina. Falhou a InfinitePay, segue para o pix de sempre abaixo.
+   */
+  if (infinitepayLigado()) {
+    try {
+      const pagamentoUrl = await cobrarMensalidadeNaInfinitepay({
+        barbeariaId: barbearia.id,
+        clienteId: cliente.id,
+        planoId: plano.id,
+        valorCentavos: plano.preco_centavos,
+        descricao: `Mensalidade ${plano.nome}`,
+        clienteNome: analise.data.nome,
+        volta: linkDaMensalidade(cliente.id),
+      });
+      return { ok: true, pagamentoUrl };
+    } catch (erro) {
+      console.error("infinitepay clube: link nao criado, vai no pix:", (erro as Error).message);
+    }
+  }
 
   const cobranca = await provedorAtual().criarCobranca({
     barbeariaId: barbearia.id,

@@ -14,6 +14,7 @@ export type Template =
   | "cancelamento"
   | "mensalidade_vencendo"
   | "mensalidade_vencida"
+  | "pago_sem_horario"
   | "vaga_liberada";
 
 type Dados = Record<string, string>;
@@ -37,8 +38,16 @@ const TEXTOS: Record<Template, (d: Dados) => string> = {
   mensalidade_vencendo: (d) =>
     `${d.cliente}, sua mensalidade do Clube Johny vence ${d.quando}. São ${d.valor} no pix ${d.pix}.`,
 
+  // Com `link`, a mensalidade é paga pela InfinitePay e libera sozinha: a
+  // chave pix sai da mensagem, senão o assinante paga nela e volta a esperar
+  // o Johny conferir.
   mensalidade_vencida: (d) =>
-    `${d.cliente}, a mensalidade do Clube Johny venceu ${d.quando}. São ${d.valor} no pix ${d.pix} para os cortes continuarem valendo.`,
+    d.link
+      ? `${d.cliente}, a mensalidade do Clube Johny venceu ${d.quando}. São ${d.valor}, no pix ou cartão por aqui: ${d.link} Assim que pagar, seus cortes voltam a valer sozinhos.`
+      : `${d.cliente}, a mensalidade do Clube Johny venceu ${d.quando}. São ${d.valor} no pix ${d.pix} para os cortes continuarem valendo.`,
+
+  pago_sem_horario: (d) =>
+    `${d.cliente}, seu pagamento de ${d.valor} entrou, mas a reserva tinha vencido e o horário de ${d.quando} já era de outro cliente quando ele caiu. Me diz um horário novo que eu te encaixo sem pagar de novo, ou se preferir eu devolvo o valor.`,
 
   vaga_liberada: (d) =>
     `${d.cliente}, vagou um horário ${d.quando} na Johny Barbearia. Se ainda quiser, corre que é por ordem de chegada: ${d.link}`,
