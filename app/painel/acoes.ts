@@ -534,9 +534,6 @@ export async function registrarMensalidade(assinaturaId: string) {
  *
  * Um passo só para trás, e some depois de usado — desfazer duas vezes seguidas
  * jogaria o cliente para um ciclo que nunca existiu.
- *
- * Quem paga no cartão não entra aqui: lá quem empurra o ciclo é a fatura paga,
- * e voltar a data no nosso banco não desfaz cobrança nenhuma na Stripe.
  */
 export async function desfazerRenovacao(assinaturaId: string) {
   const sessao = await exigirDono();
@@ -545,16 +542,13 @@ export async function desfazerRenovacao(assinaturaId: string) {
   const { data: a } = await supabase
     .from("subscriptions")
     .select(
-      "ciclo_anterior_inicio, ciclo_anterior_fim, status_anterior, stripe_subscription_id",
+      "ciclo_anterior_inicio, ciclo_anterior_fim, status_anterior",
     )
     .eq("id", assinaturaId)
     .eq("barbershop_id", sessao.barbeariaId)
     .maybeSingle();
 
   if (!a?.ciclo_anterior_fim) return { erro: "Não tem renovação para desfazer." };
-  if (a.stripe_subscription_id) {
-    return { erro: "Essa é cobrada no cartão. Cancele pela Stripe." };
-  }
 
   const { error } = await supabase
     .from("subscriptions")
@@ -611,15 +605,12 @@ export async function mudarVencimento(assinaturaId: string, data: string) {
 
   const { data: a } = await supabase
     .from("subscriptions")
-    .select("ciclo_inicio, stripe_subscription_id, club_plans(duracao_dias)")
+    .select("ciclo_inicio, club_plans(duracao_dias)")
     .eq("id", assinaturaId)
     .eq("barbershop_id", sessao.barbeariaId)
     .maybeSingle();
 
   if (!a) return { erro: "Não achei essa assinatura." };
-  if (a.stripe_subscription_id) {
-    return { erro: "Essa é cobrada no cartão. A data vem da Stripe." };
-  }
 
   /**
    * O banco não aceita ciclo que termina antes de começar. Quando a data nova

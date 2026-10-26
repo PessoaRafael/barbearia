@@ -554,9 +554,6 @@ export const avisosPendentes = cache(async (escopo: Escopo) => {
  * caindo no mesmo dia: sem aviso, ele acordaria com quase sete mil reais para
  * cobrar de uma vez, e cada dia de atraso é um assinante pagando corte cheio
  * e reclamando na cadeira.
- *
- * Quem paga no cartão fica de fora: a Stripe cobra sozinha, e cutucar essas
- * pessoas seria pedir dinheiro que já está a caminho.
  */
 export const mensalidadesVencendo = cache(async (escopo: Escopo) => {
   const limite = new Date();
@@ -569,7 +566,6 @@ export const mensalidadesVencendo = cache(async (escopo: Escopo) => {
     )
     .eq("barbershop_id", escopo.barbeariaId)
     .neq("status", "cancelada")
-    .is("stripe_subscription_id", null)
     .lte("ciclo_fim", limite.toISOString().slice(0, 10))
     .order("ciclo_fim");
 

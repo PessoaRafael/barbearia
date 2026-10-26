@@ -7,7 +7,6 @@ import { proximosDias } from "@/lib/agenda/dias";
 import { barbeirosAtivos, casa, servicosAtivos } from "@/lib/dados/casa";
 import { infinitepayLigado } from "@/lib/payments/infinitepay";
 import { provedorAtual } from "@/lib/payments/provider";
-import { cartaoLigado } from "@/lib/payments/stripe";
 
 /**
  * Só a moldura é cacheada: serviços, barbeiros e a régua de dias. A grade de
@@ -73,7 +72,7 @@ export default async function Agendar() {
         }}
         pagamentoObrigatorio={barbearia.pagamento_modalidade === "obrigatorio"}
         pedeCpf={provedorAtual().pedeCpf}
-        cartaoDisponivel={cartaoLigado() || infinitepayLigado()}
+        cartaoDisponivel={infinitepayLigado()}
         naInfinitepay={infinitepayLigado()}
         reservaMinutos={barbearia.reserva_minutos}
       />

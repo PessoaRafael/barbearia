@@ -69,7 +69,7 @@ export function Fluxo({
   pagamentoObrigatorio: boolean;
   /** O provedor de pagamento exige CPF e e-mail? Só então a tela pede. */
   pedeCpf: boolean;
-  /** Stripe ligada: o cartão vira opção no passo de pagamento. */
+  /** InfinitePay ligada: o cartão vira opção no passo de pagamento. */
   cartaoDisponivel: boolean;
   /** Pix e cartão saem pela página da InfinitePay e confirmam sozinhos. */
   naInfinitepay: boolean;
@@ -422,8 +422,8 @@ export function Fluxo({
       }
 
       /**
-       * A página de pagamento é de fora (InfinitePay, ou Stripe no cartão),
-       * então a tela sai daqui. O horário já está reservado: se ele desistir
+       * A página de pagamento é de fora (InfinitePay), então a tela sai
+       * daqui. O horário já está reservado: se ele desistir
        * e voltar, o link do horário oferece pagar de novo, sem perder a
        * cadeira até a reserva vencer.
        */
@@ -715,7 +715,7 @@ export function Fluxo({
                         }`}
                       >
                         {/* No cartão o botão leva para fora: dizer só
-                            "confirmar" faria a página da Stripe parecer um
+                            "confirmar" faria a página da InfinitePay parecer um
                             desvio inesperado. */}
                         {enviando
                           ? forma === "cartao"
@@ -954,7 +954,7 @@ function Pagamento({
             <Opcao
               icone={<CreditCard className="h-5 w-5" strokeWidth={2} />}
               titulo="Pagar no cartão"
-              apoio={`Crédito ou débito, na página segura da ${naInfinitepay ? "InfinitePay" : "Stripe"}. Seu horário confirma na hora, sem esperar ninguém.`}
+              apoio="Crédito ou débito, na página segura da InfinitePay. Seu horário confirma na hora, sem esperar ninguém."
               valor={cheio}
               ativo={forma === "cartao"}
               onClick={() => onEscolher("cartao")}

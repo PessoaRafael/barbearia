@@ -14,7 +14,6 @@ import {
   infinitepayLigado,
   lerVolta,
 } from "@/lib/payments/infinitepay";
-import { cartaoLigado } from "@/lib/payments/stripe";
 import { moedaCentavos } from "@/lib/formato";
 import { duracaoLabel } from "@/componentes/agendar/tipos";
 import { HORAS_LIMITE_CANCELAMENTO } from "@/lib/regras";
@@ -102,10 +101,9 @@ export default async function MeuAgendamento({
 
   if (!agendamento) notFound();
 
-  // A Stripe devolve o cliente com ?pago=1 depois da página de cartão. Pago
-  // sem horário não ganha o "aprovado, confirmando...": não vai confirmar.
-  const voltouDoCartao =
-    (busca.pago === "1" || Boolean(volta)) && !agendamento.pagoSemHorario;
+  // Voltou da página de pagamento. Pago sem horário não ganha o "aprovado,
+  // confirmando...": não vai confirmar.
+  const voltouDoCartao = Boolean(volta) && !agendamento.pagoSemHorario;
 
   /**
    * Na InfinitePay quem confirma é o pagamento, não o Johny. "Esperando o ok
@@ -151,10 +149,10 @@ export default async function MeuAgendamento({
     ? await linkDoValor(barbearia.id, agendamento.valorCentavos)
     : null;
 
-  // Com a Stripe ligada, a cobrança nasce na hora com o valor deste horário e
-  // confirma sozinha. O link fixo do painel vira reserva para quando ela não
-  // estiver disponível.
-  const cartaoAutomatico = aguardando && (cartaoLigado() || infinitepayLigado());
+  // Com a InfinitePay ligada, a cobrança nasce na hora com o valor deste
+  // horário e confirma sozinha. O link fixo do painel vira reserva para quando
+  // ela não estiver disponível.
+  const cartaoAutomatico = aguardando && infinitepayLigado();
 
   /**
    * Marcou pela InfinitePay e voltou sem pagar: não existe pix de sempre para

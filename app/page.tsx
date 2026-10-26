@@ -20,7 +20,6 @@ import {
 } from "@/lib/dados/casa";
 import { Expediente, OndeFica, Redes } from "@/componentes/site/OndeFica";
 import { infinitepayLigado } from "@/lib/payments/infinitepay";
-import { cartaoLigado } from "@/lib/payments/stripe";
 import { CASA } from "@/lib/casa";
 import { moedaCentavos } from "@/lib/formato";
 
@@ -252,7 +251,6 @@ function Clube({ planos }: { planos: PlanoClube[] }) {
                   "Escolhe o horário e o barbeiro, como qualquer cliente",
                   "Cancela quando quiser, sem multa",
                 ]}
-                cartaoDisponivel={cartaoLigado()}
                 naInfinitepay={infinitepayLigado()}
               />
             </li>

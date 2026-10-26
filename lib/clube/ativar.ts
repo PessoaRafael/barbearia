@@ -6,9 +6,8 @@ import { clienteServico } from "@/lib/supabase/servidor";
 /**
  * Liga ou renova a assinatura de alguém.
  *
- * Mora aqui, e não dentro da ação do painel, porque são vários caminhos para
- * o mesmo fim: o Johny confirmando na mão depois do pix, o webhook da Stripe
- * quando o cartão passa, e a InfinitePay. Regra de ciclo duplicada em dois
+ * Mora aqui, e não dentro da ação do painel, porque a InfinitePay também liga
+ * assinatura quando o pagamento passa. Regra de ciclo duplicada em dois
  * lugares vira duas regras diferentes na primeira vez que uma delas mudar.
  *
  * O ciclo é contado em dias, não em "mês": o Johny vende 30 dias, e mês civil

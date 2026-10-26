@@ -8,7 +8,6 @@ import { casa } from "@/lib/dados/casa";
 import { avisarNoCelular } from "@/lib/notify/push";
 import { enfileirar } from "@/lib/notify/whatsapp";
 import { cobrarNaInfinitepay, infinitepayLigado } from "@/lib/payments/infinitepay";
-import { cartaoLigado, sessaoDeCartao, sessaoFoiPaga } from "@/lib/payments/stripe";
 import { HORAS_LIMITE_CANCELAMENTO } from "@/lib/regras";
 import { clienteServico } from "@/lib/supabase/servidor";
 
@@ -255,23 +254,16 @@ async function avisarFila(barbeariaId: string, inicio: string) {
 }
 
 /**
- * Página de cartão para este agendamento.
+ * Página de pagamento da InfinitePay para este agendamento.
  *
- * Cria a cobrança na Stripe e guarda uma linha em `payments` com o id da
- * sessão no txid — é por ele que o webhook acha a cobrança quando o cliente
- * termina de pagar, e é isso que faz a agenda confirmar sozinha.
- *
- * O pix não é tocado: a linha dele continua lá, esperando. Quem confirmar
- * primeiro vence, e o webhook encerra a outra.
+ * É o caminho de quem marcou, foi para a página dela e voltou sem pagar, e de
+ * quem tem o pix de sempre na tela e prefere o cartão. Cada toque cria um
+ * link novo com uma linha em `payments`; o pix, se houver, continua lá
+ * esperando, e quem confirmar primeiro encerra o outro.
  */
 export async function pagarComCartao(token: string) {
   if (!/^[a-f0-9]{32}$/i.test(token)) return { erro: "Link inválido." };
-  if (!cartaoLigado() && !infinitepayLigado()) {
-    return { erro: "Cartão não está disponível agora." };
-  }
-
-  const site = process.env.SITE_URL?.replace(/\/$/, "");
-  if (!site) return { erro: "Cartão não está disponível agora." };
+  if (!infinitepayLigado()) return { erro: "Cartão não está disponível agora." };
 
   const supabase = clienteServico();
 
@@ -293,97 +285,30 @@ export async function pagarComCartao(token: string) {
   const cliente = um(ag.clients as never) as { nome: string; email: string | null } | null;
   const servico = um(ag.services as never) as { nome: string } | null;
 
-  /**
-   * InfinitePay na frente: pix ou cartão na mesma página, e confirma sozinho.
-   * É o caminho de quem marcou, foi para a página dela e voltou sem pagar.
-   */
-  if (infinitepayLigado()) {
-    // Herda o prazo da reserva: a cobrança morre junto com ela.
-    const { data: ultima } = await supabase
-      .from("payments")
-      .select("expira_em")
-      .eq("appointment_id", ag.id)
-      .order("criado_em", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    try {
-      const url = await cobrarNaInfinitepay({
-        barbeariaId: ag.barbershop_id as string,
-        agendamentoId: ag.id as string,
-        tokenCliente: token,
-        valorCentavos: ag.valor_centavos as number,
-        descricao: servico?.nome ?? "Horário na barbearia",
-        clienteNome: cliente?.nome ?? "cliente",
-        clienteEmail: cliente?.email ?? null,
-        expiraEm: ultima?.expira_em ?? null,
-      });
-      return { ok: true, url };
-    } catch (erro) {
-      console.error("infinitepay: link nao criado:", (erro as Error).message);
-      // Com a Stripe ligada, ela ainda tenta logo abaixo.
-      if (!cartaoLigado()) {
-        return { erro: "Não consegui abrir o pagamento agora. Chame a barbearia no WhatsApp." };
-      }
-    }
-  }
-
-  // Já existe uma sessão de cartão aberta? Reaproveita, senão cada toque no
-  // botão criaria uma cobrança nova e o cliente veria várias no extrato.
-  const { data: aberta } = await supabase
+  // Herda o prazo da reserva: a cobrança morre junto com ela.
+  const { data: ultima } = await supabase
     .from("payments")
-    .select("txid")
+    .select("expira_em")
     .eq("appointment_id", ag.id)
-    .eq("metodo", "cartao")
-    .eq("status", "aguardando")
+    .order("criado_em", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
-  if (aberta?.txid) {
-    try {
-      if (!(await sessaoFoiPaga(aberta.txid))) {
-        return { ok: true, url: `https://checkout.stripe.com/c/pay/${aberta.txid}` };
-      }
-    } catch {
-      // Sessão sumiu ou expirou do lado deles: segue e cria outra.
-    }
-  }
-
   try {
-    const sessao = await sessaoDeCartao({
+    const url = await cobrarNaInfinitepay({
+      barbeariaId: ag.barbershop_id as string,
       agendamentoId: ag.id as string,
+      tokenCliente: token,
       valorCentavos: ag.valor_centavos as number,
       descricao: servico?.nome ?? "Horário na barbearia",
       clienteNome: cliente?.nome ?? "cliente",
       clienteEmail: cliente?.email ?? null,
-      siteUrl: site,
-      tokenCliente: token,
+      expiraEm: ultima?.expira_em ?? null,
     });
-
-    // Herda o prazo do pix daquele horário: os dois caminhos morrem junto
-    // quando a reserva vence. Sem data, a linha ficaria viva para sempre.
-    const { data: opix } = await supabase
-      .from("payments")
-      .select("expira_em")
-      .eq("appointment_id", ag.id)
-      .eq("metodo", "pix")
-      .order("criado_em", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    await supabase.from("payments").insert({
-      barbershop_id: ag.barbershop_id,
-      appointment_id: ag.id,
-      metodo: "cartao",
-      valor_centavos: ag.valor_centavos,
-      status: "aguardando",
-      txid: sessao.id,
-      expira_em: opix?.expira_em ?? null,
-    });
-
-    return { ok: true, url: sessao.url };
+    return { ok: true, url };
   } catch (erro) {
-    console.error("stripe: nao consegui criar a sessao:", (erro as Error).message);
-    // Falhar aqui não pode custar o horário: o pix continua na tela.
-    return { erro: "Não consegui abrir o cartão agora. Use o pix acima." };
+    console.error("infinitepay: link nao criado:", (erro as Error).message);
+    // Falhar aqui não pode custar o horário: se houver pix, ele segue na tela.
+    return { erro: "Não consegui abrir o pagamento agora. Chame a barbearia no WhatsApp." };
   }
 }

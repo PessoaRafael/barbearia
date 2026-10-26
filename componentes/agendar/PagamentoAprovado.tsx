@@ -10,7 +10,7 @@ import { situacaoDoAgendamento } from "@/app/agendar/acoes";
  * A volta da página do cartão.
  *
  * Duas coisas acontecem ao mesmo tempo quando o cliente termina de pagar: o
- * navegador dele volta para cá, e a Stripe avisa o nosso servidor. Não há
+ * navegador dele volta para cá, e a InfinitePay avisa o nosso servidor. Não há
  * ordem garantida entre as duas — e quando o navegador chega primeiro, o
  * horário ainda está "esperando pagamento".
  *
@@ -32,7 +32,7 @@ export function PagamentoAprovado({
   useEffect(() => {
     if (confirmado) return;
 
-    // Meio minuto de paciência. Passa disso, o aviso da Stripe não veio, e
+    // Meio minuto de paciência. Passa disso, o aviso da InfinitePay não veio, e
     // insistir só deixaria a pessoa olhando um relógio girar.
     const desiste = Date.now() + 30_000;
 

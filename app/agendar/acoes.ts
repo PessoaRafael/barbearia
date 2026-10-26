@@ -15,7 +15,6 @@ import { avisarNoCelular } from "@/lib/notify/push";
 import { enfileirar } from "@/lib/notify/whatsapp";
 import { linkDoValor } from "@/lib/payments/links";
 import { cobrarNaInfinitepay, infinitepayLigado } from "@/lib/payments/infinitepay";
-import { cartaoLigado, sessaoDeCartao } from "@/lib/payments/stripe";
 import { duracaoJunta } from "@/lib/regras";
 import { pixManual, provedorAtual } from "@/lib/payments/provider";
 import { svgDoBrcode } from "@/lib/pix/qr";
@@ -375,8 +374,8 @@ export type Pix = {
    */
   linkCartao: string | null;
   /**
-   * InfinitePay ou Stripe ligada: a tela pode criar a cobrança de cartão na
-   * hora, e ela confirma sozinha.
+   * InfinitePay ligada: a tela pode criar a cobrança de cartão na hora, e ela
+   * confirma sozinha.
    */
   cartaoAutomatico: boolean;
 };
@@ -391,8 +390,8 @@ export type ResultadoReserva =
       pix: Pix | null;
       /**
        * A tela manda o cliente para esta página em vez de mostrar o QR: a da
-       * InfinitePay (pix ou cartão) ou a da Stripe (cartão). Vem null quando
-       * a cobrança não pôde ser criada, e aí a tela cai no pix de sempre.
+       * InfinitePay, com pix e cartão. Vem null quando a cobrança não pôde
+       * ser criada, e aí a tela cai no pix de sempre.
        */
       pagamentoUrl?: string | null;
     }
@@ -491,7 +490,7 @@ export async function reservar(
   const querPix =
     dados.formaPagamento === "pix" || agendamento.status === "pendente_pagamento";
 
-  /** Página de pagamento de fora (InfinitePay ou Stripe) para onde a tela manda. */
+  /** A página da InfinitePay, para onde a tela manda o cliente. */
   let pagamentoUrl: string | null = null;
 
   /**
@@ -634,7 +633,7 @@ export async function reservar(
         casaAtual.id,
         agendamento.valor_centavos,
       ),
-      cartaoAutomatico: cartaoLigado() || infinitepayLigado(),
+      cartaoAutomatico: infinitepayLigado(),
     };
   }
 
@@ -674,46 +673,6 @@ export async function reservar(
       barbeiro: quem?.apelido ?? "a equipe",
     },
   });
-
-  /**
-   * Cartão escolhido no passo de pagamento.
-   *
-   * O pix já foi criado acima e continua valendo — é a rede embaixo. Se a
-   * Stripe não responder, o cliente cai na tela do QR em vez de ficar sem
-   * caminho nenhum, e o horário dele já está reservado de qualquer jeito.
-   */
-  if (dados.formaPagamento === "cartao" && cartaoLigado() && pix) {
-    try {
-      const site = process.env.SITE_URL?.replace(/\/$/, "");
-      if (!site) throw new Error("sem SITE_URL");
-
-      const sessao = await sessaoDeCartao({
-        agendamentoId: agendamento.id,
-        valorCentavos: agendamento.valor_centavos,
-        descricao: nomeDosServicos,
-        clienteNome: dados.nome,
-        clienteEmail: dados.email ?? null,
-        siteUrl: site,
-        tokenCliente: agendamento.token_cliente,
-      });
-
-      await supabase.from("payments").insert({
-        barbershop_id: casaAtual.id,
-        appointment_id: agendamento.id,
-        metodo: "cartao",
-        valor_centavos: agendamento.valor_centavos,
-        status: "aguardando",
-        txid: sessao.id,
-        // Mesmo prazo da reserva. Sem data, a linha nunca expira e fica viva
-        // para sempre num horário que já voltou para a grade.
-        expira_em: pix.expiraEm,
-      });
-
-      pagamentoUrl = sessao.url;
-    } catch (erro) {
-      console.error("stripe: sessao nao criada:", (erro as Error).message);
-    }
-  }
 
   return {
     ok: true,

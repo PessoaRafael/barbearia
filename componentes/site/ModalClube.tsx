@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Check, CreditCard, Crown, TriangleAlert, X } from "lucide-react";
+import { Check, Crown, TriangleAlert, X } from "lucide-react";
 
-import { assinarNoCartao, pedirClube, type PedidoClube } from "@/app/acoes-clube";
+import { pedirClube, type PedidoClube } from "@/app/acoes-clube";
 import { OutrasFormas } from "@/componentes/agendar/OutrasFormas";
 import { PainelPix } from "@/componentes/agendar/PainelPix";
 
@@ -21,7 +21,6 @@ export function ModalClube({
   preco,
   dias,
   beneficios,
-  cartaoDisponivel = false,
   naInfinitepay = false,
 }: {
   planoId: string;
@@ -29,8 +28,6 @@ export function ModalClube({
   preco: string;
   dias: string;
   beneficios: string[];
-  /** Stripe ligada: dá para assinar no cartão, e aí a liberação é na hora. */
-  cartaoDisponivel?: boolean;
   /** Pix e cartão pela página da InfinitePay, e o clube libera sozinho. */
   naInfinitepay?: boolean;
 }) {
@@ -213,46 +210,11 @@ export function ModalClube({
                         : `Gerar pix de ${preco}`}
                   </button>
 
-                  {/* Cartão libera o clube na hora, porque a confirmação
-                      chega sozinha. No pix quem libera é o Johny depois de
-                      conferir, e é por isso que os dois textos são
-                      diferentes: a espera não é a mesma. */}
-                  {cartaoDisponivel && !naInfinitepay ? (
-                    <button
-                      type="button"
-                      disabled={!valido || rodando}
-                      onClick={() =>
-                        comecar(async () => {
-                          const r = await assinarNoCartao({
-                            nome,
-                            telefone,
-                            planoId,
-                          });
-                          if (r.erro || !r.url) {
-                            setErro(r.erro ?? "Não consegui abrir o cartão.");
-                            return;
-                          }
-                          window.location.href = r.url;
-                        })
-                      }
-                      className={`inline-flex min-h-[52px] items-center justify-center gap-2 rounded-pill border px-6 font-titulo text-base font-semibold transition-colors ${
-                        valido && !rodando
-                          ? "border-borda-forte text-texto hover:border-clube hover:text-clube"
-                          : "cursor-not-allowed border-borda text-texto-apagado"
-                      }`}
-                    >
-                      <CreditCard className="h-5 w-5 shrink-0" strokeWidth={2} />
-                      Assinar no cartão · {preco}
-                    </button>
-                  ) : null}
-
                   <p className="text-xs text-texto-suave">
                     Cancela quando quiser, sem multa.{" "}
                     {naInfinitepay
                       ? "No pix ou no cartão, o clube libera assim que o pagamento passa."
-                      : cartaoDisponivel
-                        ? "No cartão o clube libera na hora; no pix o Johny confirma e libera."
-                        : "O Johny confirma o pagamento e libera seus cortes."}
+                      : "O Johny confirma o pagamento e libera seus cortes."}
                   </p>
                 </div>
               </div>

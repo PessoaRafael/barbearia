@@ -14,7 +14,7 @@ import { pagarComCartao } from "@/app/meu-agendamento/[token]/acoes";
  *
  * Dois caminhos, e o componente aceita os dois:
  *
- *   token  — cobrança criada na hora pela InfinitePay (ou pela Stripe), com
+ *   token  — cobrança criada na hora pela InfinitePay, com
  *            o valor deste horário. Confirma sozinho na agenda quando o
  *            cliente termina de pagar.
  *   url    — link fixo colado no painel, sem integração. Confirmação na mão.

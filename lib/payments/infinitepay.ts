@@ -13,8 +13,7 @@ import { clienteServico } from "@/lib/supabase/servidor";
  * O pix direto na chave do Johny não tem taxa, mas só confirma quando ele
  * confere o extrato e toca em "Recebi": pago de noite, o horário vence com o
  * dinheiro já na conta. Na InfinitePay o pix também sai sem taxa, e ela avisa
- * sozinha quando cai. O cartão passa a sair por ela também, no lugar da
- * Stripe.
+ * sozinha quando cai. O cartão sai por ela também: é o único provedor.
  *
  * Checkout por link, igual ao Hub da ArqRede: só a InfiniteTag do Johny, sem
  * chave secreta. A página de pagamento é deles, e número de cartão nunca passa
@@ -37,7 +36,7 @@ function tag() {
   return (process.env.INFINITEPAY_HANDLE ?? "").trim().replace(/^\$/, "");
 }
 
-/** Duas chaves, como no PagBank e na Stripe: a tag existir não liga sozinha. */
+/** Duas chaves, como no PagBank: a tag existir não liga sozinha. */
 export function infinitepayLigado() {
   return process.env.INFINITEPAY_ATIVO === "true" && Boolean(tag());
 }
@@ -253,7 +252,7 @@ async function confirmarHorario(volta: VoltaInfinitepay): Promise<Confirmacao> {
     return { ok: false, motivo: "nao_pago", repetir: false };
   }
 
-  // O `confirmar_pix` é o mesmo da Stripe e não lança o caixa duas vezes.
+  // O `confirmar_pix` é o mesmo do pix de sempre e não lança o caixa duas vezes.
   // Pago depois do prazo com a cadeira ainda livre, ele devolve o horário.
   const { error } = await supabase.rpc("confirmar_pix", { p_txid: volta.pedido });
 

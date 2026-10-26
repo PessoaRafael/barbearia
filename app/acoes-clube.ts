@@ -12,11 +12,6 @@ import {
 } from "@/lib/payments/infinitepay";
 import { linkDoValor } from "@/lib/payments/links";
 import { provedorAtual } from "@/lib/payments/provider";
-import {
-  cartaoLigado,
-  sessaoDeAssinatura,
-  sessaoDoClube,
-} from "@/lib/payments/stripe";
 import { svgDoBrcode } from "@/lib/pix/qr";
 import { clienteServico } from "@/lib/supabase/servidor";
 
@@ -70,7 +65,7 @@ export async function pedirClube(
   // navegador é preço que o cliente escolhe.
   const { data: plano } = await supabase
     .from("club_plans")
-    .select("id, nome, preco_centavos, stripe_price_id")
+    .select("id, nome, preco_centavos")
     .eq("id", analise.data.planoId)
     .eq("barbershop_id", barbearia.id)
     .eq("ativo", true)
@@ -163,84 +158,4 @@ export async function pedirClube(
     jaAssinante: Boolean(assinatura),
     linkCartao: await linkDoValor(barbearia.id, plano.preco_centavos),
   };
-}
-
-/**
- * Entrar no clube pagando no cartão.
- *
- * Mesma peça do agendamento: a Stripe hospeda a página, o valor sai do plano
- * escolhido, e a volta é o webhook. A diferença é só o que ele faz na volta —
- * lá confirma um horário, aqui liga a assinatura.
- *
- * O cliente é criado antes de mandar para a Stripe, porque é o id dele que
- * viaja no metadata. Sem isso o webhook voltaria com um nome e um telefone e
- * teria que adivinhar quem é.
- */
-export async function assinarNoCartao(dados: z.input<typeof entrada>) {
-  const analise = entrada.safeParse(dados);
-  if (!analise.success) return { erro: "Confira nome e WhatsApp." };
-  if (!cartaoLigado()) return { erro: "Cartão não está disponível agora." };
-
-  const site = process.env.SITE_URL?.replace(/\/$/, "");
-  if (!site) return { erro: "Cartão não está disponível agora." };
-
-  const barbearia = await casa();
-  const supabase = clienteServico();
-  const telefone = telefoneChave(analise.data.telefone);
-
-  const { data: plano } = await supabase
-    .from("club_plans")
-    .select("id, nome, preco_centavos, stripe_price_id")
-    .eq("id", analise.data.planoId)
-    .eq("barbershop_id", barbearia.id)
-    .eq("ativo", true)
-    .maybeSingle();
-
-  if (!plano) return { erro: "Esse plano não está mais disponível." };
-
-  const { data: cliente } = await supabase
-    .from("clients")
-    .upsert(
-      { barbershop_id: barbearia.id, nome: analise.data.nome, telefone },
-      { onConflict: "barbershop_id,telefone" },
-    )
-    .select("id")
-    .single();
-
-  if (!cliente) return { erro: "Não consegui te cadastrar agora." };
-
-  try {
-    /**
-     * Com preço recorrente cadastrado, a assinatura se cobra sozinha a cada
-     * 30 dias. Sem ele, cai na cobrança avulsa de sempre — que funciona, só
-     * exige o cliente voltar todo mês.
-     *
-     * A escolha é do plano, não da tela: assim dá para ligar a recorrência em
-     * um plano de cada vez, sem tocar em código.
-     */
-    const sessao = plano.stripe_price_id
-      ? await sessaoDeAssinatura({
-          barbeariaId: barbearia.id,
-          clienteId: cliente.id,
-          planoId: plano.id,
-          precoStripe: plano.stripe_price_id,
-          clienteNome: analise.data.nome,
-          siteUrl: site,
-        })
-      : await sessaoDoClube({
-          barbeariaId: barbearia.id,
-          clienteId: cliente.id,
-          planoId: plano.id,
-          planoNome: plano.nome,
-          valorCentavos: plano.preco_centavos,
-          clienteNome: analise.data.nome,
-          siteUrl: site,
-        });
-
-    return { ok: true, url: sessao.url, recorrente: Boolean(plano.stripe_price_id) };
-  } catch (erro) {
-    console.error("stripe clube:", (erro as Error).message);
-    // Cai no pix, que continua funcionando: ninguém fica sem como assinar.
-    return { erro: "Não consegui abrir o cartão. Use o pix." };
-  }
 }
